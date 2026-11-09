@@ -8,8 +8,8 @@
 
 | 항목 | 제안 | 결정 |
 | --- | --- | --- |
-| 배지 숫자의 의미 | **읽지 않은 메시지가 있는 방의 수** (메시지 총수 아님). 방 3개에 메시지 50개면 "3". 방 단위가 행동(어느 방에 들어갈지)과 일치 | ❓ 메시지 수 vs 방 수 |
-| 알림 저장 | `Notification` 테이블 **없음.** 배지 = `COUNT(room WHERE 상대 메시지 createdAt > 내 lastReadAt)`. 알림 목록 화면이 없으므로 저장할 이유가 없음 | ❓ |
+| 배지 숫자의 의미 | **읽지 않은 메시지가 있는 방의 수** (메시지 총수 아님). 방 3개에 메시지 50개면 "3" → [결정 0008](../decisions/0008-badge-means-rooms.md) | — |
+| 알림 저장 | `Notification` 테이블 **없음.** 배지 = `COUNT(room WHERE 상대 메시지 createdAt > 내 lastReadAt)` → [결정 0008](../decisions/0008-badge-means-rooms.md) | — |
 | 알림 종류 | 새 메시지 하나뿐. 상태 변경 · 거래완료 지정 알림은 1차 없음 | ❓ |
 | 전달 경로 | 소켓 `notification:unread { total }` (서버가 메시지 저장 후 수신자의 모든 세션에 push) + 앱 진입 · 포커스 복귀 시 HTTP `GET /me/unread` | — |
 | 토스트 | 채팅 목록 · 해당 채팅방이 **아닌** 화면에 있을 때만. 내용: 상대 아바타 · 닉네임 · 메시지 1줄. 클릭 시 그 방으로. 5초 자동 소멸 | ❓ |
@@ -43,7 +43,7 @@
 
 | ID | 상황 | 기대 동작 (제안) | 결정 |
 | --- | --- | --- | --- |
-| NT-ST-01 | 삭제된 상품의 방에 읽지 않은 메시지 | 배지에 **포함** (→ PX-ST-13). 삭제 후엔 새 메시지가 안 생기므로 삭제 전 메시지만 해당 | ❓ |
+| NT-ST-01 | 삭제된 상품의 방에 읽지 않은 메시지 | 배지에 **포함** (→ PX-ST-13) → [결정 0006](../decisions/0006-always-soft-delete.md) | — |
 | NT-ST-02 | 거래완료 상품의 방 | 포함 | — |
 | NT-ST-03 | 비로그인 | 배지 없음, 소켓 연결 안 함 | — |
 | NT-ST-04 | 로그아웃 | 배지 0, 토스트 큐 비움, 소켓 끊음 (→ LI-LO-04) | — |
@@ -101,7 +101,7 @@
 
 | ID | 상황 | 기대 동작 (제안) | 결정 |
 | --- | --- | --- | --- |
-| NT-DT-01 | `GET /me/unread` | `{ rooms: number }` (❓ `messages: number`도 함께) | ❓ |
+| NT-DT-01 | `GET /me/unread` | `{ rooms: number }`. 메시지 수는 내리지 않음 → [결정 0008](../decisions/0008-badge-means-rooms.md) | — |
 | NT-DT-02 | 계산 쿼리 | `SELECT COUNT(*) FROM ChatRoom r JOIN ChatRoomMember m ON m.roomId = r.id AND m.userId = :me WHERE r.lastMessageAt > m.lastReadAt AND r.lastMessageSenderId != :me`. 비정규화 컬럼 덕에 Message 테이블 조인 없음 | — |
 | NT-DT-03 | 인덱스 | `ChatRoomMember(userId, roomId)` + `ChatRoom(lastMessageAt)` | — |
 | NT-DT-04 | 소켓 사용자 룸 | 연결 시 `socket.join("user:" + userId)`. 알림은 이 룸으로 | — |

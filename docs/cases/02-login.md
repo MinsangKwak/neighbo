@@ -58,11 +58,11 @@
 
 | ID | 상황 | 기대 동작 (제안) | 결정 |
 | --- | --- | --- | --- |
-| LI-TK-01 | 쿠키 속성 | `HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=7d` (→ CM-AU-04) | ❓ |
-| LI-TK-02 | 프론트(Vercel)와 백엔드(Railway) 도메인이 다름 | 쿠키가 교차 사이트가 됨. 선택지: (a) Next.js Route Handler로 API 프록시해 같은 오리진 유지 (b) `SameSite=None` + CORS `credentials`. 제안 **(a)** — 쿠키 문제가 사라지고 백엔드 주소도 숨김 | ❓ |
+| LI-TK-01 | 쿠키 속성 | `HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=7d` → [결정 0003](../decisions/0003-jwt-httponly-cookie.md) | — |
+| LI-TK-02 | 프론트(Vercel)와 백엔드(Railway) 도메인이 다름 | Next.js Route Handler로 API를 프록시해 같은 오리진 유지. 소켓 연결의 쿠키 전달은 기술 노트에서 검증 후 확정 → [결정 0004](../decisions/0004-api-proxy-same-origin.md) | — |
 | LI-TK-03 | 토큰 페이로드 | `sub(userId), iat, exp`만. 닉네임 등은 넣지 않음(변경 시 불일치) | — |
-| LI-TK-04 | 토큰 갱신 | 요청마다 남은 기간이 절반 이하면 새 쿠키 발급(슬라이딩). 리프레시 토큰 없음 | ❓ |
-| LI-TK-05 | 비밀번호 변경 후 기존 토큰 | 마이페이지에서 비밀번호 변경 시, `User.tokenVersion`을 올리고 토큰에 포함해 과거 토큰 무효화 | ❓ 1차 포함 여부 |
+| LI-TK-04 | 토큰 갱신 | 요청마다 남은 기간이 절반 이하면 새 쿠키 발급(슬라이딩). 리프레시 토큰 없음 → [결정 0003](../decisions/0003-jwt-httponly-cookie.md) | — |
+| LI-TK-05 | 비밀번호 변경 후 기존 토큰 | `User.tokenVersion`을 올리고 토큰에 포함해 과거 토큰 무효화. 1차 포함 → [결정 0003](../decisions/0003-jwt-httponly-cookie.md) | — |
 | LI-TK-06 | 서버 컴포넌트에서 사용자 조회 실패 (백엔드 다운) | 비로그인 상태로 렌더하지 않고 → CM-NW-01 에러 상태 | — |
 | LI-TK-07 | 소켓 연결의 인증 | 같은 쿠키를 핸드셰이크에서 검증. 만료면 `connect_error` → 재로그인 유도 | — |
 
@@ -85,7 +85,7 @@
 | LI-UI-02 | 비밀번호 찾기 링크 | 두지 않음 (→ SU-DT-06) | ⛔ |
 | LI-UI-03 | 소셜 로그인 버튼 | 두지 않음 | ⛔ |
 | LI-UI-04 | 데모 계정 안내 | 로그인 폼 아래 "둘러보기용 계정: demo@neighbo.app / 비밀번호" + [채워 넣기] 버튼. Staging · Production 모두 노출 | ❓ |
-| LI-UI-05 | 비로그인으로 볼 수 있는 화면 | 중고 목록 · 거래 상세는 비로그인 열람 가능. 채팅 시작 · 등록 · 마이페이지는 로그인 필요 | ❓ |
+| LI-UI-05 | 비로그인으로 볼 수 있는 화면 | 중고 목록 · 검색 · 거래 상세는 비로그인 열람 가능. 그 외는 로그인 필요 → [결정 0011](../decisions/0011-public-browse.md) | — |
 
 ## 데이터
 

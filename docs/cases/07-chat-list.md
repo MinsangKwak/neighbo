@@ -79,7 +79,7 @@
 | CL-A11Y-03 | 목록 구조 | `<ul>` + 각 행 `<a>` | — |
 | CL-A11Y-04 | 상태 배지 (예약중 등) | 텍스트 포함 | — |
 | CL-UI-01 | 360px | 행 높이 72px. 썸네일 48px | — |
-| CL-UI-02 | 1024px | 폭 640px (또는 좌 목록 · 우 채팅방 2단 — ❓ 데스크톱 2단 레이아웃은 구현 비용 큼. 1차 단일 열) | ❓ |
+| CL-UI-02 | 1024px | 폭 640px 단일 열. 2단 레이아웃 없음 → [결정 0014](../decisions/0014-single-column-640.md) | — |
 | CL-UI-03 | 스켈레톤 | 행 모양 6개 | — |
 | CL-UI-04 | 탭바 [채팅] 배지 | NT 문서 | — |
 | CL-UI-05 | 시각 표시 | → CM-DT-01. 오늘이면 "오후 3:24" 형식이 더 익숙 — ❓ 상대시간 vs 시각 | ❓ |
@@ -89,7 +89,7 @@
 | ID | 상황 | 기대 동작 (제안) | 결정 |
 | --- | --- | --- | --- |
 | CL-DT-20 | 목록 API | `GET /chat-rooms?cursor=&limit=30&productId=` → `items: [{ id, product: {id, title, thumbnailUrl, status, deletedAt}, partner: 공개용 user, lastMessage: {content, createdAt, senderId} \| null, unreadCount, myRole: "seller"\|"buyer" }]` | — |
-| CL-DT-21 | `unreadCount` 계산 | `COUNT(Message WHERE roomId AND senderId != me AND createdAt > myLastReadAt)`. `ChatRoomMember.lastReadAt` 방식 (CH 문서에서 확정) | ❓ |
+| CL-DT-21 | `unreadCount` 계산 | `COUNT(Message WHERE roomId AND senderId != me AND createdAt > myLastReadAt)`. `ChatRoomMember.lastReadAt` 방식 → [결정 0007](../decisions/0007-read-state.md) | — |
 | CL-DT-22 | 비정규화 컬럼 | `ChatRoom.lastMessageAt · lastMessagePreview · lastMessageSenderId`. 메시지 저장 트랜잭션에서 갱신 | — |
 | CL-DT-23 | 상대(partner) 결정 | `myRole === "seller" ? buyer : seller` | — |
 | CL-DT-24 | 삭제된 상품 포함 조회 | `withDeleted()` 명시 (→ PX-DT-04) | — |

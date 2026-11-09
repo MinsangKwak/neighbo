@@ -12,14 +12,14 @@
 | MP-OK-02 | 판매 목록 탭 | 기본 "판매중". 각 탭은 `?status=` 쿼리. 목록 컴포넌트는 PL과 동일(카드) | — |
 | MP-OK-03 | 카드 클릭 | 상세로 | — |
 | MP-OK-04 | 카드에서 바로 상태 변경 | 1차: 없음. 상세에서만 (→ PD-TR-03). 카드가 복잡해짐 | ❓ |
-| MP-OK-05 | 구매 내역 탭 | PD-TR-04(거래완료 구매자 지정)를 넣으면 가능. 제안: **넣는다** — "거래가 성사됐다"는 데이터가 생겨야 서비스가 완결됨 | ❓ |
+| MP-OK-05 | 구매 내역 탭 | **넣는다.** 거래완료 시 구매자 지정과 한 묶음 → [결정 0012](../decisions/0012-buyer-assignment.md) | — |
 | MP-OK-06 | 프로필 수정 진입 `/me/edit` | 닉네임 입력 + (아바타 변경) + [저장] | — |
 | MP-OK-07 | 닉네임 변경 저장 | `PATCH /me { nickname }` → 토스트 "저장했어요" → `/me`로. 헤더 · 채팅 목록 등 캐시 무효화 | — |
 | MP-OK-08 | 아바타 변경 | 제안: **1차 포함.** 사진 1장 선택 → 클라이언트 리사이즈(512px 정사각 중앙 크롭) → 업로드 → `PATCH /me { avatarUrl }`. 크롭 UI 없음 | ❓ |
 | MP-OK-09 | 아바타 삭제 (기본으로 되돌리기) | [기본 이미지로] 버튼 → `avatarUrl: null` | — |
 | MP-OK-10 | 로그아웃 | → LI-LO 절 | — |
 | MP-OK-11 | 남의 프로필 보기 `/users/{id}` | 1차 없음 (→ PD-OK-08) | ⛔ |
-| MP-OK-12 | 비밀번호 변경 | 제안: **1차 포함.** 현재 비밀번호 + 새 비밀번호 + 확인. 규칙은 SU-IN-2x와 동일. 변경 후 `tokenVersion` 증가로 다른 세션 로그아웃 (→ LI-TK-05) | ❓ |
+| MP-OK-12 | 비밀번호 변경 | **1차 포함.** 현재 비밀번호 + 새 비밀번호 + 확인. 변경 후 `tokenVersion` 증가로 다른 세션 로그아웃 → [결정 0003](../decisions/0003-jwt-httponly-cookie.md) | — |
 | MP-OK-13 | 회원 탈퇴 | 1차 없음. 메뉴에 두지 않음 | ⛔ |
 | MP-OK-14 | 이메일 표시 | 프로필 카드에 이메일 표시 (본인만 보는 화면) | ❓ |
 | MP-OK-15 | 설정 (알림 · 테마) | 없음 | ⛔ |
@@ -116,5 +116,5 @@
 | MP-DT-22 | `GET /me/purchases?cursor=` | `Product WHERE buyerId = me AND status = SOLD` (삭제 제외 — ❓ 삭제돼도 구매 내역엔 남길지) | ❓ |
 | MP-DT-23 | `PATCH /me` | `{ nickname?, avatarUrl? }` 화이트리스트 | — |
 | MP-DT-24 | `PATCH /me/password` | `{ currentPassword, newPassword }` | — |
-| MP-DT-25 | `User.tokenVersion` | 비밀번호 변경 시 +1. JWT 페이로드에 포함, 검증 시 비교 | ❓ (LI-TK-05) |
+| MP-DT-25 | `User.tokenVersion` | 비밀번호 변경 시 +1. JWT 페이로드에 포함, 검증 시 비교 → [결정 0003](../decisions/0003-jwt-httponly-cookie.md) | — |
 | MP-DT-26 | 아바타 저장 경로 | `avatars/{userId}/{uuid}.webp` | — |

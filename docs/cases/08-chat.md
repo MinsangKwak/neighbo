@@ -2,15 +2,15 @@
 
 [경우의 수 목차](README.md) · 공통: [00-common.md](00-common.md) · 앞: [07-chat-list.md](07-chat-list.md)
 
-**상품 하나를 두고 판매자와 구매자가 1:1로 텍스트를 주고받습니다.** 실시간은 Socket.IO, 이력 조회는 HTTP. 이 문서의 핵심 결정 셋: **읽음의 정의 · 끊김 후 복구 방식 · 전송 실패 처리.** 소켓은 처음 쓰는 영역이므로 04 API 문서 전에 20줄짜리 에코 서버로 한 번 돌려 본 뒤 여기 `❓`를 확정합니다.
+**상품 하나를 두고 판매자와 구매자가 1:1로 텍스트를 주고받습니다.** 실시간은 Socket.IO([결정 0005](../decisions/0005-socket-io.md)), 이력 조회는 HTTP. 읽음의 정의는 [결정 0007](../decisions/0007-read-state.md)로 확정했고, 끊김 복구 · 전송 실패 처리의 남은 `❓`는 [기술 노트 `websocket.md`](../tech/README.md)의 스파이크를 돌린 뒤 닫습니다.
 
 ## 핵심 정의 (제안)
 
 | 항목 | 제안 | 결정 |
 | --- | --- | --- |
-| 읽음 | 방마다 `ChatRoomMember.lastReadAt` 하나. "읽음" = **방 화면이 보이는 상태(탭 활성 + 문서 visible)에서 메시지 목록이 렌더된 시점.** 메시지별 `readAt` 없음 | ❓ |
+| 읽음 | 방마다 `ChatRoomMember.lastReadAt` 하나. "읽음" = **방 화면이 보이는 상태(탭 활성 + 문서 visible)에서 메시지 목록이 렌더된 시점.** 메시지별 `readAt` 없음 → [결정 0007](../decisions/0007-read-state.md) | — |
 | 읽음 갱신 시점 | ① 방 입장 시 ② 방이 보이는 동안 새 메시지 수신 시 ③ 백그라운드에서 포그라운드로 복귀 시. 각각 `room:read { roomId }` 소켓 이벤트 (HTTP 폴백 `POST /chat-rooms/{id}/read`) | — |
-| 상대 읽음 표시 ("읽음" / "1") | 1차: **표시한다.** 내 마지막 메시지 아래 "읽음" 한 번만 (카카오톡 방식 숫자 아님). 상대 `lastReadAt >= 메시지 createdAt`이면 읽음 | ❓ |
+| 상대 읽음 표시 ("읽음" / "1") | **표시한다.** 내 마지막 메시지 아래 "읽음" 한 번만. 상대 `lastReadAt >= 메시지 createdAt`이면 읽음 → [결정 0007](../decisions/0007-read-state.md) | — |
 | 전송 흐름 | 클라이언트가 `tempId` 생성 → 즉시 화면에 "전송 중" 말풍선 → `message:send` emit → 서버 저장 → ack `{ tempId, message }` → 말풍선 확정. 상대에게는 `message:new` | — |
 | 끊김 복구 | 재연결 시 `room:join { roomId, after: 마지막 메시지 id }` → 서버가 누락분 반환. 소켓 재연결 자체는 Socket.IO 기본(지수 백오프) | — |
 | 전송 실패 | ack가 5초 안에 안 오면 말풍선에 "전송 실패 [재시도] [삭제]". 재시도는 같은 `tempId`로 — 서버는 `(roomId, senderId, tempId)` 유니크로 중복 저장 방지 | — |
@@ -65,7 +65,7 @@
 | CH-AU-05 | 세션 만료된 채 방 열려 있음 | 다음 HTTP 요청 `401` → 로그인. 소켓은 연결 유지 중이면 계속 동작 — ❓ 서버가 주기적으로 토큰 만료 검사해 끊을지 | ❓ |
 | CH-ST-01 | 상품 거래완료 | 전송 **가능** (거래 후 연락 필요). 상품 요약 바에 "거래완료" 배지 | ❓ |
 | CH-ST-02 | 상품 예약중 | 전송 가능 | — |
-| CH-ST-03 | 상품 삭제됨 | 전송 불가, 입력창 비활성 + 안내 (→ PX-ST-07) | ❓ |
+| CH-ST-03 | 상품 삭제됨 | 전송 불가, 입력창 비활성 + 안내 (→ PX-ST-07) → [결정 0006](../decisions/0006-always-soft-delete.md) | — |
 | CH-ST-04 | 방 보는 중 상품이 삭제됨 | 소켓 `room:product_updated { deletedAt }` → 즉시 입력창 비활성. 1차는 다음 HTTP 조회에서 반영도 허용 | ❓ |
 | CH-ST-05 | 방 보는 중 상품 상태 변경 | CH-ST-04와 같은 이벤트로 요약 바 갱신 | ❓ |
 | CH-ST-06 | 상대가 탈퇴 | 1차 범위 밖 | ⛔ |
@@ -142,7 +142,7 @@
 | ID | 상황 | 기대 동작 (제안) | 결정 |
 | --- | --- | --- | --- |
 | CH-DT-01 | ChatRoom | `id, productId, sellerId, buyerId, lastMessageAt, lastMessagePreview, lastMessageSenderId, createdAt`. 유니크 `(productId, buyerId)` | — |
-| CH-DT-02 | ChatRoomMember | `roomId, userId, lastReadAt, joinedAt`. 복합 PK. 방 생성 시 두 행 생성 | ❓ (ChatRoom에 `sellerLastReadAt · buyerLastReadAt` 두 컬럼으로 단순화하는 안) |
+| CH-DT-02 | ChatRoomMember | `roomId, userId, lastReadAt, joinedAt`. 복합 PK. 방 생성 시 두 행 생성. `ChatRoom`에 두 컬럼으로 두는 안은 차선으로 허용, 02에서 최종 → [결정 0007](../decisions/0007-read-state.md) | ❓ |
 | CH-DT-03 | Message | `id(ulid), roomId, senderId, content, tempId, createdAt`. 인덱스 `(roomId, createdAt, id)`. 유니크 `(roomId, senderId, tempId)` | — |
 | CH-DT-04 | 메시지 삭제 · 수정 컬럼 | 없음 (`deletedAt` 등 두지 않음) | — |
 | CH-DT-05 | 메시지 보존 기간 | 영구 | — |
