@@ -29,6 +29,7 @@
 | [보호 장치와 배치](../docs/backend/07-protection.md) | rate limit · 업로드 검증 · 정리 배치 |
 | [관찰 가능성](../docs/backend/08-observability.md) | 로그 형식 · 요청 ID · 남기지 않는 것 |
 | [소켓 서버](../docs/backend/09-socket-server.md) | 이벤트별 처리 순서와 실패 시 동작 |
+| [API 명세](../docs/backend/10-api.md) | 요청 · 응답 모양과 공유 타입 — 프론트와의 계약 |
 
 ## 근거 문서
 
