@@ -20,7 +20,7 @@
 
 | 노트 | 다루는 기술 | 밑바닥 구현 (스파이크) | 상태 |
 | --- | --- | --- | --- |
-| `websocket.md` | WebSocket 프로토콜 · Socket.IO | ① `ws`만으로 에코 서버 — 핸드셰이크 헤더(`Upgrade` · `Sec-WebSocket-Key`) 직접 확인 ② ping/pong과 끊김 감지 ③ 지수 백오프 재연결 ④ 끊긴 동안 놓친 메시지를 `after` 커서로 복구 ⑤ 같은 것을 Socket.IO로 다시 만들어 **사라진 코드 목록** 작성 | 예정 — **01 요구사항 전에** (경우의 수 08의 `❓`를 이걸 보고 닫음) |
+| [`websocket.md`](websocket.md) | WebSocket 프로토콜 · Socket.IO | ① `ws`만으로 에코 서버 — 핸드셰이크 헤더(`Upgrade` · `Sec-WebSocket-Key`) 직접 확인 ② ping/pong과 끊김 감지 ③ 지수 백오프 재연결 ④ 끊긴 동안 놓친 메시지를 `after` 커서로 복구 ⑤ 같은 것을 Socket.IO로 다시 만들어 **사라진 코드 목록** 작성 | **작성** — 스파이크 6개, 원인 노트 3건 |
 | `jwt-and-cookies.md` | JWT 구조 · HMAC 서명 · 쿠키 속성 · CSRF | ① `crypto.createHmac`만으로 JWT 서명 · 검증 (base64url · 만료 · 변조 탐지) ② 쿠키 `SameSite` 세 값이 교차 사이트 요청에서 각각 어떻게 동작하는지 두 오리진 띄워 표로 ③ 다른 오리진에서 `fetch` + `credentials`로 CSRF가 실제로 되는지 · `Origin` 검사로 막히는지 | 예정 |
 | `password-hashing.md` | bcrypt · 레인보우 테이블 · cost | ① 같은 비밀번호를 두 번 해시해 salt 확인 ② cost 10 · 12 · 14의 소요 시간 측정 → 12 선택 근거 ③ 로그인 실패 시 더미 해시 비교로 응답 시간 평탄화 확인 | 예정 |
 | `postgres-constraints.md` | 유니크 · 부분 인덱스 · 트랜잭션 · 격리 수준 | ① 두 커넥션에서 동시에 같은 `(productId, buyerId)` 채팅방 insert → 하나가 유니크 위반으로 실패하는 것을 **재현** ② 부분 유니크 인덱스 `WHERE deletedAt IS NULL` 동작 ③ 메시지 저장 + 방 갱신을 트랜잭션 없이 했을 때 중간 실패 재현 → 트랜잭션으로 해결 ④ `EXPLAIN`으로 커서 페이지네이션 인덱스 사용 확인 | 예정 |
