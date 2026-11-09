@@ -137,7 +137,7 @@ socket.on('data', (chunk) => {
 | 다른 세션 동기화 | 연결 시 `user:{userId}` 룸에 조인. 읽음 · 배지는 이 룸으로 | ⑤ 두 탭 |
 | 상품 변경 실시간 반영 | 상태 변경 · 삭제 · 가격 수정 시 그 상품의 모든 방(`room:{id}`)에 `room:product_updated` | 룸 비용 낮음 |
 | 서버가 끊을 때 | 토큰 만료 → `error: UNAUTHORIZED` 후 `disconnect()`. 클라이언트는 `disconnect` 이유가 `io server disconnect`면 재로그인 화면으로, 로그인 후 수동 `connect()` | ⑤ |
-| 인증 | 프론트(같은 오리진)가 `/api/socket-token`으로 **60초짜리 소켓 전용 토큰**을 받아 `io(SOCKET_URL, { auth: { token } })`. 서버 미들웨어가 검증. 재연결마다 새 토큰(`auth`를 함수로) | ⑤ `handshake.auth` 동작 확인 · [결정 0004 갱신](../decisions/0004-api-proxy-same-origin.md) |
+| 인증 | 프론트(같은 오리진)가 `/api/auth/socket-token`으로 **60초짜리 소켓 전용 토큰**을 받아 `io(SOCKET_URL, { auth: { token } })`. 서버 미들웨어가 검증. 재연결마다 새 토큰(`auth`를 함수로) | ⑤ `handshake.auth` 동작 확인 · [결정 0004 갱신](../decisions/0004-api-proxy-same-origin.md) |
 | 저장 순서 | DB 커밋 → emit. 반대 금지 | ③ |
 | 폴링 폴백 | Socket.IO 기본(`websocket` → 실패 시 `polling`). 별도 HTTP 폴링 루프는 두지 않음 | ⑤ |
 
