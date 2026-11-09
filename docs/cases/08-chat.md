@@ -2,7 +2,7 @@
 
 [경우의 수 목차](README.md) · 공통: [00-common.md](00-common.md) · 앞: [07-chat-list.md](07-chat-list.md)
 
-**상품 하나를 두고 판매자와 구매자가 1:1로 텍스트를 주고받습니다.** 실시간은 Socket.IO([결정 0005](../decisions/0005-socket-io.md)), 이력 조회는 HTTP. 읽음의 정의는 [결정 0007](../decisions/0007-read-state.md)로 확정했고, 끊김 복구 · 전송 실패 처리의 남은 `❓`는 [기술 노트 `websocket.md`](../tech/README.md)의 스파이크를 돌린 뒤 닫습니다.
+**상품 하나를 두고 판매자와 구매자가 1:1로 텍스트를 주고받습니다.** 실시간은 Socket.IO([결정 0005](../decisions/0005-socket-io.md)), 이력 조회는 HTTP. 읽음의 정의는 [결정 0007](../decisions/0007-read-state.md)로 확정했고, 끊김 복구 · 전송 실패 처리는 [기술 노트 `websocket.md`](../tech/websocket.md)의 스파이크 여섯 개로 확인한 뒤 닫았습니다.
 
 ## 핵심 정의 (제안)
 
@@ -62,12 +62,12 @@
 | CH-AU-02 | 참여자가 아닌 사용자가 소켓 `room:join` | `error: FORBIDDEN`, 조인 거부 | — |
 | CH-AU-03 | 참여자가 아닌 사용자가 `message:send` | `error: FORBIDDEN`. 조인하지 않은 방에는 보낼 수 없음 (서버가 소켓별 조인 방 추적) | — |
 | CH-AU-04 | 비로그인 소켓 연결 | 핸드셰이크 거부 → `connect_error` (→ LI-TK-07) | — |
-| CH-AU-05 | 세션 만료된 채 방 열려 있음 | 서버가 소켓 이벤트를 처리할 때마다 토큰 `exp`를 검사. 만료면 `error: UNAUTHORIZED` 후 `disconnect`. 클라이언트는 재로그인 유도 | — |
+| CH-AU-05 | 세션 만료된 채 방 열려 있음 | 서버가 소켓 이벤트를 처리할 때마다 토큰 `exp`를 검사. 만료면 `error: UNAUTHORIZED` 후 `disconnect`. 서버가 끊으면 Socket.IO는 자동 재연결하지 않으므로(`io server disconnect`, 스파이크 ⑤) 클라이언트가 이 이유를 보고 재로그인 화면으로, 로그인 후 수동 `connect()` | — |
 | CH-ST-01 | 상품 거래완료 | 전송 **가능** (거래 후 연락 필요). 상품 요약 바에 "거래완료" 배지 | — |
 | CH-ST-02 | 상품 예약중 | 전송 가능 | — |
 | CH-ST-03 | 상품 삭제됨 | 전송 불가, 입력창 비활성 + 안내 (→ PX-ST-07) → [결정 0006](../decisions/0006-always-soft-delete.md) | — |
-| CH-ST-04 | 방 보는 중 상품이 삭제됨 | 소켓 `room:product_updated { deletedAt }` → 즉시 입력창 비활성. 1차는 다음 HTTP 조회에서 반영도 허용 | ❓ 스파이크 뒤 |
-| CH-ST-05 | 방 보는 중 상품 상태 변경 | CH-ST-04와 같은 이벤트로 요약 바 갱신 | ❓ 스파이크 뒤 |
+| CH-ST-04 | 방 보는 중 상품이 삭제됨 | 서버가 상품 삭제 시 그 상품의 모든 방에 `room:product_updated { deletedAt }` → 즉시 입력창 비활성 + 안내 → [websocket.md](../tech/websocket.md) | — |
+| CH-ST-05 | 방 보는 중 상품 상태 변경 | 상태 변경 · 가격 수정도 같은 이벤트로 요약 바 갱신 → [websocket.md](../tech/websocket.md) | — |
 | CH-ST-06 | 상대가 탈퇴 | 1차 범위 밖 | ⛔ |
 | CH-ST-07 | 상대가 방을 나감 | 나가기 없음 | ⛔ |
 
@@ -79,17 +79,17 @@
 | CH-CC-02 | ack 전에 재시도 버튼 (5초 안) | 재시도 버튼은 5초 후에만 표시 | — |
 | CH-CC-03 | ack는 못 받았지만 서버는 저장함 → 재시도 | `tempId` 유니크로 서버가 기존 메시지 반환 → 중복 없음 | — |
 | CH-CC-04 | 내 두 탭에서 같은 방 | 둘 다 `room:join`. 한 탭이 보낸 메시지는 다른 탭에도 `message:new`로 (내 다른 세션에게도 브로드캐스트) | — |
-| CH-CC-05 | 내 두 탭 중 한 탭만 보는 중 | 보는 탭이 `room:read` → 서버는 내 모든 세션에 `room:read_synced` → 다른 탭 배지도 0 | ❓ 스파이크 뒤 |
+| CH-CC-05 | 내 두 탭 중 한 탭만 보는 중 | 보는 탭이 `room:read` → 서버가 `user:{id}` 룸으로 내 모든 세션에 `room:read` → 다른 탭 배지도 0. 스파이크 ⑤에서 두 탭 동기화 확인 → [websocket.md](../tech/websocket.md) | — |
 | CH-CC-06 | 상대와 동시에 전송 | 서버 도착 순 = `createdAt` 순. 클라이언트는 ack 받은 뒤 서버 `createdAt`으로 재정렬 (전송 중 말풍선은 임시로 맨 아래) | — |
 | CH-CC-07 | 같은 밀리초 메시지 2개 | `(createdAt, id)` 정렬. `id`는 시간 순 정렬 가능한 cuid2/ulid | — |
 | CH-CC-08 | 끊긴 동안 메시지 200개 | 재연결 시 `after` 기준 최대 100개 반환 + `hasMore`. 넘으면 클라이언트가 HTTP로 나머지 | — |
-| CH-CC-09 | 소켓은 끊겼는데 사용자가 전송 | 즉시 "전송 실패"가 아니라 "연결 중…" 상태로 큐에 보관. 재연결 후 순서대로 emit. 30초 넘으면 실패 처리 | ❓ 스파이크 뒤 |
+| CH-CC-09 | 소켓은 끊겼는데 사용자가 전송 | `connected=false`면 emit하지 않고 앱 대기열에 보관, 말풍선 "연결 중…". `connect` 이벤트에서 같은 `tempId`로 순서대로 재전송, 30초 넘으면 "전송 실패". Socket.IO 내부 버퍼에 기대지 않는다 — 타임아웃 없이 버퍼에 남으면 재연결 후 몰래 전송되는 것을 스파이크 ⑤에서 확인 → [websocket.md](../tech/websocket.md) | — |
 | CH-CC-10 | 소켓 재연결 직후 `room:join` 전에 메시지 도착 | 서버는 조인 안 된 소켓에 안 보냄. 조인 응답의 누락분에 포함됨 | — |
 | CH-CC-11 | 백그라운드 탭 (모바일 사파리가 소켓 끊음) | `visibilitychange`로 복귀 감지 → 연결 확인 → `room:join` 누락분 → `room:read` | — |
 | CH-CC-12 | 상대가 읽음 → 내 "읽음" 표시 | `room:read` 수신 시 상대 `lastReadAt` 갱신 → 내 마지막 메시지 아래 "읽음" | — |
 | CH-CC-13 | 서버 재시작 (배포) | 모든 소켓 끊김 → 클라이언트 자동 재연결 → 누락분 복구. 서버 메모리에 상태 없음(조인 정보는 재연결 시 다시 받음) | — |
 | CH-CC-14 | 서버 인스턴스 2개 이상 | 1차: 단일 인스턴스. 수평 확장 시 Redis 어댑터 필요 — 06 규칙에 "확장 시 할 일"로 기록 | — |
-| CH-CC-15 | 하트비트 | Socket.IO 기본 (`pingInterval 25s`). 별도 구현 없음 | — |
+| CH-CC-15 | 하트비트 | Socket.IO `pingInterval 10s` · `pingTimeout 5s` → 최대 15초 안에 끊김 감지. 기본값(25s + 20s = 45초)은 "보낸 줄 아는 창"이 너무 길다 → [websocket.md](../tech/websocket.md) | — |
 
 ## 네트워크 · 실패
 
@@ -97,7 +97,7 @@
 | --- | --- | --- | --- |
 | CH-NW-01 | 첫 메시지 로드 실패 | → CM-NW-01 (본문 영역만, 입력창은 비활성) | — |
 | CH-NW-02 | 과거 메시지 로드 실패 | 상단에 "불러오지 못했어요 [다시 시도]" | — |
-| CH-NW-03 | 소켓 연결 안 됨 (HTTP는 됨) | 상단 얇은 바 "실시간 연결이 끊겼어요. 다시 연결 중…". 전송은 CH-CC-09 큐. 수신은 안 됨 — ❓ HTTP 폴링 폴백(10초마다) | ❓ 스파이크 뒤 |
+| CH-NW-03 | 소켓 연결 안 됨 (HTTP는 됨) | 5초 넘게 끊기면 상단 얇은 바 "실시간 연결이 끊겼어요. 다시 연결 중…"(`role="status"`). 별도 HTTP 폴링 루프는 두지 않는다 — Socket.IO가 WebSocket 실패 시 long-polling으로 폴백하고, 재연결 최대 간격 5초 + `after` 커서 복구로 충분 → [websocket.md](../tech/websocket.md) | — |
 | CH-NW-04 | 소켓 연결은 됐는데 ack가 안 옴 | 5초 후 전송 실패 표시 | — |
 | CH-NW-05 | `room:join` 실패 | 재시도 3회 후 CH-NW-03 바 표시 | — |
 | CH-NW-06 | 느린 네트워크 | 전송 중 말풍선이 오래 보임 — 허용. 실패 기준은 시간(5초) | — |
@@ -107,7 +107,7 @@
 
 | ID | 상황 | 기대 동작 (제안) | 결정 |
 | --- | --- | --- | --- |
-| CH-A11Y-01 | 메시지 목록 | `role="log" aria-live="polite" aria-relevant="additions"`. 새 메시지가 읽힘. 내 메시지는 읽지 않도록 `aria-live` 영역 밖에서 추가 후 이동 — 복잡하므로 1차는 상대 메시지만 별도 `aria-live` 영역에 텍스트 복제 | ❓ 스파이크 뒤 |
+| CH-A11Y-01 | 메시지 목록 | 메시지 목록은 `role="log"`이되 `aria-live`를 끄고, 별도의 시각 숨김 `role="status"` 영역에 **상대 메시지만** "{닉네임}: {내용}"으로 넣는다. 내 메시지 · 과거 메시지 로드가 읽히지 않게 | — |
 | CH-A11Y-02 | 말풍선 접근 가능한 이름 | "{보낸 사람}, {내용}, {시각}". 내 것은 "나" | — |
 | CH-A11Y-03 | 입력창 | `<label>` 시각 숨김 "메시지 입력". [전송] `aria-label="보내기"` | — |
 | CH-A11Y-04 | [새 메시지 ↓] 버튼 | 포커스 가능, 누르면 맨 아래 + 마지막 메시지로 포커스 | — |
@@ -142,7 +142,7 @@
 | ID | 상황 | 기대 동작 (제안) | 결정 |
 | --- | --- | --- | --- |
 | CH-DT-01 | ChatRoom | `id, productId, sellerId, buyerId, lastMessageAt, lastMessagePreview, lastMessageSenderId, createdAt`. 유니크 `(productId, buyerId)` | — |
-| CH-DT-02 | ChatRoomMember | `roomId, userId, lastReadAt, joinedAt`. 복합 PK. 방 생성 시 두 행 생성. `ChatRoom`에 두 컬럼으로 두는 안은 차선으로 허용, 02에서 최종 → [결정 0007](../decisions/0007-read-state.md) | ❓ 스파이크 뒤 |
+| CH-DT-02 | ChatRoomMember | `roomId, userId, lastReadAt, joinedAt`. 복합 PK. 방 생성 시 두 행 생성. `ChatRoom` 두 컬럼 안과의 선택은 동작에 영향이 없어 02 데이터 모델에서 쿼리 단순성으로 결정 (01 12절) → [결정 0007](../decisions/0007-read-state.md) | — |
 | CH-DT-03 | Message | `id(ulid), roomId, senderId, content, tempId, createdAt`. 인덱스 `(roomId, createdAt, id)`. 유니크 `(roomId, senderId, tempId)` | — |
 | CH-DT-04 | 메시지 삭제 · 수정 컬럼 | 없음 (`deletedAt` 등 두지 않음) | — |
 | CH-DT-05 | 메시지 보존 기간 | 영구 | — |
