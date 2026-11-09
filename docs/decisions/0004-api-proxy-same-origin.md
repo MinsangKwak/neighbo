@@ -14,7 +14,7 @@ Next.js Route Handler `app/api/[...path]/route.ts`가 `/api/*` 요청을 백엔�
 
 **소켓은 예외** — Vercel 함수는 WebSocket 상시 연결을 중계할 수 없으므로 브라우저가 백엔드에 직접 연결한다. 이때 교차 사이트 쿠키에 기대지 않는다:
 
-1. 프론트가 같은 오리진의 `GET /api/socket-token`을 호출 (일반 세션 쿠키로 인증, 프록시 경유)
+1. 프론트가 같은 오리진의 `GET /api/auth/socket-token`을 호출 (일반 세션 쿠키로 인증, 프록시 경유)
 2. 백엔드가 `{ sub, purpose: "socket", exp: 60초 }` JWT를 발급
 3. `io(SOCKET_URL, { auth: (cb) => fetchToken().then((token) => cb({ token })) })` — `auth`를 함수로 두어 재연결마다 새 토큰
 4. 소켓 미들웨어가 `handshake.auth.token`을 검증 (`purpose`가 다르면 거부)

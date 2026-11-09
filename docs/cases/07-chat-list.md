@@ -9,7 +9,7 @@
 | ID | 상황 | 기대 동작 (제안) | 결정 |
 | --- | --- | --- | --- |
 | CL-OK-01 | 하단 탭 [채팅] 진입 `/chats` | 로그인 필요 (→ CM-AU-01). 첫 30개 SSR, 이후 [더 보기] (→ PL-OK-04와 같은 방식) | — |
-| CL-OK-02 | 정렬 | `lastMessageAt DESC`. 메시지가 아직 없는 방(생성만 됨)은 `createdAt` 기준 | — |
+| CL-OK-02 | 정렬 | 최근 활동순 — `ChatRoomMember.lastActivityAt DESC`(방 생성 시 생성 시각, 메시지마다 갱신). `COALESCE(lastMessageAt, createdAt)` 정렬은 인덱스를 못 타서 컬럼으로 둠 → [백엔드 02](../backend/02-data-model.md) | — |
 | CL-OK-03 | 행 구성 | 좌: 상대 아바타(40px) · 중: 상대 닉네임 + 마지막 메시지 1줄 말줄임 · 우: 상대시간 + 배지 · 맨 우: 상품 썸네일(48px) | — |
 | CL-OK-04 | 행 클릭 | `/chats/{roomId}` | — |
 | CL-OK-05 | 판매자 · 구매자 구분 | 행에 "판매" · "구매" 작은 라벨 (내가 이 방에서 어느 쪽인지) | — |

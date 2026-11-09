@@ -81,7 +81,7 @@
 | CH-CC-04 | 내 두 탭에서 같은 방 | 둘 다 `room:join`. 한 탭이 보낸 메시지는 다른 탭에도 `message:new`로 (내 다른 세션에게도 브로드캐스트) | — |
 | CH-CC-05 | 내 두 탭 중 한 탭만 보는 중 | 보는 탭이 `room:read` → 서버가 `user:{id}` 룸으로 내 모든 세션에 `room:read` → 다른 탭 배지도 0. 스파이크 ⑤에서 두 탭 동기화 확인 → [websocket.md](../tech/websocket.md) | — |
 | CH-CC-06 | 상대와 동시에 전송 | 서버 도착 순 = `createdAt` 순. 클라이언트는 ack 받은 뒤 서버 `createdAt`으로 재정렬 (전송 중 말풍선은 임시로 맨 아래) | — |
-| CH-CC-07 | 같은 밀리초 메시지 2개 | `(createdAt, id)` 정렬. `id`는 시간 순 정렬 가능한 cuid2/ulid | — |
+| CH-CC-07 | 같은 밀리초 메시지 2개 | `(createdAt, id)` 정렬 — 같은 시각이면 `id`가 순서를 고정. `id`는 cuid라 시간순은 아니지만 정렬 안정성에는 충분 → [백엔드 02](../backend/02-data-model.md) | — |
 | CH-CC-08 | 끊긴 동안 메시지 200개 | 재연결 시 `after` 기준 최대 100개 반환 + `hasMore`. 넘으면 클라이언트가 HTTP로 나머지 | — |
 | CH-CC-09 | 소켓은 끊겼는데 사용자가 전송 | `connected=false`면 emit하지 않고 앱 대기열에 보관, 말풍선 "연결 중…". `connect` 이벤트에서 같은 `tempId`로 순서대로 재전송, 30초 넘으면 "전송 실패". Socket.IO 내부 버퍼에 기대지 않는다 — 타임아웃 없이 버퍼에 남으면 재연결 후 몰래 전송되는 것을 스파이크 ⑤에서 확인 → [websocket.md](../tech/websocket.md) | — |
 | CH-CC-10 | 소켓 재연결 직후 `room:join` 전에 메시지 도착 | 서버는 조인 안 된 소켓에 안 보냄. 조인 응답의 누락분에 포함됨 | — |
@@ -143,7 +143,7 @@
 | --- | --- | --- | --- |
 | CH-DT-01 | ChatRoom | `id, productId, sellerId, buyerId, lastMessageAt, lastMessagePreview, lastMessageSenderId, createdAt`. 유니크 `(productId, buyerId)` | — |
 | CH-DT-02 | ChatRoomMember | `roomId, userId, lastReadAt, joinedAt`. 복합 PK. 방 생성 시 두 행 생성. `ChatRoom` 두 컬럼 안과의 선택은 동작에 영향이 없어 02 데이터 모델에서 쿼리 단순성으로 결정 (01 12절) → [결정 0007](../decisions/0007-read-state.md) | — |
-| CH-DT-03 | Message | `id(ulid), roomId, senderId, content, tempId, createdAt`. 인덱스 `(roomId, createdAt, id)`. 유니크 `(roomId, senderId, tempId)` | — |
+| CH-DT-03 | Message | `id(cuid), roomId, senderId, content, tempId, createdAt`. 인덱스 `(roomId, createdAt, id)`. 유니크 `(roomId, senderId, tempId)` | — |
 | CH-DT-04 | 메시지 삭제 · 수정 컬럼 | 없음 (`deletedAt` 등 두지 않음) | — |
 | CH-DT-05 | 메시지 보존 기간 | 영구 | — |
 | CH-DT-06 | 소켓 이벤트 목록 (클라 → 서버) | `room:join {roomId, after?}` · `room:leave {roomId}` · `message:send {roomId, tempId, content}` · `room:read {roomId}` | — |
