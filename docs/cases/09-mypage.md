@@ -15,7 +15,7 @@
 | MP-OK-05 | 구매 내역 탭 | **넣는다.** 거래완료 시 구매자 지정과 한 묶음 → [결정 0012](../decisions/0012-buyer-assignment.md) | — |
 | MP-OK-06 | 프로필 수정 진입 `/me/edit` | 닉네임 입력 + (아바타 변경) + [저장] | — |
 | MP-OK-07 | 닉네임 변경 저장 | `PATCH /me { nickname }` → 토스트 "저장했어요" → `/me`로. 헤더 · 채팅 목록 등 캐시 무효화 | — |
-| MP-OK-08 | 아바타 변경 | **1차 포함.** 사진 1장 선택 → 클라이언트 리사이즈(512px 정사각 중앙 크롭) → 업로드 → `PATCH /me { avatarUrl }`. 크롭 UI 없음 | — |
+| MP-OK-08 | 아바타 변경 | **1차 포함.** 사진 1장 선택 → 클라이언트 리사이즈(512px 정사각 중앙 크롭) → 업로드 → `PATCH /me { avatarUploadId }`. 크롭 UI 없음 | — |
 | MP-OK-09 | 아바타 삭제 (기본으로 되돌리기) | [기본 이미지로] 버튼 → `avatarUrl: null` | — |
 | MP-OK-10 | 로그아웃 | → LI-LO 절 | — |
 | MP-OK-11 | 남의 프로필 보기 `/users/{id}` | 1차 없음 (→ PD-OK-08) | ⛔ |
@@ -114,7 +114,7 @@
 | MP-DT-20 | `GET /me` | 본인용 사용자 객체 + `counts: { onSale, reserved, sold, purchased }` | — |
 | MP-DT-21 | `GET /me/products?status=&cursor=` | PL과 같은 카드 데이터. `status` 필수 | — |
 | MP-DT-22 | `GET /me/purchases?cursor=` | `Product WHERE buyerId = me AND status = SOLD`, **삭제된 상품 포함**(`withDeleted()`). 카드에 "삭제됨" 라벨, 클릭 불가. 거래 사실은 상대가 글을 지워도 남아야 함 | — |
-| MP-DT-23 | `PATCH /me` | `{ nickname?, avatarUrl? }` 화이트리스트 | — |
+| MP-DT-23 | `PATCH /me` | `{ nickname?, avatarUploadId? }` 화이트리스트. 아바타는 URL이 아니라 본인이 올린 업로드 id로 받는다 → [API 명세](../backend/10-api.md) | — |
 | MP-DT-24 | `PATCH /me/password` | `{ currentPassword, newPassword }` | — |
 | MP-DT-25 | `User.tokenVersion` | 비밀번호 변경 시 +1. JWT 페이로드에 포함, 검증 시 비교 → [결정 0003](../decisions/0003-jwt-httponly-cookie.md) | — |
 | MP-DT-26 | 아바타 저장 경로 | `avatars/{userId}/{uuid}.webp` | — |

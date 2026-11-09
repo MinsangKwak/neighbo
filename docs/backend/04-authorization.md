@@ -38,7 +38,7 @@ API 명세(예정)에서 요청 · 응답 모양을 확정하며, 여기서는 �
 | `POST /auth/logout` | ✅ (쿠키 없으면 그냥 `204`) | ✅ | 멱등 |
 | `GET /auth/email-available` · `nickname-available` | ✅ | ✅ | IP rate limit — 계정 존재 여부를 노출하므로 [SU-IN-10] |
 | `GET /auth/socket-token` | 401 | ✅ | 60초 · `purpose: socket` [결정 0004] |
-| `/me` 전부 | 401 | ✅ (항상 본인 — 경로에 사용자 ID 없음) | `PATCH /me`는 `nickname` · `avatarUrl`만 받는다 [AC-MP-12] |
+| `/me` 전부 | 401 | ✅ (항상 본인 — 경로에 사용자 ID 없음) | `PATCH /me`는 `nickname` · `avatarUploadId`만 받는다 [AC-MP-12] |
 
 ### 상품
 
