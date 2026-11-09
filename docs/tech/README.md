@@ -24,7 +24,7 @@
 | `jwt-and-cookies.md` | JWT 구조 · HMAC 서명 · 쿠키 속성 · CSRF | ① `crypto.createHmac`만으로 JWT 서명 · 검증 (base64url · 만료 · 변조 탐지) ② 쿠키 `SameSite` 세 값이 교차 사이트 요청에서 각각 어떻게 동작하는지 두 오리진 띄워 표로 ③ 다른 오리진에서 `fetch` + `credentials`로 CSRF가 실제로 되는지 · `Origin` 검사로 막히는지 | 예정 |
 | `password-hashing.md` | bcrypt · 레인보우 테이블 · cost | ① 같은 비밀번호를 두 번 해시해 salt 확인 ② cost 10 · 12 · 14의 소요 시간 측정 → 12 선택 근거 ③ 로그인 실패 시 더미 해시 비교로 응답 시간 평탄화 확인 | 예정 |
 | `postgres-constraints.md` | 유니크 · 부분 인덱스 · 트랜잭션 · 격리 수준 | ① 두 커넥션에서 동시에 같은 `(productId, buyerId)` 채팅방 insert → 하나가 유니크 위반으로 실패하는 것을 **재현** ② 부분 유니크 인덱스 `WHERE deletedAt IS NULL` 동작 ③ 메시지 저장 + 방 갱신을 트랜잭션 없이 했을 때 중간 실패 재현 → 트랜잭션으로 해결 ④ `EXPLAIN`으로 커서 페이지네이션 인덱스 사용 확인 | 예정 |
-| `prisma.md` | Prisma 스키마 · 마이그레이션 · 클라이언트 확장 | ① 마이그레이션 파일이 실제로 어떤 SQL인지 읽기 ② `$extends`로 `deletedAt IS NULL` 자동 주입 만들고 빠지는 케이스(`$queryRaw` · 관계 조회) 찾기 ③ N+1을 일부러 만들고 `include`로 해결 | 예정 |
+| `prisma.md` | Prisma 7 스키마 · `prisma.config.ts` · 드라이버 어댑터 · 마이그레이션 · 클라이언트 확장 | ① 마이그레이션 파일이 실제로 어떤 SQL인지 읽기 ② `$extends`로 `deletedAt IS NULL` 자동 주입 만들고 빠지는 케이스(`$queryRaw` · 관계 조회) 찾기 ③ N+1을 일부러 만들고 `include`로 해결 | 예정 |
 | `nextjs-app-router.md` | 서버 컴포넌트 · 쿠키 전달 · 캐시 · Route Handler 프록시 | ① 서버 컴포넌트에서 백엔드로 쿠키를 넘기는 방법과 넘어가지 않는 경우 ② `fetch` 캐시 기본값 때문에 로그인 상태가 다른 사용자에게 보이는 사고 **재현** → `no-store` ③ 프록시 Route Handler로 스트리밍 · multipart가 지나가는지 | 예정 |
 | `tanstack-query.md` | 캐시 키 · 무효화 · 낙관적 갱신 · 뒤로가기 복원 | ① 캐시 키 설계 없이 시작했을 때 무효화가 안 되는 상황 재현 ② 메시지 전송 낙관적 갱신 → 실패 롤백 ③ `useInfiniteQuery`로 커서 페이지 복원 | 예정 |
 | `image-pipeline.md` | multipart · 매직 바이트 · EXIF · sharp · webp | ① 확장자만 `.jpg`인 텍스트 파일이 매직 바이트 검사에서 걸리는지 ② EXIF 회전 값 6인 사진이 회전 없이 저장될 때 어떻게 보이는지 ③ HEIC → webp 변환 ④ 압축 폭탄(작은 파일 · 거대한 픽셀) 방어 | 예정 |
