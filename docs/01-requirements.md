@@ -4,7 +4,7 @@
 
 **이 문서는 "무엇이 되어야 하는가"의 최종본입니다.** 각 기능은 유저 스토리 → 권한 → 수용 조건 순서로 적고, 수용 조건마다 [경우의 수](cases/README.md)의 ID를 달아 근거를 추적합니다. 수용 조건 문장은 그대로 테스트 이름이 됩니다. 여기에 없는 동작은 만들지 않고, 여기 있는 동작은 빠짐없이 만듭니다.
 
-표기: **AC-기능-번호** = 수용 조건. `[케이스 ID]` = 근거. `(스파이크 뒤)` = `websocket.md` 스파이크 결과로 확정.
+표기: **AC-기능-번호** = 수용 조건. `[케이스 ID]` = 근거. 소켓 동작은 [`websocket.md`](tech/websocket.md) 스파이크로 확인한 뒤 확정했습니다.
 
 ---
 
@@ -161,7 +161,8 @@
 | AC-LI-15 | 두 탭에서 다른 계정으로 로그인하면 먼저 탭에 "다른 계정으로 로그인됐어요. 새로고침해 주세요" 안내가 뜬다 | LI-CC-02 |
 | AC-LI-16 | 제출 중 끊기면 비밀번호 칸을 유지한다 | LI-NW-01 |
 | AC-LI-17 | 토큰 페이로드는 `sub · ver · iat · exp`만이다 | LI-TK-03 |
-| AC-LI-18 | 프론트는 `/api/*`를 Next.js Route Handler로 백엔드에 프록시해 브라우저는 같은 오리진하고만 통신한다. 소켓 연결의 인증 전달 방식은 스파이크 뒤 확정 | LI-TK-02, LI-TK-07 |
+| AC-LI-18 | 프론트는 `/api/*`를 Next.js Route Handler로 백엔드에 프록시해 브라우저는 같은 오리진하고만 통신한다 | LI-TK-02 |
+| AC-LI-18a | 소켓은 프록시하지 않고 백엔드에 직접 연결하며, 인증은 같은 오리진의 `/api/socket-token`이 발급한 60초짜리 소켓 전용 토큰을 `auth`로 넘긴다. 재연결마다 새 토큰을 받는다 | LI-TK-07, 결정 0004 |
 | AC-LI-19 | 로그인 폼 아래에 데모 계정 안내와 [채워 넣기] 버튼이 있다 | LI-UI-04 |
 | AC-LI-20 | 로그인 시 `User.lastLoginAt`을 갱신한다 | LI-DT-01 |
 
@@ -347,7 +348,8 @@
 | AC-CL-12 | 시각은 오늘 "오후 3:24", 어제 "어제", 7일 미만 "N일 전", 그 이상 "M월 D일"이다 | CL-UI-05 |
 | AC-CL-13 | 행 이동 시 포커스가 그 행에 있었으면 유지된다 | CL-A11Y-02 |
 | AC-CL-14 | 목록 API는 `items[{ id, product{…, deletedAt}, partner, lastMessage, unreadCount, myRole }]`를 돌려주고 `ChatRoom.lastMessageAt · lastMessagePreview · lastMessageSenderId` 비정규화 컬럼을 쓴다 | CL-DT-20~22 |
-| AC-CL-15 | (스파이크 뒤) 다른 탭에서 읽음 · 새 방 생성이 목록에 즉시 반영되는지 | CL-CC-02, 05 |
+| AC-CL-15 | 다른 탭에서 방을 읽으면 `user:{id}` 룸의 `room:read`로 이 탭의 해당 행 배지가 즉시 0이 된다 | CL-CC-02 |
+| AC-CL-16 | 메시지가 없는 새 방은 목록에 즉시 나타나지 않고 첫 메시지와 함께 나타난다 | CL-CC-05 |
 
 범위 밖: 방 나가기 · 숨기기 · 고정 · 알림 끄기, 안 읽은 방 필터, 2단 레이아웃 [CL-ST-06, CL-DT-25, 26, CL-UI-02].
 
@@ -393,13 +395,20 @@
 | AC | 조건 | 근거 |
 | --- | --- | --- |
 | AC-CH-30 | 비참여자의 `room:join` · `message:send`는 `error: FORBIDDEN`이며 조인하지 않은 방에는 보낼 수 없다 | CH-AU-02, 03, CH-SEC-01 |
-| AC-CH-31 | 비로그인 소켓 연결은 핸드셰이크에서 거부되고, 이벤트 처리 시 토큰이 만료돼 있으면 `error: UNAUTHORIZED` 후 끊는다 | CH-AU-04, 05 |
+| AC-CH-31 | 비로그인 소켓 연결은 핸드셰이크에서 거부되고, 이벤트 처리 시 토큰이 만료돼 있으면 `error: UNAUTHORIZED` 후 끊는다. 클라이언트는 끊긴 이유가 `io server disconnect`면 자동 재연결을 기다리지 않고 재로그인 화면으로 보내며, 로그인 후 직접 다시 연결한다 | CH-AU-04, 05 |
 | AC-CH-32 | 모든 수신 이벤트는 Zod로 검증하고 실패 시 `error: INVALID_PAYLOAD`로 연결은 유지한다. 페이로드 한도는 10KB다 | CH-SEC-03, 04 |
 | AC-CH-33 | 사용자당 초당 5개를 넘는 전송은 `error: RATE_LIMITED`와 10초 차단이고, 소켓 연결은 사용자당 5개까지다 | CH-SEC-02, 05 |
 | AC-CH-34 | 소켓 이벤트는 클라→서버 `room:join · room:leave · message:send · room:read`, 서버→클라 `message:new · room:read · room:product_updated · notification:unread · error`이며 ack 형식은 CH-DT-08을 따른다 | CH-DT-06~08 |
 | AC-CH-35 | WebSocket이 막힌 네트워크에서는 long-polling으로 폴백한다 | CH-NW-07 |
 | AC-CH-36 | 서버 재시작 후 클라이언트가 자동 재연결해 누락분을 복구하며 서버 메모리에 조인 상태를 의존하지 않는다 | CH-CC-13 |
-| AC-CH-37 | (스파이크 뒤) 끊긴 동안의 전송 큐, 연결 끊김 바와 폴링 폴백, 다른 세션 읽음 동기화, 상품 변경 실시간 반영, 메시지 목록의 `aria-live` 전략 | CH-CC-05, 09, CH-NW-03, CH-ST-04, 05, CH-A11Y-01 |
+| AC-CH-37 | `message:send`는 항상 5초 ack 타임아웃과 함께 보낸다. 타임아웃 없는 emit은 lint로 막는다 | websocket.md ⑤ |
+| AC-CH-38 | 연결이 끊긴 상태에서 보낸 메시지는 앱 대기열에 "연결 중…"으로 남고, 재연결 시 같은 `tempId`로 순서대로 재전송되며, 30초가 지나면 "전송 실패"가 된다 | CH-CC-09 |
+| AC-CH-39 | 연결이 5초 넘게 끊기면 상단에 "실시간 연결이 끊겼어요. 다시 연결 중…" 바가 `role="status"`로 뜨고, 별도 HTTP 폴링은 하지 않는다 | CH-NW-03 |
+| AC-CH-40 | 내 다른 탭에서 방을 읽으면 이 탭의 배지도 즉시 줄어든다 | CH-CC-05 |
+| AC-CH-41 | 방을 보는 중 상품이 삭제 · 상태 변경 · 가격 수정되면 `room:product_updated`로 요약 바와 입력창 상태가 즉시 바뀐다 | CH-ST-04, 05 |
+| AC-CH-42 | 메시지 목록은 `role="log"`이되 `aria-live`를 끄고, 상대 메시지만 시각 숨김 `role="status"` 영역에 "{닉네임}: {내용}"으로 알린다 | CH-A11Y-01 |
+| AC-CH-43 | 하트비트는 `pingInterval 10s` · `pingTimeout 5s`이고, 재연결은 최대 간격 5초 · 지터 0.5다 | CH-CC-15, websocket.md ② ③ |
+| AC-CH-44 | 메시지는 DB 커밋 후에 emit한다. 복구는 DB `after` 커서 한 가지로 하고 Socket.IO `connectionStateRecovery`는 쓰지 않는다 | websocket.md ③ ⑤ |
 
 범위 밖: 타이핑 표시, 시스템 메시지, 메시지 삭제 · 수정 · 복사, 사진 · 파일, 약속 · 장소, 방 안 상태 변경, 금칙어 [핵심 정의, CH-OK-15~19, CH-IN-08].
 
@@ -450,7 +459,9 @@
 | AC-NT-10 | 로그아웃 시 배지 0 · 토스트 큐 비움 · 소켓 끊김이다 | NT-ST-04 |
 | AC-NT-11 | 탭 접근 가능한 이름은 "채팅, 읽지 않은 대화 N개"이고 토스트는 `role="status"`로 포커스를 뺏지 않으며 상단 중앙(1024px은 우상단)에 뜬다 | NT-A11Y-01~04 |
 | AC-NT-12 | `notification:unread`는 서버가 `user:{id}` 룸에만 emit하며 `GET /me/unread`는 분당 60회 제한이다 | NT-SEC-02, 03 |
-| AC-NT-13 | (스파이크 뒤) 끊긴 동안의 토스트 억제, 백그라운드 복귀 시 토스트 정책, 소켓 불가 시 폴링 간격 | NT-CC-05, 08, NT-NW-02 |
+| AC-NT-13 | 재연결 시 배지만 `GET /me/unread`로 맞추고, 끊긴 동안 온 메시지의 토스트는 띄우지 않는다 | NT-CC-05 |
+| AC-NT-14 | 탭이 숨겨진 동안에는 토스트 없이 배지와 탭 제목만 갱신하고, 돌아왔을 때 밀린 토스트를 몰아 띄우지 않는다 | NT-CC-08 |
+| AC-NT-15 | 소켓이 끊겨도 별도 폴링을 하지 않는다 | NT-NW-02 |
 
 범위 밖: 알림 목록 화면, 소리 · 진동, Web Push, 이메일, 방별 · 전체 알림 끄기, 상태 변경 알림 [NT-OK-14~19, 알림 종류].
 
@@ -465,7 +476,7 @@
 | 데이터 | 개발 · 테스트 · 운영 모두 PostgreSQL이며 마이그레이션은 배포 파이프라인에서 자동 적용한다 | 결정 0002, BRANCHING |
 | 보안 | 비밀키 · DB URL은 환경 변수로만 존재하고 부팅 시 검증에 실패하면 즉시 종료한다 | tech/deploy |
 | 접근성 | 0.5절 전부. 키보드만으로 열 가지 기능을 끝까지 쓸 수 있는지 E2E로 확인한다 | 00 개요 7절 |
-| 테스트 | 이 문서의 모든 AC는 같은 이름의 테스트 하나와 대응한다. "(스파이크 뒤)" AC는 확정 후 추가한다 | 00 개요 7절 |
+| 테스트 | 이 문서의 모든 AC는 같은 이름의 테스트 하나와 대응한다 | 00 개요 7절 |
 | 브라우저 | 최신 2개 버전의 Chrome · Safari · Edge · Samsung Internet | CM-UI-09 |
 
 ---
