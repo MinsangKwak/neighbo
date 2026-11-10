@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { apiFetch } from '@/lib/api/apiFetch';
 import { onAuthEvent } from './crossTab';
 import { useSessionUser } from './SessionProvider';
 
@@ -28,6 +29,17 @@ export function AuthSync() {
       }),
     [router, user],
   );
+
+  // 세션 연장은 브라우저가 부른 /api/* 응답의 쿠키로만 일어난다 — 서버 렌더의 /me 조회는 쿠키를 쓸 수 없다
+  // 로그인 상태로 문서를 열 때 한 번 불러 연장 쿠키를 받는다 [AC-CM-03]
+  // (배지 조회 /api/me/unread가 생기면 그 요청이 이 역할을 맡는다)
+  const userId = user?.id;
+  useEffect(() => {
+    if (userId === undefined) return;
+    apiFetch('/me').catch(() => {
+      // 연장 실패는 알리지 않는다. 만료되면 보호 화면이 로그인으로 보낸다
+    });
+  }, [userId]);
 
   if (!switched) return null;
   return (

@@ -16,6 +16,7 @@ import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api/ApiError';
 import { apiFetch } from '@/lib/api/apiFetch';
 import { useForm } from '@/lib/form/useForm';
+import { announceLogin } from './crossTab';
 import { loginHref } from './next';
 
 export function SignupForm({ next }: { next: string }) {
@@ -32,6 +33,8 @@ export function SignupForm({ next }: { next: string }) {
     onSubmit: async (input) => {
       try {
         const { user } = await apiFetch<AuthResponse>('/auth/signup', { method: 'POST', body: input });
+        // 다른 탭도 로그인 상태로 다시 그리게 한다
+        announceLogin(user.id);
         toast(`환영해요, ${user.nickname}님`);
         // replace: 뒤로가기로 가입 화면에 돌아오지 않게 [AC-SU-22]
         router.replace(next);

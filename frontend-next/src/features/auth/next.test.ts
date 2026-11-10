@@ -11,6 +11,12 @@ describe('safeNext', () => {
     for (const next of ['https://evil.example', '//evil.example', '/\\evil.example', 'javascript:alert(1)', '', null, undefined]) {
       expect(safeNext(next)).toBe('/');
     }
+    // 브라우저가 탭 · 줄바꿈을 지우고 \\를 /로 바꿔 다른 오리진으로 해석하는 값들
+    for (const next of ['/\t/evil.example', '/\n/evil.example', '/\t\\evil.example', '/\\/evil.example', '/%09/evil.example']) {
+      const result = safeNext(next);
+      expect(new URL(result, 'https://neighbo.test').origin).toBe('https://neighbo.test');
+    }
+    expect(safeNext('/\t/evil.example')).toBe('/');
     expect(safeNext('/login')).toBe('/');
     expect(safeNext('/signup?next=/me')).toBe('/');
   });
