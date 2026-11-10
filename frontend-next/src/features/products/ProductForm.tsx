@@ -92,6 +92,9 @@ export function ProductForm({
   }, [dirty]);
 
   const uploading = images.filter((image) => image.status === 'uploading').length;
+  // 올리지 못한 사진을 둔 채 등록하면 그 사진이 말없이 빠진다 — 다시 시도하거나 지울 때까지 막는다
+  const failed = images.filter((image) => image.status === 'error').length;
+  const blocked = uploading > 0 || failed > 0;
   const ready = images.filter((image) => image.status === 'done');
 
   const candidate = () => ({
@@ -124,7 +127,7 @@ export function ProductForm({
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (submitting || uploading > 0) return;
+    if (submitting || blocked) return;
     setFormError(null);
     const found = validate();
     setErrors(found);
@@ -337,6 +340,11 @@ export function ProductForm({
             사진 올리는 중 {images.length - uploading}/{images.length}
           </p>
         )}
+        {uploading === 0 && failed > 0 && (
+          <p role="status" className="text-center text-sm text-danger">
+            올리지 못한 사진 {failed}장을 다시 시도하거나 삭제해 주세요
+          </p>
+        )}
         <div className="flex gap-2">
           <Button
             variant="secondary"
@@ -347,7 +355,7 @@ export function ProductForm({
           >
             취소
           </Button>
-          <Button type="submit" block loading={submitting} aria-disabled={uploading > 0 || undefined}>
+          <Button type="submit" block loading={submitting} aria-disabled={blocked || undefined}>
             {isEdit ? '저장하기' : '등록하기'}
           </Button>
         </div>

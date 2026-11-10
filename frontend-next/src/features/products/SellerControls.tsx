@@ -24,6 +24,12 @@ export function SellerControls({ product }: { product: ProductDetail }) {
   const queryClient = useQueryClient();
   const selectId = useId();
   const [status, setStatus] = useState<ProductStatus>(product.status);
+  // 서버가 다시 그려 준 상태가 바뀌면 선택값도 따라간다 (다른 탭에서 바꾼 경우 포함)
+  const [syncedStatus, setSyncedStatus] = useState<ProductStatus>(product.status);
+  if (syncedStatus !== product.status) {
+    setSyncedStatus(product.status);
+    setStatus(product.status);
+  }
   const [announcement, setAnnouncement] = useState('');
   const [asking, setAsking] = useState<'buyer' | 'revert' | 'delete' | null>(null);
 

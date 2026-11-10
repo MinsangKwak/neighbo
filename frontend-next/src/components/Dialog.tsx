@@ -16,12 +16,17 @@ interface DialogProps {
 export function Dialog({ open, onClose, title, alert = false, children }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const closedByProp = useRef(false);
 
   useEffect(() => {
     const dialog = ref.current;
     if (dialog === null) return;
     if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
+    if (!open && dialog.open) {
+      // 코드가 닫는 경우(작업 성공 등)는 사용자의 취소가 아니다 — onClose를 부르지 않는다
+      closedByProp.current = true;
+      dialog.close();
+    }
   }, [open]);
 
   return (
@@ -29,7 +34,11 @@ export function Dialog({ open, onClose, title, alert = false, children }: Dialog
       ref={ref}
       role={alert ? 'alertdialog' : undefined}
       aria-labelledby={titleId}
-      onClose={onClose}
+      onClose={() => {
+        // Esc · 배경 클릭처럼 사용자가 닫았을 때만 알린다
+        if (closedByProp.current) closedByProp.current = false;
+        else onClose();
+      }}
       onClick={(event) => {
         // 바깥(배경)을 누르면 닫는다
         if (event.target === ref.current) onClose();

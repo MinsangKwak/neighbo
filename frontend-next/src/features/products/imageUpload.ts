@@ -3,7 +3,10 @@ import { ApiError } from '@/lib/api/ApiError';
 
 const MAX_SIDE = 1600;
 
-export class UnreadableImageError extends Error {}
+// 브라우저가 열지 못한 사진. 이름으로 구분하므로 name을 반드시 지정한다 — 지정하지 않으면 'Error'다
+export class UnreadableImageError extends Error {
+  override readonly name = 'UnreadableImageError';
+}
 
 function toJpeg(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
   return new Promise((resolve, reject) => {

@@ -6,6 +6,7 @@ import type { ProductCard as Card, ProductDetail, Upload } from '@neighbo/shared
 import { ProductCard } from '@/components/ProductCard';
 import { ToastProvider } from '@/components/Toast';
 import { makeQueryClient } from '@/lib/query/QueryProvider';
+import { UnreadableImageError } from './imageUpload';
 import { ProductForm } from './ProductForm';
 import { ProductList } from './ProductList';
 import { SearchForm } from './SearchForm';
@@ -185,6 +186,9 @@ describe('SellerControls', () => {
     expect(screen.getByRole('button', { name: '선택 안 함' })).toBeDefined();
     fireEvent.click(await screen.findByRole('button', { name: '구매왕' }));
     await waitFor(() => expect(calls.at(-1)?.body).toEqual({ status: 'SOLD', buyerId: 'u2' }));
+    // 성공해서 창이 닫혀도 선택값이 이전 상태로 돌아가지 않는다
+    await waitFor(() => expect(screen.queryByRole('heading', { name: '누구와 거래했나요?' })).toBeNull());
+    expect((screen.getByLabelText('거래 상태') as HTMLSelectElement).value).toBe('SOLD');
   });
 
   it('[AC-PD-06] 거래완료에서 판매중으로는 "구매자 정보가 지워져요" 확인을 거친다', async () => {
@@ -195,6 +199,8 @@ describe('SellerControls', () => {
     expect(calls).toHaveLength(0);
     fireEvent.click(screen.getByRole('button', { name: '되돌리기' }));
     await waitFor(() => expect(calls[0]?.body).toEqual({ status: 'ON_SALE' }));
+    await waitFor(() => expect(screen.getByText('구매자 정보가 지워져요.').closest('dialog')?.hasAttribute('open')).toBe(false));
+    expect((screen.getByLabelText('거래 상태') as HTMLSelectElement).value).toBe('ON_SALE');
   });
 
   it('[AC-PD-08] 실패하면 선택을 이전 값으로 되돌리고 알린다', async () => {
@@ -293,11 +299,8 @@ describe('ProductForm', () => {
 
   it('[AC-PC-11, 12, 15] 10장을 넘으면 앞 10장만 받고, 열 수 없는 사진은 이유와 [다시 시도]를 보여준다', async () => {
     const prepare = vi.fn((f: File) => {
-      if (f.name === 'bad.heic') {
-        const error = new Error('unreadable');
-        error.name = 'UnreadableImageError';
-        return Promise.reject(error);
-      }
+      // 실제 prepareImage가 던지는 것과 같은 오류
+      if (f.name === 'bad.heic') return Promise.reject(new UnreadableImageError());
       return Promise.resolve(f as Blob);
     });
     let n = 0;
@@ -307,8 +310,18 @@ describe('ProductForm', () => {
     await waitFor(() => expect(screen.getAllByRole('button', { name: /번째 사진 삭제/ })).toHaveLength(10));
     expect(await screen.findByText('이 사진은 열 수 없어요. jpg · png로 바꿔 올려 주세요')).toBeDefined();
     expect(screen.getByRole('button', { name: /다시 시도/ })).toBeDefined();
+    // 올리지 못한 사진이 있는 동안은 등록할 수 없다 — 그 사진이 말없이 빠지지 않게
+    type('제목', '원목 의자');
+    type('가격', '1000');
+    const submit = screen.getByRole('button', { name: '등록하기' });
+    expect(screen.getByText('올리지 못한 사진 1장을 다시 시도하거나 삭제해 주세요')).toBeDefined();
+    expect(submit.getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(submit);
+    expect(calls).toHaveLength(0);
+
     fireEvent.click(screen.getByRole('button', { name: '1번째 사진 삭제' }));
     expect(screen.getAllByRole('button', { name: /번째 사진 삭제/ })).toHaveLength(9);
+    expect(submit.getAttribute('aria-disabled')).toBeNull();
   });
 
   it('[AC-PC-30, 31, 33] 수정은 기존 값이 채워져 있고, 최종 사진 목록을 PATCH로 보낸 뒤 "수정했어요"를 띄운다', async () => {
@@ -351,5 +364,13 @@ describe('ProductForm', () => {
     fireEvent.click(screen.getByRole('button', { name: '취소' }));
     expect(screen.getByRole('alertdialog', { name: '작성 중인 내용이 사라져요. 나갈까요?' })).toBeDefined();
     expect(router.back).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('UnreadableImageError', () => {
+  it('이름이 지정되어 있어 사진 선택기가 "열 수 없는 사진"으로 알아본다', () => {
+    const error = new UnreadableImageError();
+    expect(error.name).toBe('UnreadableImageError');
+    expect(error).toBeInstanceOf(Error);
   });
 });
