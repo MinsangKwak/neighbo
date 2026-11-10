@@ -1,0 +1,80 @@
+@import 'tailwindcss';
+
+/*
+ * 디자인 토큰 — 값은 이 파일 한 곳에만 두고 컴포넌트는 토큰 이름만 쓴다.
+ * 색을 바꾸면 src/styles/tokens.test.ts의 명암비 검사가 조건을 다시 확인한다.
+ * 근거: docs/architecture/frontend.md 09절 2. 디자인 토큰
+ */
+@theme {
+  /* 기본 팔레트와 글자 크기를 비워 토큰 밖의 값을 쓸 수 없게 한다 */
+  --color-*: initial;
+  --text-*: initial;
+
+  --color-bg: #ffffff;
+  --color-surface: #f4f5f7;
+  --color-text: #1b1d1f;
+  --color-text-muted: #5a616c;
+  /* 입력 칸 · 버튼처럼 경계가 뜻을 가지는 곳 (3:1 이상) */
+  --color-border: #858c97;
+  /* 구역을 나누는 장식 선 — 명암비 조건 없음 */
+  --color-divider: #e2e4e8;
+  --color-primary: #1a6b57;
+  --color-on-primary: #ffffff;
+  --color-danger: #b42318;
+  --color-on-danger: #ffffff;
+  --color-badge: #b42318;
+  --color-on-badge: #ffffff;
+  --color-focus: #1456d1;
+
+  /* 12 · 14 · 16 · 18 · 22px, 줄 높이 1.5 */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.5;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.5;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.5;
+
+  /* 간격은 4px 배수 */
+  --spacing: 0.25rem;
+
+  /* 본문 폭 640px (결정 0014) · 누름 영역 44px [AC-CM-48] */
+  --container-app: 40rem;
+  --spacing-touch: 2.75rem;
+
+  /* 움직임 150 · 250ms */
+  --transition-duration-fast: 150ms;
+  --transition-duration-base: 250ms;
+
+  --font-sans:
+    'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR',
+    'Malgun Gothic', system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    color: var(--color-text);
+    background-color: var(--color-bg);
+    font-family: var(--font-sans);
+  }
+
+  /* 포커스 링: 2px + 바깥 여백 2px, 키보드 조작일 때만 [AC-CM-40] */
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  /* 움직임 줄이기 설정이면 애니메이션을 없앤다 [AC-CM-49] */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0s !important;
+      transition-duration: 0s !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
