@@ -32,6 +32,11 @@ beforeAll(async () => {
       if (req.url?.startsWith('/login')) {
         res.setHeader('Set-Cookie', ['nb_session=abc; HttpOnly; Path=/', 'other=1; Path=/']);
       }
+      if (req.url?.startsWith('/files/')) {
+        if (req.url.includes('missing')) res.statusCode = 404;
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        res.setHeader('ETag', '"abc"');
+      }
       if (req.url?.startsWith('/limited')) {
         res.statusCode = 429;
         res.setHeader('Retry-After', '30');
@@ -108,6 +113,18 @@ describe('같은 오리진 프록시', () => {
     const limited = await call('limited');
     expect(limited.status).toBe(429);
     expect(limited.headers.get('Retry-After')).toBe('30');
+  });
+
+  it('저장된 이미지 응답만 백엔드의 캐시 지시를 전하고, 실패한 파일 응답 · API 응답은 no-store다', async () => {
+    const image = await call('files/products/a.webp', { headers: { 'If-None-Match': '"abc"' } });
+    expect(image.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
+    expect(image.headers.get('ETag')).toBe('"abc"');
+    expect(seen.at(-1)?.headers['if-none-match']).toBe('"abc"');
+
+    expect((await call('files/products/missing.webp')).headers.get('Cache-Control')).toBe('no-store');
+    expect((await call('products')).headers.get('Cache-Control')).toBe('no-store');
+    // 쓰기 요청은 파일 경로라도 캐시 헤더를 전하지 않는다
+    expect((await call('files/x', { method: 'POST', body: '{}' })).headers.get('Cache-Control')).toBe('no-store');
   });
 
   it('경로 조각은 다시 인코딩되어 백엔드 주소 밖으로 나가지 못한다', async () => {

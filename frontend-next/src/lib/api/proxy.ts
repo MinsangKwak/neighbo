@@ -13,6 +13,9 @@ const TIMEOUT_MS = 10_000;
 const REQUEST_HEADERS = ['accept', 'accept-language', 'content-type', 'cookie', 'origin'];
 // 백엔드 → 브라우저로 돌려주는 헤더. Set-Cookie는 여러 개라 따로 다룬다
 const RESPONSE_HEADERS = ['content-type', 'retry-after', 'x-request-id'];
+// 저장된 이미지(/api/files/*)는 내용이 바뀌지 않는다 — 백엔드의 캐시 지시를 그대로 전한다
+const FILE_REQUEST_HEADERS = ['if-none-match', 'if-modified-since'];
+const FILE_RESPONSE_HEADERS = ['cache-control', 'etag', 'last-modified', 'content-length'];
 
 function errorResponse(code: ErrorCode, status: number, requestId: string): Response {
   const body: ErrorResponse = { error: { code, message: ERROR_CATALOG[code].message, fields: null } };
@@ -47,6 +50,13 @@ export async function proxyToBackend(
     const value = request.headers.get(name);
     if (value !== null) headers.set(name, value);
   }
+  const isFile = segments[0] === 'files' && (request.method === 'GET' || request.method === 'HEAD');
+  if (isFile) {
+    for (const name of FILE_REQUEST_HEADERS) {
+      const value = request.headers.get(name);
+      if (value !== null) headers.set(name, value);
+    }
+  }
   headers.set(REQUEST_ID_HEADER, requestId);
   headers.set('X-Proxy-Secret', config.PROXY_SECRET);
   const ip = clientIp(request.headers);
@@ -72,7 +82,9 @@ export async function proxyToBackend(
   }
 
   const responseHeaders = new Headers({ 'Cache-Control': 'no-store' });
-  for (const name of RESPONSE_HEADERS) {
+  // 성공한 파일 응답만 캐시하게 둔다. 그 밖의 모든 응답은 no-store
+  const passthrough = isFile && (upstream.ok || upstream.status === 304) ? [...RESPONSE_HEADERS, ...FILE_RESPONSE_HEADERS] : RESPONSE_HEADERS;
+  for (const name of passthrough) {
     const value = upstream.headers.get(name);
     if (value !== null) responseHeaders.set(name, value);
   }
