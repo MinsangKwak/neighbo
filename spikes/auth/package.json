@@ -1,0 +1,16 @@
+{
+  "name": "spike-auth",
+  "private": true,
+  "type": "module",
+  "description": "JWT 직접 서명·검증과 bcrypt 비용 측정 스파이크 — 서비스 코드 아님",
+  "scripts": {
+    "01": "node 01-jwt-by-hand.mjs",
+    "02": "node 02-bcrypt-cost.mjs",
+    "03": "node 03-bcrypt-72-bytes.mjs",
+    "04": "node 04-login-timing.mjs"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2"
+  }
+}
