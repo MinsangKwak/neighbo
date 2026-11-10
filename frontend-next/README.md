@@ -27,6 +27,7 @@
 | [포커스와 라이브 리전](../docs/architecture/frontend.md#06--포커스와-라이브-리전) | 화면 전환 · 모달 · 목록 추가 · 실시간 메시지에서 포커스와 알림 |
 | [화면 명세](../docs/architecture/frontend.md#08--화면-명세) | 13개 화면의 구성 · 로딩 · 빈 상태 · 오류 · 조작과 이동 |
 | [공통 컴포넌트](../docs/architecture/frontend.md#09--공통-컴포넌트) | 공통 조각 17개의 props · 변형 · 접근성 기본 동작, 토큰 조건 |
+| [폴더 구조](../docs/architecture/frontend.md#10--폴더-구조) | 경로는 조립만, 기능 폴더 · import 규칙 |
 | [소켓 클라이언트](../docs/architecture/frontend.md#07--소켓-클라이언트) | 연결 상태 기계, 전송 대기열, 재연결 후 복구, 번호 틈 감지, 서버가 끊었을 때 |
 
 ## 명세·스파이크 검토 결과
