@@ -42,6 +42,7 @@
 | [I-01](#i-01) | 설치 직후 lint가 TypeScript 버전 경고와 함께 불안정 | `latest` 태그의 TypeScript 7.0이 typescript-eslint 지원 범위(`<6.1.0`) 밖 | 루트 · 각 앱 `package.json` |
 | [I-02](#i-02) | `/api/products/%2E%2E/admin`이 백엔드의 `/admin`으로 감 | URL 표준은 `%2E%2E`도 `..`로 보고 경로를 접는다 | [흐름 설계](architecture/flow.md) |
 | [I-03](#i-03) | 엔진 바이너리를 받지 못하는 환경에서 `prisma migrate`가 멈춤 | 마이그레이션 명령은 스키마 엔진 바이너리를 내려받아 실행한다 | [B11](architecture/backend.md#11--구성과-시드) |
+| [I-04](#i-04) | 중복 가입이 `409`가 아니라 `500`이 될 뻔함 | 드라이버 어댑터를 쓰면 유니크 위반 오류에 `meta.target`이 없다 | [B03](architecture/backend.md#03--트랜잭션-경계) |
 
 ---
 
@@ -201,6 +202,10 @@ T-01 재현 실험에서 "복구 조회 0건"을 기대했는데 1건이 나왔�
 ### I-03
 
 `prisma migrate dev`는 스키마 엔진 바이너리를 `binaries.prisma.sh`에서 내려받는다. 이 주소가 막힌 작업 환경에서는 명령이 시작하지 못했다. 같은 엔진의 WASM 판(`@prisma/schema-engine-wasm`, 엔진 해시 동일)에 드라이버 어댑터를 붙여 "빈 DB → 스키마" 차이를 SQL로 뽑아 첫 마이그레이션을 만들었고, CHECK 제약 6개를 같은 파일 끝에 붙였다. 그 SQL을 PostgreSQL 16에 적용해 통합 테스트 7개로 제약을 확인했다. `prisma migrate deploy` 자체는 CI(테스트 전 단계)에서 실행된다. 클라이언트 생성(`prisma generate`)은 엔진 바이너리 없이 동작한다.
+
+### I-04
+
+가입의 유니크 위반을 `EMAIL_TAKEN` · `NICKNAME_TAKEN`으로 옮기려고 Prisma 오류(`P2002`)의 `meta.target`(위반한 열 목록)을 읽으려 했다. `@prisma/adapter-pg`를 거친 오류에는 `meta.target`이 없고, `meta.driverAdapterError.cause.constraint.index`에 인덱스 이름(`User_email_key`)만 온다. 문서 예제대로 `meta.target`을 읽으면 항상 `undefined`라 어느 제약인지 구분하지 못한다. **인덱스 이름을 읽는 함수 하나(`backend-node/src/db/errors.ts`)로 모으고**, 통합 테스트가 이메일 · 닉네임 중복을 각각 확인한다. 스파이크에서 미뤘던 "Prisma를 거친 유니크 위반의 모양" 확인이 이것으로 끝났다.
 
 ---
 
