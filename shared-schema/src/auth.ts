@@ -54,7 +54,8 @@ export const NICKNAME_MIN = 2;
 export const NICKNAME_MAX = 12;
 const NICKNAME_CHARS = /^[가-힣ㄱ-ㅎㅏ-ㅣA-Za-z0-9 _.-]+$/;
 // 운영자 사칭을 막는 소규모 목록 [AC-SU-15]
-const NICKNAME_BANNED = ['관리자', '운영자', '고객센터', 'neighbo', 'admin'];
+// '데모'는 둘러보기 계정의 닉네임을 먼저 차지하지 못하게 막는다
+const NICKNAME_BANNED = ['관리자', '운영자', '고객센터', '데모', 'neighbo', 'admin'];
 
 // [AC-SU-13, 15]
 export const checkNickname: Check = (nickname) => {
@@ -76,10 +77,13 @@ export const emailField = field(normalizeEmail, checkEmail);
 export const nicknameField = field(normalizeNickname, checkNickname);
 export const newPasswordField = field(normalizePassword, checkNewPassword);
 
+// 서비스 도메인의 주소는 가입에 쓸 수 없다 — 둘러보기 계정(demo@neighbo.app)의 자리다
+const RESERVED_EMAIL_DOMAIN = '@neighbo.app';
+
 // POST /auth/signup
 export const signupSchema = z
   .object({
-    email: emailField,
+    email: emailField.refine((email) => !email.endsWith(RESERVED_EMAIL_DOMAIN), '사용할 수 없는 이메일이에요'),
     password: newPasswordField,
     passwordConfirm: z.string({ error: '비밀번호를 한 번 더 입력해 주세요' }).transform((v) => normalizePassword(v)),
     nickname: nicknameField,

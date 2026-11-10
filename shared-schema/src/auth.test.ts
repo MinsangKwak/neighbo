@@ -47,6 +47,13 @@ describe('가입 스키마', () => {
     expect(errors({ email: `${'a'.repeat(250)}@example.com` }).email).toBe('이메일이 너무 길어요');
   });
 
+  it('[AC-LI-19] 둘러보기 계정의 이메일 도메인과 닉네임은 가입에 쓸 수 없고, 로그인에는 쓸 수 있다', () => {
+    expect(errors({ email: 'demo@neighbo.app' }).email).toBe('사용할 수 없는 이메일이에요');
+    expect(errors({ email: 'me@Neighbo.App' }).email).toBe('사용할 수 없는 이메일이에요');
+    expect(errors({ nickname: '데모판매자' }).nickname).toBe('사용할 수 없는 닉네임이에요');
+    expect(loginSchema.safeParse({ email: 'demo@neighbo.app', password: 'x' }).success).toBe(true);
+  });
+
   it('[AC-SU-09, 09a] 비밀번호: 길이 · 앞뒤 공백 · 72바이트', () => {
     const pw = (password: string) => errors({ password, passwordConfirm: password }).password;
     expect(pw('')).toBe('비밀번호를 입력해 주세요');

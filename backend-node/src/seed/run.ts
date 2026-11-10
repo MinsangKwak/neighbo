@@ -14,9 +14,13 @@ try {
     log.info('seed', { demo: 'skipped', reason: 'DEMO_PASSWORD가 없다' });
   } else {
     const db = createDb(config.DATABASE_URL);
-    await seedDemoAccounts(db, await createPasswordHasher(config.BCRYPT_COST), config.DEMO_PASSWORD);
+    const report = await seedDemoAccounts(db, await createPasswordHasher(config.BCRYPT_COST), config.DEMO_PASSWORD);
     await db.$disconnect();
-    log.info('seed', { demo: 'done' });
+    log.info('seed', { demo: 'done', seeded: report.seeded });
+    if (report.conflicts.length > 0) {
+      // 사람이 정리해야 한다 — 그 이메일 · 닉네임을 쓰는 기존 계정이 있다
+      log.error('seed', { demo: 'conflict', accounts: report.conflicts });
+    }
   }
 } catch (err) {
   if (err instanceof ConfigError) {
