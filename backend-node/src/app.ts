@@ -14,18 +14,22 @@ import { securityHeaders } from './middleware/securityHeaders.js';
 import { createAuthRouter } from './modules/auth/route.js';
 import { createAuthService } from './modules/auth/service.js';
 import { createMeRouter } from './modules/me/route.js';
+import { createProductRouter } from './modules/products/route.js';
+import { createProductService } from './modules/products/service.js';
+import type { ImageStorage } from './storage/ImageStorage.js';
 
 export interface AppDeps {
   config: Config;
   log: Logger;
   db: Db;
   hasher: PasswordHasher;
+  storage: ImageStorage;
   // DB에 닿는지 확인한다. 실패하면 던진다
   pingDb: () => Promise<void>;
 }
 
 // 미들웨어 조립 순서가 이 파일 한 곳에 보이게 — 싸고 빠른 거절을 먼저
-export function createApp({ config, log, db, hasher, pingDb }: AppDeps): Express {
+export function createApp({ config, log, db, hasher, storage, pingDb }: AppDeps): Express {
   const app = express();
   app.disable('x-powered-by');
   // Railway의 프록시 한 홉만 믿는다 — req.ip의 기준 (T-02)
@@ -56,6 +60,25 @@ export function createApp({ config, log, db, hasher, pingDb }: AppDeps): Express
 
   app.use('/auth', mountedAt('/auth'), createAuthRouter({ service: createAuthService(db, hasher), session, ipLimit }));
   app.use('/me', mountedAt('/me'), createMeRouter({ session }));
+
+  // 로그인한 사용자 기준 분당 30 — requireAuth 뒤에 둔다
+  const userLimit = (name: string) =>
+    rateLimit({
+      store: limitStore,
+      name,
+      limit: 30,
+      windowMs: 60_000,
+      key: (_req, res) => String((res.locals.user as { id?: string } | undefined)?.id ?? 'anonymous'),
+    });
+  app.use(
+    '/products',
+    mountedAt('/products'),
+    createProductRouter({
+      service: createProductService(db, storage),
+      session,
+      writeLimit: userLimit('product-create'),
+    }),
+  );
 
   // ⑦ 에러 처리
   app.use(notFound);

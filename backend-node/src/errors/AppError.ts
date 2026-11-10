@@ -7,8 +7,10 @@ export class AppError extends Error {
   constructor(
     readonly code: ErrorCode,
     readonly fields: Record<string, string> | null = null,
+    // 카탈로그 문구보다 구체적으로 말해야 할 때만 (예: 어떤 전이가 안 되는지)
+    message: string = ERROR_CATALOG[code].message,
   ) {
-    super(ERROR_CATALOG[code].message);
+    super(message);
     this.name = 'AppError';
     this.status = ERROR_CATALOG[code].status;
   }

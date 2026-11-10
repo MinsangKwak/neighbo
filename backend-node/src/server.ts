@@ -3,6 +3,7 @@ import { ConfigError, loadConfig } from './config.js';
 import { createDb } from './db/client.js';
 import { createLogger } from './lib/log.js';
 import { createPasswordHasher } from './lib/password.js';
+import { createStorage } from './storage/index.js';
 
 function boot() {
   try {
@@ -30,6 +31,7 @@ const app = createApp({
   log,
   db,
   hasher,
+  storage: createStorage(config),
   pingDb: async () => {
     await db.$queryRaw`SELECT 1`;
   },

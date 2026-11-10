@@ -3,11 +3,14 @@ import { createApp } from '../src/app.js';
 import { createDb } from '../src/db/client.js';
 import { createLogger } from '../src/lib/log.js';
 import { createPasswordHasher } from '../src/lib/password.js';
+import { createLocalStorage } from '../src/storage/ImageStorage.js';
 import { TEST_DATABASE_URL, testConfig } from './env.js';
 
 // 통합 테스트용 앱 — 진짜 PostgreSQL, 진짜 bcrypt(가장 낮은 비용)
 export const db = createDb(TEST_DATABASE_URL);
 const hasher = await createPasswordHasher(10);
+
+export const storage = createLocalStorage('.data/test-uploads', '/files');
 
 export const ORIGIN = 'http://localhost:3000';
 
@@ -20,6 +23,7 @@ export function createTestApp(options: { pingDb?: () => Promise<void>; env?: Rec
     log,
     db,
     hasher,
+    storage,
     pingDb: options.pingDb ?? (() => Promise.resolve()),
   });
   return { app, lines, config };
