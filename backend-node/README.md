@@ -29,6 +29,7 @@
 | [보호 장치와 배치](../docs/architecture/backend.md#07--보호-장치와-배치) | rate limit · 업로드 검증 · 정리 배치 |
 | [관찰 가능성](../docs/architecture/backend.md#08--관찰-가능성) | 로그 형식 · 요청 ID · 남기지 않는 것 |
 | [소켓 서버](../docs/architecture/backend.md#09--소켓-서버) | 이벤트별 처리 순서와 실패 시 동작 |
+| [구성과 시드](../docs/architecture/backend.md#11--구성과-시드) | 환경 변수 · 로컬 실행 · 마이그레이션 · 시드 · 데모 계정 제한 |
 | [API 명세](../docs/architecture/backend.md#10--api-명세) | 요청 · 응답 모양과 공유 타입 — 프론트와의 계약 |
 
 ## 명세·스파이크 검토 결과
