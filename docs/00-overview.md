@@ -7,7 +7,7 @@
 | 항목 | 내용 |
 | --- | --- |
 | 저장소 | `github.com/MinsangKwak/neighbo` |
-| 상태 | 명세 작성 중 (2026-11-09 시작) |
+| 상태 | 명세 완료 · 전체 검토 반영 (2026-11-10) — 다음은 화면 명세 · 컴포넌트, 그 뒤 코드 |
 | 1차 범위 | 로그인 · 회원가입 · 중고 목록 · 거래 등록 · 거래 상세 · 거래 삭제 · 채팅 목록 · 채팅 · 마이페이지 · 채팅 알림 |
 | 작업 방식 | 문서 먼저 — 공통(개요 · 경우의 수 · 요구사항) → 역할별 설계(프론트 · 백엔드), 문서가 끝난 뒤 코드 시작 |
 
@@ -27,6 +27,8 @@
 | 접근성 | 키보드만으로 모든 흐름 완료, 폼 오류는 스크린리더로 읽힘, 명암비 AA |
 | 검증 | 요구사항의 수용 조건이 테스트 코드와 1:1로 대응 |
 | 이력 추적 | 역할별 커밋과 PR 본문으로 변경 이유를 찾을 수 있음 |
+| 비즈니스 이해 | 2절 지도 — 엔티티 · 핵심 필드 · 업무 프로세스 · 변경 영향 매트릭스. 어떤 요구가 와도 "어디가 바뀌나"를 여기서 먼저 찾는다 |
+| 문제 해결 | [트러블슈팅 기록](troubleshooting.md) — 코드 전에 명세에서 찾은 결함 10건과 스파이크 5건을 증상 → 원인 → 해결 → 확인 방법으로 |
 | 기술 이해 | 핵심 기술마다 "왜 필요한가 · 어떻게 동작하는가 · 밑바닥 구현 · 겪은 문제의 원인"을 [기술 노트](tech/README.md)로 남김. 라이브러리를 쓰기 전에 그 라이브러리가 감추는 것을 한 번 직접 만든다 |
 | 전체 그림 | 어떤 변경이 어느 테이블 · 어느 화면 · 어느 API에 닿는지 [지도](#2-지도--엔티티--프로세스--영향-범위)에서 읽을 수 있음 |
 | 판단 근거 | 모든 아키텍처 결정은 [결정 기록](decisions/README.md)에 대안 · 트레이드오프 · 바뀔 가능성과 함께 남김 |
@@ -64,7 +66,7 @@
 | **Product** | 팔려고 올린 물건 하나 | `sellerId` `title` `price` `status` `buyerId` `deletedAt` | 등록 → 판매중 ⇄ 예약중 → 거래완료 → (삭제는 어느 상태에서든, soft) |
 | **ProductImage** | 물건 사진. 순서 있음 | `productId` `url` `thumbnailUrl` `order` | 상품과 함께. 삭제 30일 후 파일 정리 |
 | **ChatRoom** | 상품 하나 × 구매자 한 명의 방. 유니크 | `productId` `sellerId` `buyerId` `lastMessageAt` `lastMessagePreview` | 구매자가 [채팅하기] → 영구 |
-| **ChatRoomMember** | 방 참여자의 읽음 위치 | `roomId` `userId` `lastReadAt` | 방 생성 시 두 행 |
+| **ChatRoomMember** | 방 참여자의 읽음 위치 | `roomId` `userId` `lastReadSeq` | 방 생성 시 두 행 |
 | **Message** | 텍스트 한 줄 | `roomId` `senderId` `content` `tempId` `createdAt` | 전송 → 영구 (삭제 · 수정 없음) |
 
 보조: **Upload** (상품에 연결되기 전 임시 파일, 24시간 후 정리). 1차에 **없는** 엔티티: Notification · Category · Favorite · Report · Review · Location. 없는 이유는 3절 "2차 이후" 표에.
@@ -76,7 +78,7 @@
 | **P1 물건 올리기** | 사진 업로드 → 상품 생성 → 목록 노출 | Upload → Product · ProductImage | 사진은 선택 즉시 업로드, 등록은 URL만 전송. 고아 업로드는 배치 정리 |
 | **P2 거래 시작 (채팅)** | 상세 → [채팅하기] → 방 생성(또는 기존 방) → 첫 메시지 | Product → ChatRoom · ChatRoomMember → Message | 방은 `(productId, buyerId)` 유니크. 판매자는 자기 물건에 방을 못 만듦 |
 | **P3 거래 마무리** | 판매자가 상태 변경 → 거래완료 시 구매자 지정 → 양쪽 마이페이지 반영 | Product(`status` `buyerId` `soldAt`) | 전이 표(05 상세) 밖의 전이는 `409`. 구매자는 채팅 상대 중에서만 |
-| **P4 읽음과 알림** | 메시지 저장 → 방 `lastMessageAt` 갱신 → 수신자 배지 push → 방 입장 시 `lastReadAt` 갱신 | Message → ChatRoom → ChatRoomMember | 배지 = 읽지 않은 **방** 수. Notification 테이블 없음 |
+| **P4 읽음과 알림** | 방 번호 `lastSeq` +1 → 메시지 저장 → 수신자 배지 push → 화면에 그린 번호까지 `lastReadSeq` 갱신 | Message → ChatRoom → ChatRoomMember | 배지 = 읽지 않은 **방** 수. Notification 테이블 없음 |
 | **P5 내리기** | 삭제 확인 → `deletedAt` → 목록 · 검색 제외, 채팅방은 열람만 | Product → (ChatRoom 표시만) | 항상 soft. 모든 Product 조회에 `deletedAt IS NULL` 자동 주입 |
 
 ### 2.4 변경 영향 매트릭스
@@ -144,7 +146,7 @@
 
 | 영역 | 결정 | 왜 필요한가 (없으면 무엇이 안 되나) | 바뀔 가능성 | 바꾸면 닿는 곳 |
 | --- | --- | --- | --- | --- |
-| 프론트엔드 | Next.js (App Router) + TypeScript | 목록 · 상세를 서버에서 렌더해 첫 화면과 OG 메타를 바로 제공. 없으면 SSR · 라우팅 · 이미지 리사이즈를 직접 조립 | 낮음 | 전부 |
+| 프론트엔드 | Next.js 16 (App Router) + TypeScript | 목록 · 상세를 서버에서 렌더해 첫 화면과 OG 메타를 바로 제공. 없으면 SSR · 라우팅 · 이미지 리사이즈를 직접 조립 | 낮음 | 전부 |
 | 스타일 | Tailwind CSS | 디자인 토큰을 `tailwind.config` 한 곳에 두고 05 컴포넌트 문서의 근거로 삼음. 임의 값(`w-[137px]`) 금지 | 낮음 | 모든 컴포넌트 |
 | 백엔드 | Node.js + Express + TypeScript | 권한 · 트랜잭션 · 소켓을 **코드로** 보여주기 위해 BaaS 대신 직접. 미들웨어 체인으로 인증 → 검증 → 처리 → 에러의 순서가 드러남 | 낮음 | 서버 전부 |
 | DB · ORM | PostgreSQL 16 + Prisma 7 (`prisma.config.ts` · `@prisma/adapter-pg`) — 로컬 Docker Compose · 운영 Railway | 유니크 제약(채팅방 · 이메일) · 트랜잭션(메시지 저장 + 방 갱신)이 데이터 무결성의 근거. 개발 · 운영 같은 엔진으로 동작 차이 제거 | 낮음 | 스키마 · 리포지토리 계층 |
@@ -154,7 +156,7 @@
 | 이미지 저장 | `ImageStorage` 인터페이스 — 로컬 디스크(개발) · S3 호환(운영) | 업로드 · 리사이즈 · 삭제 세 메서드 뒤에 저장소를 숨김. 운영 저장소가 바뀌어도 호출부 무변경 | **높음** (Cloudflare R2 · Supabase Storage 등) | 구현체 한 파일 |
 | 검증 | Zod 스키마를 `shared-schema/`에서 프론트 · 백엔드 공유 | 같은 규칙을 두 번 쓰지 않음. 서버가 최종 검증자 | 낮음 | 스키마 패키지 |
 | 데이터 조회 (프론트) | TanStack Query | 캐시 · 재조회 · 낙관적 갱신 · 뒤로가기 복원을 한 규칙으로 | 낮음 | 모든 조회 훅 |
-| 테스트 | 백엔드 API 통합 테스트(Vitest + supertest) · 프론트 컴포넌트(Testing Library) · E2E 핵심 시나리오 2개(Playwright) | 수용 조건과 1:1. 시나리오 커버가 기준 | 낮음 | — |
+| 테스트 | 백엔드 API 통합 테스트(Vitest + supertest + 진짜 PostgreSQL) · 프론트 컴포넌트(Testing Library) · E2E 핵심 시나리오 2개(Playwright) | 수용 조건과 1:1. 층별 역할은 [테스트 전략](dev/TESTING.md) | 낮음 | — |
 | 배포 | 프론트 Vercel · 백엔드 Railway | GitHub 연결 자동 배포, Postgres 원클릭, WebSocket · 상시 실행. 환경 매핑은 [브랜치 · 배포 전략](dev/BRANCHING.md) | 중간 | 환경 변수 · 워크플로 |
 
 ### 의존성 추가 규칙
@@ -179,7 +181,8 @@
 
 ```
 neighbo/
-├─ README.md              # 소개 · 역할별 입구 · 문서 링크
+├─ README.md              # 소개 · 할 수 있는 것 · 역할별 입구 · 문서 링크
+├─ LICENSE                # MIT
 ├─ package.json           # npm workspaces — 아래 세 폴더를 묶음
 ├─ frontend-next/         # 프론트엔드 · Next.js — README가 프론트 설계 문서의 입구
 ├─ backend-node/          # 백엔드 · Node.js — README가 백엔드 설계 문서의 입구
@@ -189,12 +192,14 @@ neighbo/
 │  ├─ README.md           # 문서 목차
 │  ├─ 00-overview.md
 │  ├─ 01-requirements.md  # 수용 조건마다 프론트 · 백엔드 역할이 나뉨
+│  ├─ capabilities.md     # 역량 지도 — 역량마다 근거 문서와 단계
+│  ├─ troubleshooting.md  # 설계 결함 · 스파이크 문제의 원인과 해결
 │  ├─ cases/              # 기능별 경우의 수 (01의 입력)
 │  ├─ frontend/           # 프론트 설계 — 렌더링 · 상태 · 캐시 · 에러 · 폼 · 포커스 · 소켓 클라이언트 (+ 화면 명세 · 컴포넌트 예정)
 │  ├─ backend/            # 백엔드 설계 — 계층 · 데이터 모델 · 트랜잭션 · 권한 · 멱등성 · 에러 코드 · 보호 · 로그 · 소켓 서버 · API 명세
 │  ├─ decisions/          # 결정 기록 — 대안 · 트레이드오프 · 바뀔 가능성
 │  ├─ tech/               # 기술 노트 — 원리 · 밑바닥 구현 · 겪은 문제
-│  ├─ dev/                # 커밋 규칙 · 브랜치 · 배포 전략
+│  ├─ dev/                # 커밋 규칙 · 브랜치 · 배포 전략 · 테스트 전략 · AI와 일하는 방식
 │  └─ review-queue.md     # 검토 요청
 └─ .github/               # 워크플로 · PR 템플릿 (코드 단계에서 추가)
 ```
@@ -223,7 +228,8 @@ neighbo/
 | BE | [API 명세 (구 04)](backend/10-api.md) | 엔드포인트 · 요청/응답 JSON · Socket 이벤트 페이로드 | 데이터 모델, 권한, 에러 코드 | 작성 |
 | FE | 화면 명세 (구 03) | 화면별 URL · 진입 조건 · 노출 데이터 · 상태 · 이벤트와 이동 | FE 설계, API 명세 | 예정 |
 | FE | 컴포넌트 (구 05) | 공통 컴포넌트 · props · 변형 · 접근성 요구 | 화면 명세 | 예정 |
-| 공통 | 규칙 (구 06) | 네이밍 · 폴더 · 테스트 작성 기준 — 역할 문서와 [dev/](dev/COMMITS.md)로 분산 | 위 전부 | 예정 |
+| 공통 | 규칙 (구 06) | 네이밍 · 폴더 · 테스트 작성 기준 — 역할 문서와 [dev/](dev/COMMITS.md)로 분산, 테스트는 [테스트 전략](dev/TESTING.md) | 위 전부 | 테스트 작성 · 나머지 예정 |
+| 공통 | [트러블슈팅](troubleshooting.md) · [역량 지도](capabilities.md) | 명세 전체 검토에서 찾은 결함과 원인 · 역량별 근거 | 위 전부 | 작성 (2026-11-10) |
 
 문서와 나란히 쌓이는 것: [결정 기록](decisions/README.md)은 결정이 날 때마다, [기술 노트](tech/README.md)는 스파이크와 구현 중에 씁니다.
 
@@ -249,9 +255,11 @@ neighbo/
 | 접근성 | 키보드만으로 열 가지 기능을 완료할 수 있다. 폼 오류는 `aria-describedby`로 연결된다. 명암비 WCAG AA |
 | 반응형 | 모바일(360px) 우선, PC(1024px 이상)에서도 깨지지 않는다 |
 | 동시성 | 채팅방 생성 · 거래 상태 변경은 중복 요청에도 한 번만 반영된다 |
-| 테스트 | 수용 조건마다 대응하는 테스트가 있다. 테스트 이름은 수용 조건 문장을 그대로 쓴다 |
+| 테스트 | 수용 조건마다 대응하는 테스트가 있다. 테스트 이름은 수용 조건 문장을 그대로 쓴다 ([테스트 전략](dev/TESTING.md)) |
+| 성능 | 모바일(4G · 중급 기기) p75 기준 LCP ≤ 2.5초 · INP ≤ 200ms · CLS ≤ 0.1. 목록 · 상세 API는 시드 규모(상품 1만 · 메시지 10만)에서 p95 ≤ 300ms, 쿼리마다 `EXPLAIN ANALYZE`로 인덱스 사용 확인 |
+| 보안 | 사용자 입력은 원문 저장 · 출력 시 이스케이프, 쓰기 요청은 `Origin` 검사, 업로드는 매직 바이트 검사. 비밀값은 환경 변수로만 |
 | 문서 | 코드가 문서와 다르면 같은 PR에서 문서를 고친다 |
-| 원인 노트 | 버그를 고칠 때 "무엇을 고쳤다"가 아니라 **"왜 생겼다"**를 남긴다. 증상 → 가설 → 확인 방법 → 원인 → 수정 → 재발 방지. [기술 노트](tech/README.md)의 해당 기술 아래에 쌓는다 |
+| 원인 노트 | 버그를 고칠 때 "무엇을 고쳤다"가 아니라 **"왜 생겼다"**를 남긴다. 증상 → 가설 → 확인 방법 → 원인 → 수정 → 재발 방지. 한 기술 안의 문제는 [기술 노트](tech/README.md)에, 설계 결함과 여러 층에 걸친 문제는 [트러블슈팅 기록](troubleshooting.md)에 쌓고 회귀 테스트를 단다 |
 | 영향 범위 | 변경 PR은 2.4 매트릭스의 해당 행을 인용하고, 표시된 열을 모두 확인했음을 적는다 |
 
 ---
