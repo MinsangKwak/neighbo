@@ -25,7 +25,20 @@
 | [에러 경계](../docs/frontend/04-errors.md) | 전역 · 페이지 · 영역 세 겹의 에러 처리와 서버 에러 코드별 화면 반응 |
 | [폼](../docs/frontend/05-forms.md) | 폼 7개의 공통 패턴, 정규화, 서버 오류 반영, 이탈 확인 |
 | [포커스와 라이브 리전](../docs/frontend/06-focus.md) | 화면 전환 · 모달 · 목록 추가 · 실시간 메시지에서 포커스와 알림 |
-| [소켓 클라이언트](../docs/frontend/07-socket-client.md) | 연결 상태 기계, 전송 대기열, 재연결 후 복구, 서버가 끊었을 때 |
+| [소켓 클라이언트](../docs/frontend/07-socket-client.md) | 연결 상태 기계, 전송 대기열, 재연결 후 복구, 번호 틈 감지, 서버가 끊었을 때 |
+
+## 이 역할에서 찾아 고친 결함
+
+코드 전에 명세를 다시 읽으며 찾은 것들입니다. 증상 · 원인 · 확인 방법은 [트러블슈팅 기록](../docs/troubleshooting.md)에 있습니다.
+
+| 번호 | 무엇이 깨졌나 | 프론트가 바꾼 것 |
+| --- | --- | --- |
+| [T-04](../docs/troubleshooting.md#t-04) | 아이폰 사진(HEIC) · 큰 사진 업로드 실패 | 업로드 전에 브라우저에서 1600px JPEG로 다시 인코딩 — 형식 · 용량 · 위치 정보를 한 번에 |
+| [T-06](../docs/troubleshooting.md#t-06) | 매일 써도 7일 뒤 로그아웃 | 서버 컴포넌트의 `Set-Cookie`는 버리고, 연장은 `/api/*` 응답에서만 |
+| [T-07](../docs/troubleshooting.md#t-07) | 보호 페이지 1겹 검사 미동작 | Next.js 16의 `proxy.ts` |
+| [T-03](../docs/troubleshooting.md#t-03) | 재연결 순간 대기 메시지가 실패로 바뀜 | 재전송 200ms 간격, `RATE_LIMITED`는 실패가 아니라 대기 |
+| [T-01](../docs/troubleshooting.md#t-01) | 가끔 메시지 하나가 안 보임 | 받은 번호(`seq`)의 틈을 보고 스스로 채움, 읽음은 **그린** 번호로 |
+| [S-04](../docs/troubleshooting.md#s-04) | 화면엔 실패, 상대에겐 도착 | 타임아웃 있는 `emitWithAck`만, 직접 `emit`은 lint로 금지 |
 
 ## 근거 문서
 
@@ -35,4 +48,4 @@
 
 ## 예정 스택
 
-Next.js (App Router) · TypeScript (`strict`) · Tailwind CSS · TanStack Query · Socket.IO client · Zod (공유 패키지) · Testing Library · Playwright
+Next.js 16 (App Router) · TypeScript (`strict`) · Tailwind CSS · TanStack Query · Socket.IO client · Zod (공유 패키지) · Testing Library · Playwright

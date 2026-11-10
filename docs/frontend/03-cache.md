@@ -18,7 +18,7 @@
 | `['product', id]` | 상세 | 단건 | 30초 | 상세 · 수정 |
 | `['product', id, 'chatPartners']` | 거래완료 바텀시트 목록 | 단건 | 0 (열 때마다) | — |
 | `['chatRooms', { productId }]` | 채팅 목록 | 무한 | ∞ (소켓이 갱신) | 채팅 목록 |
-| `['chatRoom', id]` | 방 · 상품 요약 · 상대 `lastReadAt` | 단건 | ∞ (소켓이 갱신) | 채팅방 |
+| `['chatRoom', id]` | 방 · 상품 요약 · 상대 `lastReadSeq` | 단건 | ∞ (소켓이 갱신) | 채팅방 |
 | `['messages', roomId]` | 메시지 (과거 방향 무한) | 무한 | ∞ (소켓이 갱신) | 채팅방 |
 
 `staleTime ∞`인 키는 소켓 이벤트로만 갱신되므로, **소켓이 끊겼다 붙으면 반드시 재조회**한다 ([07 소켓 클라이언트](07-socket-client.md)). 이걸 빼먹으면 끊긴 동안의 변화가 영영 반영되지 않는다.
@@ -46,7 +46,7 @@
 | 이벤트 | 갱신 |
 | --- | --- |
 | `message:new` | `messages` 추가(같은 `id` 있으면 무시) · `chatRooms` 행 맨 위로 + 미리보기 · 그 방을 보고 있지 않으면 행 배지 +1 |
-| `room:read` (상대) | `chatRoom`의 상대 `lastReadAt` → "읽음" 표시 |
+| `room:read` (상대) | `chatRoom`의 상대 `lastReadSeq` → "읽음" 표시 |
 | `room:read` (내 다른 탭) | `chatRooms` 행 배지 0 |
 | `notification:unread` | `me/unread` = `total` |
 | `room:product_updated` | `chatRoom`의 상품 요약 · `product` 무효화 · `chatRooms` 행 |
