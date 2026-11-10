@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql" // 연결 주소는 prisma.config.ts
+}
+
+enum ProductStatus {
+  ON_SALE
+  RESERVED
+  SOLD
+}
+
+enum UploadKind {
+  PRODUCT
+  AVATAR
+}
+
+enum MemberRole {
+  SELLER
+  BUYER
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique // normalizeEmail() 결과만 저장
+  passwordHash  String
+  nickname      String // 표시용 — 입력한 대소문자 그대로
+  nicknameLower String    @unique // 중복 판단용
+  avatarUrl     String?
+  tokenVersion  Int       @default(0) // 비밀번호 변경 시 +1 → 기존 토큰 무효
+  isDemo        Boolean   @default(false) // 공용 데모 계정 — 비밀번호 · 프로필 변경 불가, 매일 초기화
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime? // 탈퇴(2차) 대비. 1차에는 항상 null
+
+  products    Product[]        @relation("ProductSeller")
+  purchases   Product[]        @relation("ProductBuyer")
+  uploads     Upload[]
+  roomsSold   ChatRoom[]       @relation("RoomSeller")
+  roomsBought ChatRoom[]       @relation("RoomBuyer")
+  memberships ChatRoomMember[]
+  messages    Message[]
+}
+
+model Product {
+  id             String        @id @default(cuid())
+  sellerId       String
+  title          String
+  price          Int // 원 단위 정수. 0 = 나눔
+  description    String        @default("")
+  status         ProductStatus @default(ON_SALE)
+  buyerId        String? // SOLD일 때만 값 (CHECK)
+  soldAt         DateTime? // SOLD일 때만 값 (CHECK)
+  soldPrice      Int? // 거래완료 시점 가격 스냅샷
+  idempotencyKey String // 클라이언트가 폼을 열 때 만든 uuid
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+  imagesPurgedAt DateTime? // 삭제 30일 후 파일 정리 완료 시각
+
+  seller    User           @relation("ProductSeller", fields: [sellerId], references: [id])
+  buyer     User?          @relation("ProductBuyer", fields: [buyerId], references: [id])
+  images    ProductImage[]
+  chatRooms ChatRoom[]
+
+  @@unique([sellerId, idempotencyKey])
+  @@index([deletedAt, createdAt(sort: Desc), id(sort: Desc)]) // 홈 목록 · 커서
+  @@index([sellerId, status, createdAt(sort: Desc)]) // 마이페이지 판매 탭
+  @@index([buyerId, soldAt(sort: Desc)]) // 구매 내역
+}
+
+model ProductImage {
+  id           String   @id @default(cuid())
+  productId    String
+  storageKey   String // ImageStorage가 쓰는 키 — URL은 키에서 만든다
+  url          String
+  thumbnailUrl String
+  width        Int
+  height       Int
+  order        Int // 0 = 대표
+  createdAt    DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, order])
+}
+
+model Upload {
+  id           String     @id @default(cuid())
+  uploaderId   String
+  kind         UploadKind
+  storageKey   String
+  url          String
+  thumbnailUrl String?
+  width        Int
+  height       Int
+  createdAt    DateTime   @default(now())
+
+  uploader User @relation(fields: [uploaderId], references: [id])
+
+  @@index([createdAt]) // 24시간 지난 고아 정리 배치
+}
+
+model ChatRoom {
+  id                  String    @id @default(cuid())
+  productId           String
+  sellerId            String
+  buyerId             String
+  lastSeq             Int       @default(0) // 방 안 마지막 메시지 번호 — 저장 시 +1 하며 방 행을 잠근다 (결정 0016)
+  lastMessageAt       DateTime? // 메시지가 없으면 null
+  lastMessagePreview  String?
+  lastMessageSenderId String?
+  createdAt           DateTime  @default(now())
+
+  product  Product          @relation(fields: [productId], references: [id])
+  seller   User             @relation("RoomSeller", fields: [sellerId], references: [id])
+  buyer    User             @relation("RoomBuyer", fields: [buyerId], references: [id])
+  members  ChatRoomMember[]
+  messages Message[]
+
+  @@unique([productId, buyerId]) // 상품 × 구매자당 방 하나
+  @@index([productId]) // 거래완료 바텀시트의 채팅 상대 목록 · 상품 변경 브로드캐스트
+}
+
+model ChatRoomMember {
+  roomId         String
+  userId         String
+  role           MemberRole
+  lastReadSeq    Int        @default(0) // 화면에 그린 마지막 메시지 번호 (결정 0016)
+  lastActivityAt DateTime   @default(now()) // ChatRoom 활동 시각의 복사본 — 목록 정렬을 이 테이블 인덱스 하나로
+  joinedAt       DateTime   @default(now())
+
+  room ChatRoom @relation(fields: [roomId], references: [id])
+  user User     @relation(fields: [userId], references: [id])
+
+  @@id([roomId, userId])
+  @@index([userId, lastActivityAt(sort: Desc), roomId(sort: Desc)]) // 채팅 목록 · 커서 · 배지
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  roomId    String
+  senderId  String
+  seq       Int // 방 안 순서 — 커서 · 복구 · 읽음의 기준 (결정 0016)
+  content   String
+  tempId    String // 클라이언트가 만든 전송 식별자 — 재시도 중복 방지
+  createdAt DateTime @default(now()) // 표시 전용. 트랜잭션 시작 시각이라 순서에 쓰지 않는다
+
+  room   ChatRoom @relation(fields: [roomId], references: [id])
+  sender User     @relation(fields: [senderId], references: [id])
+
+  @@unique([roomId, seq]) // 과거 방향(before) · 이후 방향(after) 둘 다 이 인덱스로
+  @@unique([roomId, senderId, tempId])
+}

@@ -1,0 +1,43 @@
+import express, { type Express } from 'express';
+import type { Config } from './config.js';
+import type { Logger } from './lib/log.js';
+import { accessLog } from './middleware/accessLog.js';
+import { errorHandler, notFound } from './middleware/errorHandler.js';
+import { createOriginCheck, originGuard } from './middleware/origin.js';
+import { requestId } from './middleware/requestId.js';
+import { securityHeaders } from './middleware/securityHeaders.js';
+
+export interface AppDeps {
+  config: Config;
+  log: Logger;
+  // DB에 닿는지 확인한다. 실패하면 던진다
+  pingDb: () => Promise<void>;
+}
+
+// 미들웨어 조립 순서가 이 파일 한 곳에 보이게 — 싸고 빠른 거절을 먼저
+export function createApp({ config, log, pingDb }: AppDeps): Express {
+  const app = express();
+  app.disable('x-powered-by');
+
+  // ① 진입
+  app.use(requestId);
+  app.use(securityHeaders);
+  app.use(accessLog(log));
+  app.use(express.json({ limit: '1mb' }));
+  app.use(originGuard(createOriginCheck(config.ALLOWED_ORIGIN, config.ALLOWED_ORIGIN_PATTERN)));
+
+  // 상태 확인 — /healthz는 DB를 보지 않는다. DB 장애 때 재시작 루프에 빠지지 않게
+  app.get('/healthz', (_req, res) => {
+    res.json({ status: 'ok' });
+  });
+  app.get('/readyz', async (_req, res) => {
+    await pingDb();
+    res.json({ status: 'ready' });
+  });
+
+  // ⑦ 에러 처리
+  app.use(notFound);
+  app.use(errorHandler(log));
+
+  return app;
+}
