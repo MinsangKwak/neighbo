@@ -2,14 +2,14 @@
 
 **이웃과 중고 물건을 거래하고 채팅으로 약속을 잡는 동네 거래 서비스.** 당근마켓의 핵심 흐름(목록 → 상세 → 채팅 → 거래)을 명세부터 설계하고, 작은 범위를 끝까지 꼼꼼하게 만드는 것을 목표로 합니다.
 
-> 현재 단계: **명세 작성 중.** 코드는 문서가 끝난 뒤 시작합니다. 폴더 구조는 [개요 문서](docs/00-overview.md)의 제안이며 확정 전입니다.
+> 현재 단계: **명세 작성 중.** 코드는 문서가 끝난 뒤 시작합니다. 최상위 폴더는 `{역할}-{대표 기술}`로 지어, 이름만 보고 역할과 스택을 알 수 있게 했습니다([결정 0015](docs/decisions/0015-folder-naming.md)).
 
 ## 역할별 입구
 
 | 역할 | 맡는 것 | 입구 |
 | --- | --- | --- |
-| **프론트엔드** | 렌더링 위치 · 상태와 캐시 · 입력 처리 · 에러 화면 · 접근성 · 소켓 연결 상태 | [frontend-next/](frontend-next/README.md) → [설계 문서](docs/frontend/README.md) |
-| **백엔드** | 인증 · 권한 · 데이터 제약 · 트랜잭션 · 멱등성 · 에러 코드 · 소켓 서버 | [backend-node/](backend-node/README.md) → [설계 문서](docs/backend/README.md) |
+| **프론트엔드** · Next.js | 렌더링 위치 · 상태와 캐시 · 입력 처리 · 에러 화면 · 접근성 · 소켓 연결 상태 | [frontend-next/](frontend-next/README.md) → [설계 문서](docs/frontend/README.md) |
+| **백엔드** · Node.js | 인증 · 권한 · 데이터 제약 · 트랜잭션 · 멱등성 · 에러 코드 · 소켓 서버 | [backend-node/](backend-node/README.md) → [설계 문서](docs/backend/README.md) |
 
 두 역할이 같은 요구사항을 각자 어떻게 맡는지는 [01 요구사항](docs/01-requirements.md)의 "프론트가 하는 것 · 백엔드가 하는 것" 열에 수용 조건마다 나뉘어 있습니다.
 
