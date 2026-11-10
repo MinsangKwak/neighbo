@@ -65,9 +65,9 @@
 | **User** | 가입한 사람. 판매자이자 구매자 | `email` `nickname` `avatarUrl` `tokenVersion` | 가입 → (탈퇴는 2차) |
 | **Product** | 팔려고 올린 물건 하나 | `sellerId` `title` `price` `status` `buyerId` `deletedAt` | 등록 → 판매중 ⇄ 예약중 → 거래완료 → (삭제는 어느 상태에서든, soft) |
 | **ProductImage** | 물건 사진. 순서 있음 | `productId` `url` `thumbnailUrl` `order` | 상품과 함께. 삭제 30일 후 파일 정리 |
-| **ChatRoom** | 상품 하나 × 구매자 한 명의 방. 유니크 | `productId` `sellerId` `buyerId` `lastMessageAt` `lastMessagePreview` | 구매자가 [채팅하기] → 영구 |
+| **ChatRoom** | 상품 하나 × 구매자 한 명의 방. 유니크 | `productId` `sellerId` `buyerId` `lastSeq` `lastMessageAt` `lastMessagePreview` | 구매자가 [채팅하기] → 영구 |
 | **ChatRoomMember** | 방 참여자의 읽음 위치 | `roomId` `userId` `lastReadSeq` | 방 생성 시 두 행 |
-| **Message** | 텍스트 한 줄 | `roomId` `senderId` `content` `tempId` `createdAt` | 전송 → 영구 (삭제 · 수정 없음) |
+| **Message** | 텍스트 한 줄 | `roomId` `senderId` `seq`(방 안 순서) `content` `tempId` `createdAt` | 전송 → 영구 (삭제 · 수정 없음) |
 
 보조: **Upload** (상품에 연결되기 전 임시 파일, 24시간 후 정리). 1차에 **없는** 엔티티: Notification · Category · Favorite · Report · Review · Location. 없는 이유는 3절 "2차 이후" 표에.
 
