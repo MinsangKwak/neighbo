@@ -222,7 +222,7 @@ neighbo/
 
 ### 문서가 끝난 뒤
 
-1. **기술 스파이크** — WebSocket 실험은 완료했으며, JWT 서명·검증, bcrypt 비용 측정, 유니크 제약 경합 재현은 예정입니다. 실험 코드는 `spikes/`, 결과는 기술 노트에 기록합니다.
+1. **기술 스파이크** — WebSocket · JWT 서명·검증 · bcrypt 비용 · 유니크 경합과 트랜잭션 실험을 완료했습니다. 브라우저가 필요한 쿠키 `SameSite` · CSRF 확인은 구현 0단계에서 합니다. 실험 코드는 `spikes/`, 결과는 기술 노트에 있습니다.
 2. 프로젝트 초기화 (`ci`, `chore` 커밋)
 3. 기능 1번(회원가입)부터 순서대로 — 기능 하나 = 브랜치 하나 = PR 하나
 4. 각 PR에 수용 조건 체크리스트와 검증 결과 첨부
@@ -297,9 +297,9 @@ neighbo/
 | API | HTTP 25개와 소켓 이벤트 9개의 요청·응답·에러·권한·트랜잭션 | [B10](architecture/backend.md#10--api-명세) | 설계 |
 | 데이터 모델 | 테이블 7개, 제약, 관계, 비정규화. 문서 내 Prisma 스키마의 검증 기록 포함 | [B02](architecture/backend.md#02--데이터-모델) · [S-05](troubleshooting.md#s-05) | 설계·부분 검증 |
 | 인덱스 | 조회별 인덱스와 시드 데이터를 이용한 `EXPLAIN ANALYZE` 검증 계획 | [B02 4절](architecture/backend.md#4-인덱스--쿼리마다-무엇을-타는가) | 설계 |
-| 트랜잭션·동시성 | 쓰기 작업 11종의 경계, 조건부 UPDATE, `FOR SHARE`, 방별 행 잠금과 메시지 번호 | [B03](architecture/backend.md#03--트랜잭션-경계) · [결정 0016](decisions.md#0016--방-안-순서와-읽음-위치는-시각이-아니라-방별-번호seq로-센다) | 설계 |
+| 트랜잭션·동시성 | 쓰기 작업 11종의 경계, 조건부 UPDATE, `FOR SHARE`, 방별 행 잠금과 메시지 번호. 경합 다섯 가지를 SQL 스파이크로 재현 | [B03](architecture/backend.md#03--트랜잭션-경계) · [결정 0016](decisions.md#0016--방-안-순서와-읽음-위치는-시각이-아니라-방별-번호seq로-센다) · [PostgreSQL 실험](tech-notes.md#postgresql-제약과-트랜잭션) | 설계·부분 검증 |
 | 멱등성 | 상품 등록 식별자, 채팅방 유니크 제약, 메시지 `tempId`, 읽음 위치의 단조 증가 | [B05](architecture/backend.md#05--멱등성) | 설계 |
-| 인증·권한 | JWT 쿠키, `tokenVersion` 무효화, 요청자·자원 상태별 권한, 비공개 자원 404 | [B04](architecture/backend.md#04--권한-매트릭스) · [B01](architecture/backend.md#01--요청-계층) | 설계 |
+| 인증·권한 | JWT 쿠키, `tokenVersion` 무효화, 요청자·자원 상태별 권한, 비공개 자원 404. 서명·검증과 해시 비용은 스파이크로 확인 | [B04](architecture/backend.md#04--권한-매트릭스) · [B01](architecture/backend.md#01--요청-계층) · [인증 실험](tech-notes.md#jwt와-비밀번호-해시) | 설계·부분 검증 |
 | 에러·로그 | 공통 에러 코드, 요청 ID, 구조화 로그, 민감정보 제외 | [B06](architecture/backend.md#06--에러-코드) · [B08](architecture/backend.md#08--관찰-가능성) | 설계 |
 | 요청·파일 보호 | 프록시 원 IP 확인, 요청 제한, 업로드 검증, 압축 폭탄 방어 | [B07](architecture/backend.md#07--보호-장치와-배치) | 설계 |
 | 실시간 서버 | DB 저장 후 이벤트 발행, 커서 기반 복구. 서버 종료·재연결 동작은 별도 스파이크에서 확인 | [B09](architecture/backend.md#09--소켓-서버) · [WebSocket 실험](tech-notes.md#websocket과-socketio) | 설계·부분 검증 |
@@ -315,7 +315,7 @@ neighbo/
 | 요구사항 | 시나리오 758개, 수용 조건 251개, 조건별 프론트엔드·백엔드 역할 — 기능마다 한 장 | [기능별 문서](README.md#기능별-요구사항--한-기능--한-장) |
 | 흐름 설계 | 연결 경로, 두 역할의 계약, 핵심 흐름 9개, 실패 전달 경로 | [흐름 설계](architecture/flow.md) |
 | 기술 결정 | 16개 결정의 대안·제약과 재검토 조건 | [결정 기록](decisions.md) |
-| 문제 분석 | 명세 검토 11건과 스파이크 검증 5건의 원인·수정·확인 방법 | [트러블슈팅](troubleshooting.md) |
-| 기술 실험 | WebSocket 프레임, 하트비트, 재연결, 복구, Socket.IO 버퍼 관찰 | [기술 노트](tech-notes.md) |
+| 문제 분석 | 명세 검토 12건과 스파이크 검증 7건의 원인·수정·확인 방법 | [트러블슈팅](troubleshooting.md) |
+| 기술 실험 | WebSocket 6개, 인증 4개(JWT 직접 서명 · bcrypt 비용과 72바이트 한계), PostgreSQL 5개(유니크 경합 · 트랜잭션 시각 · 행 잠금) | [기술 노트](tech-notes.md) |
 | 개발 절차 | 커밋 단위, 브랜치·병합, PR 검토 항목, 구현 순서 6단계 | [커밋](dev.md#커밋-메시지--변경-이유를-찾을-수-있게-쓰기) · [브랜치](dev.md#브랜치--배포-전략--main은-언제나-배포-가능하게) |
 | AI 작업·검증 | 초안 작성과 설계 판단의 역할, 실행·문서 대조 절차 | [AI 작업·검증](dev.md#ai-작업검증-기록) |

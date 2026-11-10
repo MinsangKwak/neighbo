@@ -244,7 +244,7 @@ GitHub → Settings → Branches에서 `main`과 `dev`에 같은 규칙을 겁�
 
 | 단계 | 만드는 것 | 수용 조건 | 끝 조건 | 먼저 끝나 있어야 하는 것 |
 | --- | --- | --- | --- | --- |
-| 0 뼈대 | workspaces · `shared-schema` · 두 앱 초기화 · 환경 변수 검증 · 프록시 · 에러 형식 · 요청 ID · CI(lint · typecheck · test) · Docker Compose · 첫 마이그레이션 · Staging 배포 | AC-CM 중 인증 밖의 것 | 빈 홈 화면과 `/healthz`가 Staging에서 뜨고, 프록시를 지난 요청 ID가 백엔드 로그에 찍힌다 | 남은 스파이크(JWT · bcrypt · 유니크 경합) |
+| 0 뼈대 | workspaces · `shared-schema` · 두 앱 초기화 · 환경 변수 검증 · 프록시 · 에러 형식 · 요청 ID · CI(lint · typecheck · test) · Docker Compose · 첫 마이그레이션 · Staging 배포 | AC-CM 중 인증 밖의 것 | 빈 홈 화면과 `/healthz`가 Staging에서 뜨고, 프록시를 지난 요청 ID가 백엔드 로그에 찍힌다 | — (스파이크 완료. 쿠키 `SameSite` · CSRF의 브라우저 확인을 이 단계 첫 PR에서) |
 | 1 인증 | 가입 · 로그인 · 로그아웃 · 세션 연장 · 보호 경로 · rate limit · 데모 계정 시드 | AC-SU · AC-LI · AC-CM 인증 | 가입 → 로그아웃 → 로그인, 다른 기기 무효화 | 0 |
 | 2 상품 | 업로드 · 등록 · 수정 · 목록 · 검색 · 상세 · 상태 변경 · 삭제 | AC-PC · AC-PL · AC-PD(채팅 제외) · AC-PX | 판매자가 올린 물건을 구매자가 목록에서 찾아 상세까지 | 1 |
 | 3 채팅 | 방 생성 · 소켓 연결 · 전송 · 복구 · 읽음 · 채팅 목록 | AC-PD 채팅 · AC-CH · AC-CL | 두 브라우저로 대화, 한쪽 네트워크를 끊었다 붙여도 빠짐 · 중복 없음 | 2 |
