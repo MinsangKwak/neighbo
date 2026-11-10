@@ -1,19 +1,8 @@
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
-import { TEST_DATABASE_URL } from '../../test/env.js';
-import { createDb } from './client.js';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { db, resetDb } from '../../test/app.js';
 
 // 진짜 PostgreSQL에서 첫 마이그레이션이 약속한 제약을 지키는지 확인한다
-const db = createDb(TEST_DATABASE_URL);
-
-beforeEach(async () => {
-  await db.$executeRawUnsafe(
-    'TRUNCATE "Message", "ChatRoomMember", "ChatRoom", "ProductImage", "Upload", "Product", "User" CASCADE',
-  );
-});
-
-afterAll(async () => {
-  await db.$disconnect();
-});
+beforeEach(resetDb);
 
 let n = 0;
 function makeUser() {

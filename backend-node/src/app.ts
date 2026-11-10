@@ -1,23 +1,35 @@
 import express, { type Express } from 'express';
 import type { Config } from './config.js';
+import type { Db } from './db/client.js';
+import { createClientIp } from './lib/clientIp.js';
 import type { Logger } from './lib/log.js';
+import type { PasswordHasher } from './lib/password.js';
 import { accessLog } from './middleware/accessLog.js';
+import { createSession } from './middleware/auth.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import { createOriginCheck, originGuard } from './middleware/origin.js';
+import { createMemoryStore, rateLimit } from './middleware/rateLimit.js';
 import { requestId } from './middleware/requestId.js';
 import { securityHeaders } from './middleware/securityHeaders.js';
+import { createAuthRouter } from './modules/auth/route.js';
+import { createAuthService } from './modules/auth/service.js';
+import { createMeRouter } from './modules/me/route.js';
 
 export interface AppDeps {
   config: Config;
   log: Logger;
+  db: Db;
+  hasher: PasswordHasher;
   // DB에 닿는지 확인한다. 실패하면 던진다
   pingDb: () => Promise<void>;
 }
 
 // 미들웨어 조립 순서가 이 파일 한 곳에 보이게 — 싸고 빠른 거절을 먼저
-export function createApp({ config, log, pingDb }: AppDeps): Express {
+export function createApp({ config, log, db, hasher, pingDb }: AppDeps): Express {
   const app = express();
   app.disable('x-powered-by');
+  // Railway의 프록시 한 홉만 믿는다 — req.ip의 기준 (T-02)
+  app.set('trust proxy', 1);
 
   // ① 진입
   app.use(requestId);
@@ -34,6 +46,16 @@ export function createApp({ config, log, pingDb }: AppDeps): Express {
     await pingDb();
     res.json({ status: 'ready' });
   });
+
+  // ② 인증 · 기능 모듈
+  const session = createSession(config, db);
+  const clientIp = createClientIp(config.PROXY_SECRET);
+  const limitStore = createMemoryStore();
+  const ipLimit = (name: string) =>
+    rateLimit({ store: limitStore, name, limit: 10, windowMs: 60_000, key: clientIp });
+
+  app.use('/auth', createAuthRouter({ service: createAuthService(db, hasher), session, ipLimit }));
+  app.use('/me', createMeRouter({ session }));
 
   // ⑦ 에러 처리
   app.use(notFound);

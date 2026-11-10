@@ -2,22 +2,14 @@ import express from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { errorResponseSchema } from '@neighbo/shared-schema';
-import { testConfig } from '../test/env.js';
-import { createApp } from './app.js';
+import { createTestApp } from '../test/app.js';
 import { AppError } from './errors/AppError.js';
 import { createLogger } from './lib/log.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestId } from './middleware/requestId.js';
 
 function setup(overrides: { pingDb?: () => Promise<void>; env?: Record<string, string> } = {}) {
-  const lines: Record<string, unknown>[] = [];
-  const log = createLogger('info', (line) => lines.push(JSON.parse(line) as Record<string, unknown>));
-  const app = createApp({
-    config: testConfig(overrides.env),
-    log,
-    pingDb: overrides.pingDb ?? (() => Promise.resolve()),
-  });
-  return { app, lines };
+  return createTestApp(overrides);
 }
 
 describe('상태 확인', () => {

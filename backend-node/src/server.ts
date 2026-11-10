@@ -2,6 +2,7 @@ import { createApp } from './app.js';
 import { ConfigError, loadConfig } from './config.js';
 import { createDb } from './db/client.js';
 import { createLogger } from './lib/log.js';
+import { createPasswordHasher } from './lib/password.js';
 
 function boot() {
   try {
@@ -22,9 +23,13 @@ const config = boot();
 const log = createLogger(config.LOG_LEVEL);
 const db = createDb(config.DATABASE_URL);
 
+const hasher = await createPasswordHasher(config.BCRYPT_COST);
+
 const app = createApp({
   config,
   log,
+  db,
+  hasher,
   pingDb: async () => {
     await db.$queryRaw`SELECT 1`;
   },
