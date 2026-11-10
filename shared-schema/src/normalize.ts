@@ -37,3 +37,16 @@ export function utf8ByteLength(input: string): number {
   }
   return bytes;
 }
+
+// 제목 · 설명 · 메시지 공통 [AC-CM-52, 54]
+// 한 줄 칸: 줄바꿈을 공백으로, 연속 공백은 하나로. 여러 줄 칸: 줄바꿈은 보존하되 빈 줄은 한 줄까지
+export function normalizeText(input: string, options: { multiline?: boolean } = {}): string {
+  const cleaned = input.replace(ZERO_WIDTH, '').normalize('NFC').replace(/\r\n?/g, '\n');
+  if (options.multiline === true) {
+    return cleaned
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
+  return cleaned.replace(/\s+/g, ' ').trim();
+}
