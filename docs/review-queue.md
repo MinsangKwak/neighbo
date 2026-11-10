@@ -6,7 +6,7 @@
 
 | 번호 | 어디서 | 질문 | 고른 답 | 이유 | 다른 선택지 | 확인 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 역할 폴더 | 폴더 이름을 지금 만들어도 되나, 무엇으로 | 예시로 받은 `frontend-next` · `backend-node`로 만들고 README에 "확정 아님" 명시 | 입구 README를 둘 자리가 필요하고, `git mv`로 언제든 바꿀 수 있어 되돌리기 쉬움 | `web` · `server` (커밋 범위 낱말과 일치) / `apps/web` · `apps/server` (모노레포 관례) | |
+| 1 | 역할 폴더 | 폴더 이름을 지금 만들어도 되나, 무엇으로 | ~~예시 이름 + "확정 아님"~~ → `{역할}-{대표 기술}` 규칙으로 확정, [결정 0015](decisions/0015-folder-naming.md) | 입구 README를 둘 자리가 필요하고, `git mv`로 언제든 바꿀 수 있어 되돌리기 쉬움 | `web` · `server` (커밋 범위 낱말과 일치) / `apps/web` · `apps/server` (모노레포 관례) | 2026-11-10 사용자 지정 |
 | 2 | 00 개요 6절 | 계획했던 02~06 번호 문서를 그대로 둘지 | 역할 폴더로 흡수 — 02 데이터 모델 · 04 API는 `docs/backend/`, 03 화면 · 05 컴포넌트는 `docs/frontend/`, 06 규칙은 분산 | 역할별로 고민을 드러내는 것이 목표인데 번호 문서는 역할을 섞음 | 번호 문서를 유지하고 역할 문서에서 링크만 | |
 | 3 | 백엔드 02 데이터 모델 | 읽음 위치를 `ChatRoomMember` 테이블에 둘까, `ChatRoom` 두 컬럼에 둘까 | `ChatRoomMember` + 정렬용 `lastActivityAt` 복사 | 채팅 목록 정렬 · 커서 · 배지를 `(userId, lastActivityAt)` 인덱스 하나로 처리. 두 컬럼 안은 `sellerId = me OR buyerId = me`라 인덱스 하나로 정렬 불가 | `ChatRoom.sellerLastReadAt` · `buyerLastReadAt` (조인 없음, 1:1 고정) | |
 | 4 | 백엔드 02 데이터 모델 | 임시 업로드를 별도 테이블로 둘까 | 별도 `Upload` 테이블, 연결 시 `ProductImage` 생성 후 삭제 | 아바타도 같은 경로를 써서 `ProductImage`에 섞으면 뜻이 흐려짐 | `ProductImage.productId` nullable | |
