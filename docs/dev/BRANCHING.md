@@ -2,7 +2,7 @@
 
 [문서 목차](../README.md) · [커밋 메시지 규칙](COMMITS.md)
 
-**`main` · `dev` · 작업 브랜치 세 단으로 가고, 릴리스는 브랜치가 아니라 `main`의 태그로 남깁니다.** 기능 하나 = 이슈 하나 = 브랜치 하나 = PR 하나이며, 모든 변경은 PR을 거쳐 스쿼시 병합합니다. 혼자 하는 프로젝트라 승인자가 없으므로, 코드 리뷰의 역할은 CI 필수 검사와 PR 본문의 셀프 리뷰 체크리스트가 대신합니다.
+**`main` · `dev` · 작업 브랜치 세 단으로 가고, 릴리스는 브랜치가 아니라 `main`의 태그로 남깁니다.** 기능 하나 = 이슈 하나 = 브랜치 하나 = PR 하나이며, 모든 변경은 PR을 거쳐 **리베이스 병합**합니다(역할별 커밋을 그대로 남기려고 — 아래 "왜 스쿼시가 아닌가"). 혼자 하는 프로젝트라 승인자가 없으므로, 코드 리뷰의 역할은 CI 필수 검사와 PR 본문의 셀프 리뷰 체크리스트가 대신합니다.
 
 ## 왜 이 구조인가
 
@@ -29,7 +29,7 @@
 ## 흐름
 
 ```
-이슈 발행 → dev에서 브랜치 → 커밋(역할별) → PR(dev 대상) → CI 통과 → 스쿼시 병합 → 브랜치 삭제
+이슈 발행 → dev에서 브랜치 → 커밋(역할별) → PR(dev 대상) → CI 통과 → 리베이스 병합 → 브랜치 삭제
                                                                               ↓ 기능 묶음이 완성되면
                                                              sync PR(dev → main) → 태그 vX.Y.Z → 운영 배포
 ```
@@ -41,12 +41,16 @@
 | 3. 커밋 | `git commit -s` | [커밋 규칙](COMMITS.md). 역할별로 쪼갠다 — 모델 · API · 화면 · 테스트 · 문서를 한 커밋에 섞지 않는다 |
 | 4. PR | `gh pr create --base dev` | 제목은 커밋 제목 꼴. 본문은 아래 템플릿. `Closes #12` |
 | 5. 검사 | CI 자동 실행 | lint · 타입 검사 · 테스트. 하나라도 빨강이면 병합 버튼이 잠긴다 |
-| 6. 병합 | Squash and merge | 병합 커밋 제목 = PR 제목. 원격 브랜치 자동 삭제 |
+| 6. 병합 | Rebase and merge | 브랜치의 역할별 커밋이 그대로 `dev` 위에 한 줄로 올라간다. 병합 전 `git rebase -i`로 "오타 수정" 같은 중간 커밋은 역할 커밋에 합쳐 둔다. 원격 브랜치 자동 삭제 |
 | 7. 릴리스 | `sync-main-vX.Y.Z` 브랜치에서 `sync: dev → main — vX.Y.Z` PR | 병합 후 태그. 릴리스 노트는 GitHub Release에 한국어로 |
 
 ### 버전
 
 `vMAJOR.MINOR.PATCH`. 1차 범위 열 가지 기능이 모두 끝나면 `v1.0.0`. 그 전까지는 `v0.x.0`으로 기능 묶음마다 올립니다. 태그는 `main`에만 달고, 한 번 단 태그는 옮기지 않습니다.
+
+### 왜 스쿼시가 아닌가
+
+처음 안은 스쿼시 병합이었다. 그런데 [커밋 규칙](COMMITS.md)은 "모델 · API · 화면 · 테스트 · 문서를 한 커밋에 섞지 않는다"이고, 스쿼시는 PR 하나를 커밋 하나로 뭉갠다 — **두 규칙이 서로를 무효로 만들고 있었다.** `git log -- backend-node/`로 서버 쪽 변경만 읽으려면 역할 커밋이 `dev` · `main`에 살아 있어야 한다. 그래서 한 줄 이력(linear history)은 유지하되 커밋을 보존하는 리베이스 병합으로 바꿨다. 대가는 "PR 하나 = 커밋 하나"의 단순함과 PR 단위 되돌리기(`git revert` 한 번)이며, 대신 PR 번호를 각 커밋 본문 `Refs:`에 남겨 묶음을 찾는다.
 
 ## 1인 프로젝트 보완 — 리뷰어가 없을 때
 
@@ -97,10 +101,10 @@ GitHub → Settings → Branches에서 `main`과 `dev`에 같은 규칙을 겁�
 | Required approvals | 0 | 승인자가 없다. 위 보완 장치로 대신 |
 | Require status checks to pass | 켬 — `lint` · `typecheck` · `test` | 코드 단계에서 워크플로 이름 확정 후 지정 |
 | Require branches to be up to date | 켬 | 오래된 `dev` 기준으로 병합하지 않는다 |
-| Require linear history | 켬 | 스쿼시 병합만 허용 |
+| Require linear history | 켬 | 병합 커밋 없이 한 줄 이력 — 리베이스 병합만 허용 |
 | Allow force pushes · deletions | 끔 | — |
 
-저장소 설정 → General → Pull Requests에서는 **Allow squash merging만 켜고** merge commit · rebase는 끕니다. "Automatically delete head branches"를 켭니다.
+저장소 설정 → General → Pull Requests에서는 **Allow rebase merging만 켜고** merge commit · squash는 끕니다. "Automatically delete head branches"를 켭니다.
 
 ## 라벨
 
@@ -126,4 +130,11 @@ GitHub → Settings → Branches에서 `main`과 `dev`에 같은 규칙을 겁�
 
 ## 문서 단계에서의 적용
 
-코드가 없는 지금도 같은 흐름을 씁니다. 01 요구사항부터는 문서마다 이슈를 발행하고 `docs/N-이름` 브랜치에서 PR로 `dev`에 병합합니다. CI가 아직 없으므로 "Require status checks"만 비워 두고 나머지 보호 규칙은 지금 겁니다.
+**명세 단계에서는 `dev`를 아직 두지 않습니다.** `dev`의 역할은 staging 배포인데 배포할 코드가 없기 때문입니다. 지금은 이렇게 갑니다.
+
+| 지금 (명세) | 코드 첫 커밋부터 |
+| --- | --- |
+| `docs/짧은-이름` 브랜치에 역할별 커밋 → `main`에 fast-forward 병합 (리베이스 병합과 같은 결과) | 위 흐름 그대로 — `dev`를 만들고 PR 대상으로 |
+| 브랜치 보호 규칙 없음 | `main` · `dev`에 보호 규칙, CI 필수 검사 |
+
+초기 문서 몇 개는 브랜치 없이 `main`에 직접 커밋했습니다 — 이 규칙을 정하기 전의 일이라 이력에 그대로 둡니다. 2026-11-10 명세 전체 검토(`docs/review-principles`)부터 브랜치를 거칩니다.
