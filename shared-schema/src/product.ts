@@ -212,3 +212,16 @@ export const chatPartnersResponseSchema = z.object({
   items: z.array(z.object({ roomId: z.string(), user: userPublicSchema, lastActivityAt: z.iso.datetime() })),
 });
 export type ChatPartnersResponse = z.infer<typeof chatPartnersResponseSchema>;
+
+// POST /uploads 응답 — 아바타는 썸네일이 없다
+export const uploadSchema = z.object({
+  id: z.string(),
+  url: z.string(),
+  thumbnailUrl: z.string().nullable(),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+});
+export type Upload = z.infer<typeof uploadSchema>;
+export const uploadResponseSchema = z.object({ upload: uploadSchema });
+export type UploadResponse = z.infer<typeof uploadResponseSchema>;
+export const UPLOAD_MAX_BYTES = 4 * 1024 * 1024;

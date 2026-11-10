@@ -16,6 +16,8 @@ import { createAuthService } from './modules/auth/service.js';
 import { createMeRouter } from './modules/me/route.js';
 import { createProductRouter } from './modules/products/route.js';
 import { createProductService } from './modules/products/service.js';
+import { createWorkQueue } from './modules/uploads/queue.js';
+import { createUploadRouter } from './modules/uploads/route.js';
 import type { ImageStorage } from './storage/ImageStorage.js';
 
 export interface AppDeps {
@@ -79,6 +81,28 @@ export function createApp({ config, log, db, hasher, storage, pingDb }: AppDeps)
       writeLimit: userLimit('product-create'),
     }),
   );
+
+  app.use(
+    '/uploads',
+    mountedAt('/uploads'),
+    createUploadRouter({
+      db,
+      storage,
+      session,
+      // 동시 처리 2, 대기 8 — 넘치면 429
+      queue: createWorkQueue(2, 8),
+      userLimit: userLimit('upload'),
+    }),
+  );
+
+  // 로컬 저장소의 파일 — 키가 내용마다 달라 바뀌지 않으므로 오래 캐시한다
+  if (storage.localDirectory !== null) {
+    app.use(
+      '/files',
+      mountedAt('/files'),
+      express.static(storage.localDirectory, { immutable: true, maxAge: '365d', index: false, dotfiles: 'deny' }),
+    );
+  }
 
   // ⑦ 에러 처리
   app.use(notFound);

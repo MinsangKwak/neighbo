@@ -7,6 +7,8 @@ export interface ImageStorage {
   // 없는 키는 조용히 넘어간다 — 정리 작업이 다시 돌아도 같은 결과
   remove(keys: string[]): Promise<void>;
   url(key: string): string;
+  // 로컬 구현만: 백엔드가 직접 내보낼 디렉터리. 외부 저장소는 null
+  readonly localDirectory: string | null;
 }
 
 // 로컬 디스크 구현 — 개발과 단일 인스턴스용. 파일은 백엔드가 /files/* 로 내보낸다
@@ -28,5 +30,6 @@ export function createLocalStorage(directory: string, publicBase: string): Image
       await Promise.all(keys.map((key) => rm(pathOf(key), { force: true })));
     },
     url: (key) => `${publicBase}/${key}`,
+    localDirectory: root,
   };
 }
