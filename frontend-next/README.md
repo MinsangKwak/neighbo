@@ -2,7 +2,7 @@
 
 **프론트엔드는 Next.js를 기반으로 상품 탐색, 거래 등록, 채팅, 거래 내역 화면을 구성할 예정입니다.** 렌더링·캐시·입력·오류 안내·접근성·연결 상태를 담당하며, 권한과 데이터 무결성의 최종 판단은 [백엔드](../backend-node/README.md)에서 처리합니다.
 
-> 현재: **명세 단계, 코드 없음.** 폴더 이름은 `{역할}-{대표 기술}` 규칙을 따릅니다 — 프론트엔드 · Next.js(React 기반) ([결정 0015](../docs/decisions/0015-folder-naming.md)).
+> 현재: **명세 단계, 코드 없음.** 폴더 이름은 `{역할}-{대표 기술}` 규칙을 따릅니다 — 프론트엔드 · Next.js(React 기반) ([결정 0015](../docs/decisions.md#0015--최상위-폴더는-역할-대표-기술로-짓는다)).
 
 ## 책임 범위
 
@@ -15,17 +15,17 @@
 | 포커스 이동 · 라이브 리전 · 키보드 조작 | — |
 | 소켓 연결 상태와 전송 대기열, 재연결 후 화면 복구 | 메시지 저장 순서 · 중복 방지 · 누락분 계산 |
 
-## 설계 문서 — [docs/frontend](../docs/frontend/README.md)
+## 설계 문서 — [프론트엔드 설계](../docs/architecture/frontend.md) 한 장 · 백엔드와 만나는 길은 [흐름 설계](../docs/architecture/flow.md)
 
 | 문서 | 설계 내용 |
 | --- | --- |
-| [렌더링 전략](../docs/frontend/01-rendering.md) | 페이지 13개 각각을 서버 · 클라이언트 중 어디서 그리고, 왜 |
-| [상태 소유권](../docs/frontend/02-state.md) | 서버 상태 · URL 상태 · 폼 상태 · UI 상태를 어디에 둘지 |
-| [캐시와 낙관적 갱신](../docs/frontend/03-cache.md) | 캐시 키, 쓰기별 갱신 범위, 낙관적 갱신 적용 기준 |
-| [에러 경계](../docs/frontend/04-errors.md) | 전역 · 페이지 · 영역 세 겹의 에러 처리와 서버 에러 코드별 화면 반응 |
-| [폼](../docs/frontend/05-forms.md) | 폼 7개의 공통 패턴, 정규화, 서버 오류 반영, 이탈 확인 |
-| [포커스와 라이브 리전](../docs/frontend/06-focus.md) | 화면 전환 · 모달 · 목록 추가 · 실시간 메시지에서 포커스와 알림 |
-| [소켓 클라이언트](../docs/frontend/07-socket-client.md) | 연결 상태 기계, 전송 대기열, 재연결 후 복구, 번호 틈 감지, 서버가 끊었을 때 |
+| [렌더링 전략](../docs/architecture/frontend.md#01--렌더링-전략) | 페이지 13개 각각을 서버 · 클라이언트 중 어디서 그리고, 왜 |
+| [상태 소유권](../docs/architecture/frontend.md#02--상태-소유권) | 서버 상태 · URL 상태 · 폼 상태 · UI 상태를 어디에 둘지 |
+| [캐시와 낙관적 갱신](../docs/architecture/frontend.md#03--캐시와-낙관적-갱신) | 캐시 키, 쓰기별 갱신 범위, 낙관적 갱신 적용 기준 |
+| [에러 경계](../docs/architecture/frontend.md#04--에러-경계) | 전역 · 페이지 · 영역 세 겹의 에러 처리와 서버 에러 코드별 화면 반응 |
+| [폼](../docs/architecture/frontend.md#05--폼) | 폼 7개의 공통 패턴, 정규화, 서버 오류 반영, 이탈 확인 |
+| [포커스와 라이브 리전](../docs/architecture/frontend.md#06--포커스와-라이브-리전) | 화면 전환 · 모달 · 목록 추가 · 실시간 메시지에서 포커스와 알림 |
+| [소켓 클라이언트](../docs/architecture/frontend.md#07--소켓-클라이언트) | 연결 상태 기계, 전송 대기열, 재연결 후 복구, 번호 틈 감지, 서버가 끊었을 때 |
 
 ## 명세·스파이크 검토 결과
 
@@ -42,9 +42,9 @@
 
 ## 근거 문서
 
-- 수용 조건: [01 요구사항](../docs/01-requirements.md)의 "프론트가 하는 것" 열 — 0.3 화면 상태 · 0.5 접근성 · 0.7 입력 처리는 대부분 이 역할
-- 결정 기록: [0004 같은 오리진 프록시](../docs/decisions/0004-api-proxy-same-origin.md) · [0009 더 보기 버튼](../docs/decisions/0009-load-more-button.md) · [0010 즉시 업로드](../docs/decisions/0010-upload-on-select.md) · [0011 비로그인 열람](../docs/decisions/0011-public-browse.md) · [0014 640px 단일 열](../docs/decisions/0014-single-column-640.md)
-- 기술 노트: [WebSocket](../docs/tech/websocket.md) · Next.js App Router · TanStack Query · Tailwind 토큰 · 접근성 ([목록](../docs/tech/README.md))
+- 수용 조건: [기능별 문서](../docs/README.md#기능별-요구사항--한-기능--한-장)의 "프론트가 하는 것" 열 — 0.3 화면 상태 · 0.5 접근성 · 0.7 입력 처리는 대부분 이 역할
+- 결정 기록: [0004 같은 오리진 프록시](../docs/decisions.md#0004--프론트가-백엔드를-프록시해-같은-오리진을-유지한다) · [0009 더 보기 버튼](../docs/decisions.md#0009--목록은-무한-스크롤-대신-더-보기-버튼--커서) · [0010 즉시 업로드](../docs/decisions.md#0010--사진은-선택-즉시-업로드하고-등록은-url만-보낸다) · [0011 비로그인 열람](../docs/decisions.md#0011--목록--상세는-비로그인으로-볼-수-있다) · [0014 640px 단일 열](../docs/decisions.md#0014--pc-화면도-640px-단일-열로-간다)
+- 기술 노트: [WebSocket](../docs/tech-notes.md#websocket과-socketio) · Next.js App Router · TanStack Query · Tailwind 토큰 · 접근성 ([목록](../docs/tech-notes.md))
 
 ## 예정 스택
 
