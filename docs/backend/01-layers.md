@@ -30,15 +30,15 @@
 | --- | --- | --- |
 | 1 | `requestId` — 프록시가 보낸 `X-Request-Id`를 쓰고 없으면 생성, 응답 헤더에도 | 로그 한 줄과 사용자 문의를 잇는 열쇠 ([08 관찰 가능성](08-observability.md)) |
 | 2 | 보안 헤더 (`X-Content-Type-Options` · `Referrer-Policy` 등) | 응답 전부에 동일하게 |
-| 3 | 본문 크기 1MB (`/uploads`만 10MB) | 파싱 전에 자른다. 크게 파싱한 뒤 거절하면 이미 메모리를 썼다 [AC-CM-34] |
-| 4 | 쓰기 요청의 `Origin` 검사 | 쿠키 인증이라 CSRF 대비. 같은 오리진 프록시라 허용 목록은 프론트 도메인 하나 [AC-CM-31] |
-| 5 | IP 단위 rate limit (인증 경로) | 인증 전에 막아야 bcrypt 비용을 아낀다 ([07 보호 장치](07-protection.md)) |
+| 3 | 본문 크기 1MB (`/uploads`만 4MB) | 파싱 전에 자른다. 크게 파싱한 뒤 거절하면 이미 메모리를 썼다 [AC-CM-34] |
+| 4 | 쓰기 요청의 `Origin` 검사 | 쿠키 인증이라 CSRF 대비. 프록시는 브라우저의 `Origin`을 **그대로 넘긴다**(서버 쪽 `fetch`는 `Origin`을 붙이지 않으므로 명시적으로 복사). 허용 목록은 운영이면 프론트 도메인 하나, staging이면 Vercel 미리보기 주소 패턴(`^https://neighbo-[a-z0-9-]+-<팀>\.vercel\.app$`)까지 — PR마다 주소가 바뀌어 목록으로는 못 적는다 [AC-CM-31] |
+| 5 | IP 단위 rate limit (인증 경로) | 인증 전에 막아야 bcrypt 비용을 아낀다. IP는 프록시가 비밀 헤더와 함께 넘긴 값만 믿는다 ([07 보호 장치](07-protection.md)) |
 
 ### ② 인증 — 두 모드, 토큰 검증 순서
 
 `requireAuth`와 `optionalAuth` 두 가지만 둔다. 목록 · 상세는 `optionalAuth`라 비로그인도 통과하고, 로그인했으면 `viewer.isSeller` 같은 값을 계산할 수 있다 [결정 0011].
 
-검증 순서: 쿠키 존재 → 서명 → 만료 → `sub`로 사용자 조회 → `ver === user.tokenVersion` → `req.user` 주입 → 남은 기간이 절반 아래면 새 쿠키 [AC-CM-03, 04]. 사용자 조회를 생략하면 비밀번호 변경 후 옛 토큰을 막을 수 없어서(`tokenVersion`), 요청마다 기본키 조회 한 번을 감수한다.
+검증 순서: 쿠키 존재 → 서명 → 만료 → `sub`로 사용자 조회 → `ver === user.tokenVersion` → `req.user` 주입 → 남은 기간이 절반 아래면 새 쿠키 [AC-CM-03, 04]. 새 쿠키는 브라우저가 프록시로 부른 요청에서만 실제로 저장된다 — 프론트 서버 렌더의 요청은 `Set-Cookie`를 버린다([프론트 01](../frontend/01-rendering.md)). 사용자 조회를 생략하면 비밀번호 변경 후 옛 토큰을 막을 수 없어서(`tokenVersion`), 요청마다 기본키 조회 한 번을 감수한다.
 
 `optionalAuth`에서 토큰이 만료 · 변조됐으면 **401을 내지 않고** 비로그인으로 처리하면서 쿠키 삭제 헤더를 보낸다. 상품을 보러 온 사람에게 "세션 만료"를 띄울 이유가 없다.
 
@@ -68,6 +68,8 @@ export function canChangeStatus(user: AuthUser, product: Product): PolicyResult
 ### ⑥ 저장소 — 삭제된 것을 실수로 보지 않게
 
 Prisma 클라이언트 확장으로 `Product` 조회에 `deletedAt IS NULL`을 자동으로 넣는다. 삭제된 것까지 봐야 하는 곳은 `withDeleted()`를 명시하고, 그 사용처는 두 곳뿐이다 — 채팅방 · 채팅 목록의 상품 요약, 구매 내역 [AC-PX-05, 결정 0006]. 이 규칙을 지키는지 테스트로 확인한다 [AC-PL-16].
+
+**자동 주입이 닿지 않는 곳 두 군데**: 클라이언트 확장의 쿼리 훅은 최상위 모델 호출에만 걸린다. ① `$queryRaw` · `$executeRaw`(T6 · T7의 `FOR SHARE` 등)는 SQL을 그대로 보내므로 확장이 보지 못한다 ② 다른 모델에서 관계로 따라 들어가는 조회(`user.findUnique({ include: { products: true } })`, 관계 `_count`)도 `Product` 훅을 거치지 않는다. 그래서 원시 SQL은 저장소 함수 안에서만 쓰고 삭제 조건을 직접 적으며, `Product`로 가는 관계 조회는 `where: { deletedAt: null }`을 명시한다. 통합 테스트는 "삭제된 상품 하나를 만든 뒤 모든 목록 · 개수 API에서 그 상품이 새지 않는지"를 엔드포인트마다 확인한다 — 규칙이 아니라 결과를 검사한다. 확인 과정은 [기술 노트](../tech/README.md) `prisma.md` ②.
 
 저장소는 DB 오류를 그대로 올린다. 유니크 위반(`P2002`)을 `EMAIL_TAKEN`으로 바꾸는 것은 **어느 제약이 깨졌는지에 따라 의미가 다르므로** 서비스가 한다.
 

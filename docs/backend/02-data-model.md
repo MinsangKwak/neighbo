@@ -11,7 +11,7 @@
 | 1 | 읽음 위치를 `ChatRoomMember` 테이블에 둘까, `ChatRoom`의 두 컬럼(`sellerLastReadAt` · `buyerLastReadAt`)에 둘까 | **`ChatRoomMember` 테이블** + 정렬용 `lastActivityAt` 비정규화 | 채팅 목록은 "내가 참여한 방을 최근 활동순으로"인데, 두 컬럼 안은 `WHERE sellerId = me OR buyerId = me ORDER BY ...`가 되어 인덱스 하나로 정렬 · 커서를 처리할 수 없다(OR는 두 인덱스 결과를 합쳐야 함). 참여자 행에 `lastActivityAt`을 복사해 두면 `(userId, lastActivityAt DESC, roomId)` 인덱스 하나로 목록 · 커서 · 배지가 끝난다. 대가: 메시지마다 참여자 두 행을 갱신 |
 | 2 | 임시 업로드를 `Upload` 테이블로 둘까, `ProductImage.productId`를 nullable로 둘까 | **별도 `Upload` 테이블**, 연결 시 `ProductImage`를 만들고 `Upload` 행은 같은 트랜잭션에서 삭제 | 아바타도 같은 업로드 경로를 쓰므로 `ProductImage`에 섞으면 상품 아닌 행이 생긴다. 정리 배치는 `Upload`만 보면 되고, `ProductImage`는 "상품에 붙은 사진"이라는 뜻을 잃지 않는다 |
 | 3 | 거래완료 후 판매자가 가격을 고치면 구매 내역 가격도 바뀌어야 하나 | **`soldPrice` 스냅샷** — 거래완료 전이 때 저장, 판매중 복귀 시 `null` | 구매 기록은 거래 시점의 사실. 판매자 수정이 구매자 화면을 바꾸면 안 된다 [결정 0013] |
-| 4 | ID 형식 | **전 테이블 `cuid()`** (Prisma 기본 생성) | 정렬은 모두 `(createdAt, id)` 복합 커서로 하므로 ID 자체가 시간순일 필요가 없다. 형식이 하나면 검증 · 로그가 단순. 추측 불가 조건은 만족 [AC-CM-35] |
+| 4 | ID 형식 | **전 테이블 `cuid()`** (Prisma 기본 생성) | 상품 · 방 목록 정렬은 `(정렬 시각, id)` 복합 커서, 메시지는 방별 번호 `seq`([결정 0016](../decisions/0016-message-seq.md))로 하므로 ID 자체가 시간순일 필요가 없다. 형식이 하나면 검증 · 로그가 단순. 추측 불가 조건은 만족 [AC-CM-35] |
 | 5 | 이메일 · 닉네임 유니크를 부분 인덱스(`WHERE deletedAt IS NULL`)로 둘까 | **1차는 일반 유니크.** 탈퇴(2차)가 생길 때 부분 인덱스로 바꾸는 마이그레이션 | 탈퇴가 없으니 `deletedAt`은 항상 `null` — 두 인덱스는 지금 같은 동작. Prisma 스키마가 부분 인덱스를 표현하지 못해 원시 SQL이 필요한데, 쓰지 않는 기능을 위해 미리 넣지 않는다 |
 | 6 | 인덱스 | 아래 4절 — 쿼리마다 어떤 인덱스를 타는지 표로 | — |
 
@@ -67,6 +67,7 @@ erDiagram
     string productId FK
     string sellerId FK
     string buyerId FK "productId와 함께 유니크"
+    int lastSeq "방 안 마지막 번호"
     datetime lastMessageAt
     string lastMessageSenderId
   }
@@ -74,13 +75,14 @@ erDiagram
     string roomId PK
     string userId PK
     enum role "SELLER BUYER"
-    datetime lastReadAt
+    int lastReadSeq "그린 마지막 번호"
     datetime lastActivityAt "정렬용 복사본"
   }
   Message {
     string id PK
     string roomId FK
     string senderId FK
+    int seq "방 안 순서, 방과 함께 유니크"
     string content
     string tempId "방 · 보낸 사람과 함께 유니크"
   }
@@ -204,6 +206,7 @@ model ChatRoom {
   productId           String
   sellerId            String
   buyerId             String
+  lastSeq             Int       @default(0) // 방 안 마지막 메시지 번호 — 저장 시 +1 하며 방 행을 잠근다 (결정 0016)
   lastMessageAt       DateTime? // 메시지가 없으면 null
   lastMessagePreview  String?
   lastMessageSenderId String?
@@ -223,7 +226,7 @@ model ChatRoomMember {
   roomId         String
   userId         String
   role           MemberRole
-  lastReadAt     DateTime   @default(now())
+  lastReadSeq    Int        @default(0) // 화면에 그린 마지막 메시지 번호 (결정 0016)
   lastActivityAt DateTime   @default(now()) // ChatRoom 활동 시각의 복사본 — 목록 정렬을 이 테이블 인덱스 하나로
   joinedAt       DateTime   @default(now())
 
@@ -238,15 +241,16 @@ model Message {
   id        String   @id @default(cuid())
   roomId    String
   senderId  String
+  seq       Int // 방 안 순서 — 커서 · 복구 · 읽음의 기준 (결정 0016)
   content   String
   tempId    String // 클라이언트가 만든 전송 식별자 — 재시도 중복 방지
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) // 표시 전용. 트랜잭션 시작 시각이라 순서에 쓰지 않는다
 
   room   ChatRoom @relation(fields: [roomId], references: [id])
   sender User     @relation(fields: [senderId], references: [id])
 
+  @@unique([roomId, seq]) // 과거 방향(before) · 이후 방향(after) 둘 다 이 인덱스로
   @@unique([roomId, senderId, tempId])
-  @@index([roomId, createdAt, id]) // 과거 방향(before) · 이후 방향(after) 둘 다
 }
 ```
 
@@ -265,8 +269,9 @@ ALTER TABLE "Product" ADD CONSTRAINT product_buyer_only_sold CHECK (status = 'SO
 ALTER TABLE "Product" ADD CONSTRAINT product_buyer_not_seller CHECK ("buyerId" IS NULL OR "buyerId" <> "sellerId");
 -- 자기 물건에 채팅방을 만들 수 없다
 ALTER TABLE "ChatRoom" ADD CONSTRAINT room_buyer_not_seller CHECK ("buyerId" <> "sellerId");
--- 빈 메시지 · 비정상적으로 긴 메시지 (grapheme 1,000자 ≤ 코드포인트 4,000)
-ALTER TABLE "Message" ADD CONSTRAINT message_length CHECK (char_length(content) BETWEEN 1 AND 4000);
+-- 빈 메시지 · 비정상적으로 긴 메시지. 정확한 1,000자(grapheme) 제한은 공유 스키마가 하고,
+-- DB는 "어떤 1,000자도 통과하는" 상한만 둔다 — 가족 이모지 하나가 코드포인트 7~11개라 4,000은 정상 메시지를 막는다
+ALTER TABLE "Message" ADD CONSTRAINT message_length CHECK (char_length(content) BETWEEN 1 AND 16000);
 ```
 
 **왜 상태 전이(판매중 → 예약중 …)는 CHECK로 두지 않나**: CHECK는 한 행의 "현재 값"만 볼 수 있고 "이전 값"을 모른다. 전이 규칙은 트리거로만 강제할 수 있는데, 트리거는 규칙을 코드 밖으로 숨긴다 [결정 0001]. 대신 조건부 UPDATE(`WHERE status IN (허용된 이전 상태)`)로 서비스가 강제한다 ([03 트랜잭션](03-transactions.md)).
@@ -284,11 +289,11 @@ ALTER TABLE "Message" ADD CONSTRAINT message_length CHECK (char_length(content) 
 | 채팅방 찾기 · 만들기 | `productId = ? AND buyerId = ?` | 유니크 `ChatRoom(productId, buyerId)` | AC-PD-13, 15 |
 | 상품의 채팅 상대 · 채팅 수 | `productId = ?` | `ChatRoom(productId)` | AC-PD-04, AC-PL-01 |
 | 채팅 목록 | `userId = me ORDER BY lastActivityAt DESC, roomId DESC` + 커서 | `ChatRoomMember(userId, lastActivityAt DESC, roomId DESC)` | AC-CL-01 |
-| 배지 (읽지 않은 방 수) | 내 참여자 행 ⨝ 방, `lastMessageAt > lastReadAt AND lastMessageSenderId <> me` | `ChatRoomMember(userId, ...)` 앞부분 + 방 기본키 | AC-NT-02 |
-| 메시지 최신 50 · 과거 | `roomId = ? AND (createdAt, id) < 커서 ORDER BY createdAt DESC, id DESC` | `Message(roomId, createdAt, id)` 역방향 스캔 | AC-CH-10, 11 |
-| 재연결 누락분 | `roomId = ? AND (createdAt, id) > (after의 값) ORDER BY ASC LIMIT 101` | 같은 인덱스 정방향 | AC-CH-05 |
+| 배지 (읽지 않은 방 수) | 내 참여자 행 ⨝ 방, `r.lastSeq > m.lastReadSeq` | `ChatRoomMember(userId, ...)` 앞부분 + 방 기본키 | AC-NT-02 |
+| 메시지 최신 50 · 과거 | `roomId = ? AND seq < 커서 ORDER BY seq DESC` | 유니크 `Message(roomId, seq)` 역방향 스캔 | AC-CH-10, 11 |
+| 재연결 누락분 · 틈 채우기 | `roomId = ? AND seq > after ORDER BY seq LIMIT 101` | 같은 인덱스 정방향 | AC-CH-05 |
 | 전송 재시도 중복 | `roomId · senderId · tempId` | 유니크 `Message(roomId, senderId, tempId)` | AC-CH-04 |
-| 방별 읽지 않은 수 | `roomId = ? AND senderId <> me AND createdAt > lastReadAt` | `Message(roomId, createdAt, id)` 범위 | AC-CL-04 |
+| 방별 읽지 않은 수 | `roomId = ? AND seq > lastReadSeq AND senderId <> me` | `Message(roomId, seq)` 범위 | AC-CL-04 |
 | 고아 업로드 정리 | `createdAt < now() - 24h` | `Upload(createdAt)` | AC-PC-19 |
 
 **확인 방법**: 구현 단계에서 각 쿼리를 시드 데이터(상품 1만 · 방 1천 · 메시지 10만)에 대해 `EXPLAIN ANALYZE`로 돌리고 결과를 [기술 노트 `postgres-constraints.md`](../tech/README.md)에 남긴다.

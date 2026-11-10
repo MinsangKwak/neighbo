@@ -14,7 +14,7 @@
 | 멱등성 — 같은 요청이 두 번 와도 결과가 하나 | 재시도 버튼 · 실패 표시 |
 | 에러 코드 · 요청 ID · 로그 | 에러를 사용자 문장으로 보여주기 (문구는 서버가 주되 배치는 프론트) |
 | 메시지 저장 → 전송 순서, 누락분 계산, 소켓 권한 | 소켓 연결 상태 표시 · 전송 대기열 |
-| rate limit · 업로드 검증 · 배치 정리 | — |
+| rate limit(프록시 뒤 원 IP · 토큰 버킷) · 업로드 검증 · 배치 정리 | — |
 
 ## 설계 문서 — [docs/backend](../docs/backend/README.md)
 
@@ -31,12 +31,26 @@
 | [소켓 서버](../docs/backend/09-socket-server.md) | 이벤트별 처리 순서와 실패 시 동작 |
 | [API 명세](../docs/backend/10-api.md) | 요청 · 응답 모양과 공유 타입 — 프론트와의 계약 |
 
+## 이 역할에서 찾아 고친 결함
+
+코드 전에 명세를 다시 읽으며 찾은 것들입니다. 증상 · 원인 · 확인 방법은 [트러블슈팅 기록](../docs/troubleshooting.md)에 있습니다.
+
+| 번호 | 무엇이 깨졌나 | 백엔드가 바꾼 것 |
+| --- | --- | --- |
+| [T-01](../docs/troubleshooting.md#t-01) | 동시 저장에서 메시지가 복구 조회에 빠짐 | `now()`는 트랜잭션 시작 시각 → 방 행 잠금 + 방별 번호 `seq` ([결정 0016](../docs/decisions/0016-message-seq.md)) |
+| [T-02](../docs/troubleshooting.md#t-02) | 프록시 뒤라 모든 사용자가 같은 IP | 공유 비밀이 맞을 때만 프록시가 넘긴 원 IP를 믿음 |
+| [T-03](../docs/troubleshooting.md#t-03) | 정상 재전송이 10초 차단됨 | 고정 차단 → 토큰 버킷 + `retryAfterMs` |
+| [T-05](../docs/troubleshooting.md#t-05) | 이모지 1,000자 메시지 거절 · 연결 끊김 | DB CHECK 16,000 코드포인트 · 소켓 80KB — 단위를 grapheme · 코드포인트 · 바이트로 구분 |
+| [T-08](../docs/troubleshooting.md#t-08) | 미리보기 배포에서 쓰기 전부 `403` | 허용 판단 함수 하나를 HTTP · 소켓이 공유, staging은 미리보기 패턴 |
+| [T-09](../docs/troubleshooting.md#t-09) | 업로드 처리 방식을 파일보다 늦게 앎 | `kind`를 쿼리로 |
+| [S-05](../docs/troubleshooting.md#s-05) | 스키마 검증 실패 | Prisma 7의 `prisma.config.ts` · 드라이버 어댑터 |
+
 ## 근거 문서
 
 - 수용 조건: [01 요구사항](../docs/01-requirements.md)의 "백엔드가 하는 것" 열 — 0.1 인증 · 0.2 응답 형식 · 0.4 보안은 대부분 이 역할
-- 결정 기록: [0001 직접 구현](../docs/decisions/0001-no-baas.md) · [0002 Postgres](../docs/decisions/0002-postgres-everywhere.md) · [0003 JWT 쿠키](../docs/decisions/0003-jwt-httponly-cookie.md) · [0005 Socket.IO](../docs/decisions/0005-socket-io.md) · [0006 soft delete](../docs/decisions/0006-always-soft-delete.md) · [0007 읽음](../docs/decisions/0007-read-state.md) · [0012 구매자 지정](../docs/decisions/0012-buyer-assignment.md)
+- 결정 기록: [0001 직접 구현](../docs/decisions/0001-no-baas.md) · [0002 Postgres](../docs/decisions/0002-postgres-everywhere.md) · [0003 JWT 쿠키](../docs/decisions/0003-jwt-httponly-cookie.md) · [0005 Socket.IO](../docs/decisions/0005-socket-io.md) · [0006 soft delete](../docs/decisions/0006-always-soft-delete.md) · [0007 읽음](../docs/decisions/0007-read-state.md) · [0016 방별 번호](../docs/decisions/0016-message-seq.md) · [0012 구매자 지정](../docs/decisions/0012-buyer-assignment.md)
 - 기술 노트: [WebSocket](../docs/tech/websocket.md) · JWT와 쿠키 · 비밀번호 해시 · Postgres 제약 · Prisma · 이미지 파이프라인 ([목록](../docs/tech/README.md))
 
 ## 예정 스택
 
-Node.js · Express · TypeScript (`strict`) · Prisma · PostgreSQL 16 · Socket.IO · Zod (공유 패키지) · bcrypt · sharp · Vitest + supertest
+Node.js · Express · TypeScript (`strict`) · Prisma 7 · PostgreSQL 16 · Socket.IO · Zod (공유 패키지) · bcrypt · sharp · Vitest + supertest

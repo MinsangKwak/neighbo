@@ -22,7 +22,7 @@
 | 성공 본문 | 자원을 이름 붙여 담는다 `{ product }` · 목록은 `{ items, nextCursor }` · 본문 없는 성공은 `204` | AC-CM-12 |
 | 에러 본문 | `{ error: { code, message, fields } }` — `fields`는 없으면 `null` | AC-CM-10, [06](06-errors.md) |
 | 쓰기 요청 | `Origin` 헤더가 허용 목록 밖이면 `403 ORIGIN_MISMATCH` | AC-CM-31 |
-| 한도 | 본문 1MB (업로드 10MB) · `limit` 최대 50 (메시지 100) | AC-CM-34, AC-PL-04 |
+| 한도 | 본문 1MB (업로드 4MB) · `limit` 최대 50 (메시지 100) | AC-CM-34, AC-PL-04 |
 
 ### 페이지네이션
 
@@ -31,7 +31,7 @@ GET /products?limit=20                  → { items: [...20], nextCursor: "eyJ0I
 GET /products?limit=20&cursor=eyJ0Ijoi... → { items: [...20], nextCursor: null }   // 마지막
 ```
 
-- 커서는 **불투명 문자열**이다. 내부는 마지막 항목의 `(정렬 시각, id)`를 base64url로 감싼 것이지만 클라이언트는 만들거나 해석하지 않는다.
+- 커서는 **불투명 문자열**이다. 내부는 마지막 항목의 `(정렬 시각, id)`(메시지는 `seq`)를 base64url로 감싼 것이지만 클라이언트는 만들거나 해석하지 않는다.
 - 서버는 `limit + 1`개를 조회해 다음이 있을 때만 `nextCursor`를 준다 — 빈 마지막 페이지 요청이 생기지 않는다 [PL-DT-02].
 - 잘못된 커서는 `400 INVALID_CURSOR` [AC-PL-04].
 
@@ -148,7 +148,7 @@ interface ChatRoomDetail {
   product: ProductSummary;
   partner: UserPublic;
   myRole: MemberRole;
-  partnerLastReadAt: ISODate;   // "읽음" 표시 [AC-CH-02]
+  partnerLastReadSeq: number;   // "읽음" 표시 — 내 메시지 seq 이상이면 읽음 [AC-CH-02]
   createdAt: ISODate;
 }
 
@@ -156,6 +156,7 @@ interface Message {
   id: Id;
   roomId: Id;
   senderId: Id;
+  seq: number;                  // 방 안 순서 — 정렬 · 커서 · 읽음 · 틈 감지의 기준 [결정 0016]
   content: string;
   tempId: string;               // 보낸 클라이언트가 만든 값 — 중복 제거용
   createdAt: ISODate;
@@ -386,10 +387,12 @@ Page<ProductCard>   // createdAt DESC, id DESC · 삭제된 상품 없음
 | 로그인 · 사용자 분당 30 · 서버 처리 동시 2 | AC-PC-10~19, AC-MP-08, [B07](07-protection.md) |
 
 ```
+POST /uploads?kind=PRODUCT | AVATAR
 Content-Type: multipart/form-data
-file: (이진)          — 10MB 이하, jpeg · png · webp · heic
-kind: PRODUCT | AVATAR
+file: (이진)          — 4MB 이하, jpeg · png · webp
 ```
+
+`kind`를 multipart 필드가 아니라 **쿼리**로 받는 이유: 서버는 파일 스트림을 읽기 시작하기 전에 처리 방식(한도 · 크기)을 알아야 하는데, multipart 필드 순서는 클라이언트가 정해 파일이 먼저 올 수 있다.
 
 ```ts
 // 201
@@ -398,9 +401,9 @@ kind: PRODUCT | AVATAR
 
 | 에러 | 언제 |
 | --- | --- |
-| `400 UNSUPPORTED_IMAGE` | 매직 바이트가 허용 형식 아님 · HEIC 변환 실패 |
+| `400 UNSUPPORTED_IMAGE` | 매직 바이트가 jpeg · png · webp가 아님 |
 | `400 INVALID_FILE` | 0바이트 · 손상 · 5,000만 픽셀 초과 |
-| `413 PAYLOAD_TOO_LARGE` | 10MB 초과 |
+| `413 PAYLOAD_TOO_LARGE` | 4MB 초과 |
 | `429 RATE_LIMITED` | 사용자 한도 · 처리 대기열 가득 |
 
 `kind`별 처리: `PRODUCT`는 1600px + 400px 썸네일, `AVATAR`는 512px 하나(정사각 크롭은 클라이언트가 이미 함). **업로드는 멱등하지 않다** — 중복은 상품에 연결되지 않아 24시간 뒤 배치가 지운다 [B05].
@@ -459,7 +462,7 @@ Page<ChatRoomItem>
 | `limit` | 50 | 1~100 |
 
 ```ts
-// 200 — 한 페이지 안은 createdAt DESC, id DESC (최신이 앞). 화면은 뒤집어 그린다
+// 200 — 한 페이지 안은 seq DESC (최신이 앞). 화면은 뒤집어 그린다
 Page<Message>
 ```
 
@@ -470,8 +473,10 @@ Page<Message>
 ### `POST /chat-rooms/:id/read` — 읽음 (소켓 폴백)
 
 ```ts
+// 요청
+{ seq: number }           // 화면에 그린 마지막 메시지 번호
 // 200
-{ lastReadAt: ISODate }   // GREATEST로 뒤로 가지 않은 값 [T8]
+{ lastReadSeq: number }   // GREATEST · LEAST를 거친 값 [T8]
 ```
 
 소켓이 연결돼 있으면 `room:read` 이벤트를 쓰고, 이 엔드포인트는 소켓이 없을 때만 [AC-CH-01].
@@ -556,26 +561,26 @@ Page<Message>
 
 ```ts
 // ack 있음
-'room:join'    (p: { roomId: Id; after: Id | null },
+'room:join'    (p: { roomId: Id; after: number | null },   // 마지막으로 받은 seq
                 ack: (r: { ok: true; missed: Message[]; hasMore: boolean } | { ok: false; code: SocketErrorCode }) => void)
 'message:send' (p: { roomId: Id; tempId: string; content: string },
-                ack: (r: { ok: true; message: Message } | { ok: false; code: SocketErrorCode }) => void)
+                ack: (r: { ok: true; message: Message } | { ok: false; code: SocketErrorCode; retryAfterMs: number | null }) => void)
 
 // ack 없음
 'room:leave'   (p: { roomId: Id })
-'room:read'    (p: { roomId: Id })
+'room:read'    (p: { roomId: Id; seq: number })
 ```
 
 | 이벤트 | 규칙 |
 | --- | --- |
-| `room:join` | `missed`는 `after` 이후 오래된 순, 최대 100. `hasMore`면 HTTP 메시지 API로 나머지 [AC-CH-05] |
+| `room:join` | `missed`는 `seq > after`, 오래된 순, 최대 100. `hasMore`면 HTTP 메시지 API로 나머지 [AC-CH-05] |
 | `message:send` | `content`는 HTTP와 같은 메시지 스키마. 클라이언트는 **반드시 5초 타임아웃**으로 보냄 [AC-CH-37] |
 
 ### 서버 → 클라이언트
 
 ```ts
 'message:new'           (p: { message: Message })
-'room:read'             (p: { roomId: Id; userId: Id; lastReadAt: ISODate })
+'room:read'             (p: { roomId: Id; userId: Id; lastReadSeq: number })
 'notification:unread'   (p: { total: number;
                               latest: { roomId: Id; partner: UserPublic; preview: string; count: number; createdAt: ISODate } | null })
 'room:product_updated'  (p: { roomId: Id; product: ProductSummary })
@@ -605,12 +610,12 @@ type SocketErrorCode = 'UNAUTHORIZED' | 'FORBIDDEN' | 'PRODUCT_DELETED' | 'INVAL
 | `PATCH /products/:id/status` | 판매자 | 200 `{ product }` | T4 |
 | `DELETE /products/:id` | 판매자 | 204 | T5 |
 | `GET /products/:id/chat-partners` | 판매자 | 200 `{ items }` | — |
-| `POST /uploads` | 로그인 | 201 `{ upload }` | — |
+| `POST /uploads?kind=` | 로그인 | 201 `{ upload }` | — |
 | `POST /chat-rooms` | 로그인 | 201 · 200 `{ chatRoom }` | T6 |
 | `GET /chat-rooms` | 로그인 | 200 `Page<ChatRoomItem>` | — |
 | `GET /chat-rooms/:id` | 참여자 | 200 `{ chatRoom }` | — |
 | `GET /chat-rooms/:id/messages` | 참여자 | 200 `Page<Message>` | — |
-| `POST /chat-rooms/:id/read` | 참여자 | 200 `{ lastReadAt }` | T8 |
+| `POST /chat-rooms/:id/read` | 참여자 | 200 `{ lastReadSeq }` | T8 |
 | `GET /me` | 로그인 | 200 `{ user, counts }` | — |
 | `PATCH /me` | 로그인 | 200 `{ user }` | T10 · T11 |
 | `PATCH /me/password` | 로그인 | 204 | T9 |

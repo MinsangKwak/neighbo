@@ -25,8 +25,8 @@
 | T4 | 상태 변경 | ① 거래완료면 `buyerId`가 이 상품 방의 구매자인지 확인 ② `UPDATE Product SET status, buyerId, soldAt, soldPrice=price WHERE id AND sellerId AND deletedAt IS NULL AND status IN (허용된 이전 상태)` | 상품의 모든 방에 `room:product_updated` | 갱신 0행 → 다시 읽어서 원인 구분: 없음 · 삭제 → `404`, 남의 것 → `403`, 상태 → `409 INVALID_TRANSITION`, 같은 상태 → `200` | 없음 (단일 UPDATE) |
 | T5 | 상품 삭제 | `UPDATE Product SET deletedAt=now() WHERE id AND sellerId AND deletedAt IS NULL` | 상품의 모든 방에 `room:product_updated { deletedAt }` | 0행 → 원인 구분 `404` / `403` | 없음 |
 | T6 | 채팅방 만들기 | ① `SELECT Product ... FOR SHARE` — 삭제 · 거래완료 · 본인 상품 확인 ② `ChatRoom` INSERT ③ `ChatRoomMember` 두 행 INSERT | — | `(productId, buyerId)` 유니크 위반 → 트랜잭션 버리고 기존 방 조회 `200` | 없음 |
-| T7 | 메시지 저장 | ① 참여자 확인 ② `SELECT Product ... FOR SHARE` — 삭제 확인 ③ `Message` INSERT ④ `ChatRoom` 마지막 메시지 필드 갱신 ⑤ 두 참여자 `lastActivityAt` 갱신 ⑥ 보낸 사람 `lastReadAt` 갱신 | `message:new` → 방, `notification:unread` → 받는 사람 | `(roomId, senderId, tempId)` 유니크 위반 → 기존 메시지를 ack로 반환 (재시도) | 없음. emit 실패는 재연결 복구가 메움 |
-| T8 | 읽음 | `UPDATE ChatRoomMember SET lastReadAt = GREATEST(lastReadAt, now())` | 내 모든 세션에 `room:read`, `notification:unread` | 순서가 뒤바뀐 요청이 와도 **뒤로 가지 않음** (`GREATEST`) | 없음 |
+| T7 | 메시지 저장 | ① 참여자 확인 ② `SELECT Product ... FOR SHARE` — 삭제 확인 ③ `SELECT ChatRoom ... FOR UPDATE` — 같은 방 저장을 한 줄로 ④ `(roomId, senderId, tempId)` 있으면 그 메시지를 돌려주고 끝 ⑤ `UPDATE ChatRoom SET lastSeq = lastSeq + 1, 마지막 메시지 필드 RETURNING lastSeq` ⑥ `Message` INSERT(`seq`) ⑦ 두 참여자 `lastActivityAt` 갱신 ⑧ 보낸 사람 `lastReadSeq = seq` | `message:new` → 방, `notification:unread` → 받는 사람 ④에서 걸러지고, 그래도 유니크 위반이 나면 기존 메시지를 ack로 반환 (재시도) | 없음. 롤백되면 `lastSeq`도 함께 되돌아가 번호에 구멍이 생기지 않음. emit 실패는 재연결 복구가 메움 |
+| T8 | 읽음 | `UPDATE ChatRoomMember m SET lastReadSeq = GREATEST(m.lastReadSeq, LEAST($seq, r.lastSeq)) FROM ChatRoom r WHERE r.id = m.roomId AND …` — 클라이언트가 **그린** 번호 | 내 모든 세션에 `room:read`, `notification:unread` | 순서가 뒤바뀐 요청이 와도 **뒤로 가지 않음** (`GREATEST`), 없는 번호를 앞질러 찍지 않음 (`LEAST`) | 없음 |
 | T9 | 비밀번호 변경 | (트랜잭션 밖: 현재 비밀번호 bcrypt 비교, 새 해시 생성) `UPDATE User SET passwordHash, tokenVersion = tokenVersion + 1` | 새 쿠키 발급 | — | 없음 |
 | T10 | 아바타 변경 | `UPDATE User SET avatarUrl` + `Upload` DELETE | 이전 아바타 파일 삭제 | 마지막이 이김 | 이전 파일 고아 → 배치 |
 | T11 | 닉네임 변경 | `UPDATE User SET nickname, nicknameLower` | — | `nicknameLower` 유니크 → `409` | 없음 |
@@ -34,6 +34,10 @@
 ### 왜 T6 · T7에서 상품 행을 `FOR SHARE`로 읽나
 
 삭제(T5)는 `UPDATE`라 행 잠금을 잡는다. T6 · T7이 상품을 `FOR SHARE`로 읽으면, 동시에 진행 중인 삭제가 있을 때 그 삭제가 끝날 때까지 기다렸다가 **삭제된 결과**를 본다. 잠금 없이 읽으면 "삭제 직전 값"을 보고 방을 만들거나 메시지를 저장할 수 있다 [AC-PX-11, PX-CC-02, 03]. `FOR UPDATE`가 아니라 `FOR SHARE`인 이유: 같은 상품에 메시지 저장이 여러 개 동시에 와도 서로는 막지 않아야 한다.
+
+### 왜 T7은 시각이 아니라 방 번호로 순서를 정하나
+
+`now()` · `@default(now())`는 **트랜잭션 시작 시각**이다. 먼저 시작했지만 상품 `FOR SHARE`에서 기다리느라 늦게 커밋한 메시지는, 먼저 커밋된 메시지보다 시각이 앞선다. 클라이언트가 늦게 커밋된 쪽보다 먼저 커밋된 쪽을 먼저 받고 그 시각으로 `after` 복구를 하면, 늦게 커밋된 메시지는 영영 빠진다. ③의 방 행 잠금 + ⑤의 번호 증가는 "같은 방에서는 번호 순서 = 커밋 순서"를 보장한다 → [결정 0016](../decisions/0016-message-seq.md).
 
 ### 왜 T4는 갱신 0행일 때 다시 읽나
 
@@ -45,7 +49,7 @@
 | --- | --- |
 | 여러 문장 원자성 | `prisma.$transaction(async (tx) => { ... })` (대화형 트랜잭션), 타임아웃 5초 |
 | `FOR SHARE` · `FOR UPDATE` | Prisma 쿼리 API에 없음 → 트랜잭션 안에서 `tx.$queryRaw` |
-| `GREATEST` 조건부 갱신 | `tx.$executeRaw` |
+| `GREATEST` · `LEAST` 조건부 갱신, `UPDATE ... RETURNING` | `tx.$executeRaw` · `tx.$queryRaw` |
 | 유니크 위반 판별 | `PrismaClientKnownRequestError` 코드 `P2002` + `meta.target`으로 어느 제약인지 확인 |
 | 갱신된 행 수 | `updateMany`의 `count` (`update`는 0행이면 예외라 조건부 갱신에 쓰지 않음) |
 

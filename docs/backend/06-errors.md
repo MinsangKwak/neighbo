@@ -24,7 +24,7 @@
 | `VALIDATION_FAILED` | 400 | 입력 내용을 확인해 주세요 | 스키마 검증 실패 | `fields`를 각 필드 아래에, 첫 오류로 포커스 | AC-CM-11 |
 | `INVALID_CURSOR` | 400 | 목록을 다시 불러올게요 | 커서 디코드 실패 | 첫 페이지부터 재조회 (사용자에게 안 보임) | AC-PL-04 |
 | `INVALID_FILE` | 400 | 사진 파일을 확인해 주세요 | 0바이트 · 손상 · 매직 바이트 불일치 · 픽셀 한도 초과 | 해당 썸네일에 오류 + 재시도 | AC-PC-15 |
-| `UNSUPPORTED_IMAGE` | 400 | jpg, png, webp, heic만 올릴 수 있어요 | 허용 안 된 형식 · HEIC 변환 실패 | 해당 썸네일에 오류, 재시도 없음 | AC-PC-12 |
+| `UNSUPPORTED_IMAGE` | 400 | jpg, png, webp만 올릴 수 있어요 | 매직 바이트가 세 형식 밖 (HEIC 포함 — 정상 흐름에선 클라이언트가 JPEG로 바꿔 보내므로 안 생김) | 해당 썸네일에 오류, 재시도 없음 | AC-PC-12 |
 | `WRONG_PASSWORD` | 400 | 비밀번호가 맞지 않아요 | 비밀번호 변경 시 현재 비밀번호 틀림 | 현재 비밀번호 칸 오류 | AC-MP-09 |
 | `CANNOT_CHAT_OWN_PRODUCT` | 400 | 내 물건에는 채팅할 수 없어요 | 판매자가 자기 상품에 방 생성 | (UI에 버튼이 없어 정상 흐름에선 안 생김) 토스트 | AC-PD-14 |
 | `NOT_A_CHAT_PARTNER` | 400 | 이 물건으로 대화한 사람만 선택할 수 있어요 | 구매자 지정이 채팅 상대가 아님 | 바텀시트 목록 재조회 | AC-PD-05 |
@@ -37,7 +37,7 @@
 | `NICKNAME_TAKEN` | 409 | 이미 사용 중인 닉네임이에요 | 가입 · 변경 시 `nicknameLower` 유니크 위반 | 닉네임 칸 오류 | AC-SU-14 |
 | `INVALID_TRANSITION` | 409 | 지금 상태에서는 바꿀 수 없어요 | 전이 표 밖의 상태 변경 | `<select>` 되돌리고 상품 재조회 | AC-PD-01 |
 | `PRODUCT_SOLD` | 409 | 거래가 완료된 물건이에요 | 거래완료 상품에 새 방 생성 | 토스트 + 상세 재조회 | AC-PD-20 |
-| `PAYLOAD_TOO_LARGE` | 413 | 파일이 너무 커요 | 본문 1MB · 업로드 10MB 초과 | 해당 썸네일 오류 | AC-CM-34 |
+| `PAYLOAD_TOO_LARGE` | 413 | 파일이 너무 커요 | 본문 1MB · 업로드 4MB 초과 | 해당 썸네일 오류 | AC-CM-34 |
 | `RATE_LIMITED` | 429 | 잠시 후 다시 시도해 주세요 | 한도 초과. `Retry-After` 헤더 | 토스트 + 그 시간 동안 버튼 비활성 | AC-CM-26 |
 | `INTERNAL` | 500 | 일시적인 문제가 생겼어요 | 예상 못 한 예외 | 일반 에러 화면 / 토스트, 요청 ID 표시 | AC-CM-13 |
 
@@ -51,7 +51,7 @@
 | `FORBIDDEN` | 비참여자의 `room:join` · `message:send` | 방 화면이면 404 처리 | AC-CH-30 |
 | `PRODUCT_DELETED` | 삭제된 상품 방에 전송 | 말풍선 실패 + 입력창 비활성 | AC-PX-08 |
 | `INVALID_PAYLOAD` | Zod 검증 실패 | 말풍선 실패 (버그 신호 — 로그) | AC-CH-32 |
-| `RATE_LIMITED` | 초당 5개 초과 | 10초 동안 전송 비활성 | AC-CH-33 |
+| `RATE_LIMITED` | 전송 버킷이 빔 (`retryAfterMs` 함께) | 대기 메시지는 그대로 두고 `retryAfterMs` 뒤 재전송. 직접 입력은 그동안 [전송] 비활성 | AC-CH-33 |
 
 ## 코드를 나누고 합친 판단
 
