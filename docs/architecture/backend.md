@@ -68,7 +68,7 @@
 
 `requireAuth`와 `optionalAuth` 두 가지만 둔다. 목록 · 상세는 `optionalAuth`라 비로그인도 통과하고, 로그인했으면 `viewer.isSeller` 같은 값을 계산할 수 있다 [결정 0011].
 
-검증 순서: 쿠키 존재 → 서명 → 만료 → `sub`로 사용자 조회 → `ver === user.tokenVersion` → `req.user` 주입 → 남은 기간이 절반 아래면 새 쿠키 [AC-CM-03, 04]. 새 쿠키는 브라우저가 프록시로 부른 요청에서만 실제로 저장된다 — 프론트 서버 렌더의 요청은 `Set-Cookie`를 버린다([프론트 01](frontend.md#01--렌더링-전략)). 사용자 조회를 생략하면 비밀번호 변경 후 옛 토큰을 막을 수 없어서(`tokenVersion`), 요청마다 기본키 조회 한 번을 감수한다.
+검증 순서: 쿠키 존재 → 서명(`HS256`만 허용) → 만료 → `purpose === 'session'` (60초 소켓 토큰은 같은 비밀로 서명되므로, 용도를 보지 않으면 세션 자리에서도 통과한다 — [인증 실험 01 ⑧](../tech-notes.md#jwt와-비밀번호-해시)) → `sub`로 사용자 조회 → `ver === user.tokenVersion` → `req.user` 주입 → 남은 기간이 절반 아래면 새 쿠키 [AC-CM-03, 04]. 새 쿠키는 브라우저가 프록시로 부른 요청에서만 실제로 저장된다 — 프론트 서버 렌더의 요청은 `Set-Cookie`를 버린다([프론트 01](frontend.md#01--렌더링-전략)). 사용자 조회를 생략하면 비밀번호 변경 후 옛 토큰을 막을 수 없어서(`tokenVersion`), 요청마다 기본키 조회 한 번을 감수한다.
 
 `optionalAuth`에서 토큰이 만료 · 변조됐으면 **401을 내지 않고** 비로그인으로 처리하면서 쿠키 삭제 헤더를 보낸다. 상품을 보러 온 사람에게 "세션 만료"를 띄울 이유가 없다.
 
@@ -470,10 +470,11 @@ grapheme 길이는 DB가 셀 수 없으므로(Postgres `char_length`는 코드�
 | --- | --- |
 | 격리 수준은 Postgres 기본 `READ COMMITTED` | `SERIALIZABLE`은 충돌 시 재시도 루프가 필요하고, 이 서비스의 경합은 전부 "같은 행 · 같은 키"라 제약과 조건부 갱신으로 충분히 막힌다 |
 | 검사 후 갱신(check-then-act) 대신 **조건부 갱신** | `SELECT status` → 판단 → `UPDATE`는 그 사이에 다른 요청이 끼어들 수 있다. `UPDATE ... WHERE status IN (...)` 한 문장이면 DB가 원자적으로 판단하고, 갱신된 행 수로 성공 여부를 안다 |
-| 중복은 **유니크 제약**이 최종 판단 | "있는지 먼저 확인"은 동시 요청 둘이 모두 "없음"을 볼 수 있다 ([스파이크 계획](../tech-notes.md) `postgres-constraints.md` ①) |
+| 중복은 **유니크 제약**이 최종 판단 | "있는지 먼저 확인"은 동시 요청 둘이 모두 "없음"을 볼 수 있다 ([PostgreSQL 실험 01](../tech-notes.md#postgresql-제약과-트랜잭션)에서 재현) |
 | 파일은 DB **커밋 후** 삭제 | 트랜잭션이 롤백되면 DB는 되돌아가지만 지운 파일은 안 돌아온다. 커밋 후 삭제가 실패하면 파일만 고아로 남고 배치가 치운다 — 반대(파일 없는 DB 행)보다 안전 |
 | 소켓 emit은 **커밋 후** | 커밋 전에 보내면 롤백된 메시지를 상대가 본다. 커밋 후 emit이 실패해도 메시지는 DB에 있어 재연결 복구로 전달된다 ([WebSocket 기술 노트 ③](../tech-notes.md#websocket과-socketio)) |
 | 트랜잭션 안에서 외부 호출 금지 | 이미지 처리 · 해시 · 네트워크 호출은 트랜잭션 밖에서 미리. 트랜잭션은 짧게 |
+| 유니크 위반을 잡으면 **트랜잭션을 끝내고 새 쿼리로** 기존 행을 읽는다 | 오류가 난 트랜잭션은 롤백 전까지 모든 문장을 거부한다(`25P02`). 같은 트랜잭션에서 재조회하면 중복 요청이 `500`이 된다 ([PostgreSQL 실험 01 ⑦](../tech-notes.md#postgresql-제약과-트랜잭션)) |
 
 ### 쓰기 작업별 경계
 
@@ -816,7 +817,8 @@ canAssignBuyer(product, buyerId, rooms)   // buyerId가 이 상품 방의 구매
 
 | 항목 | 값 | 이유 |
 | --- | --- | --- |
-| bcrypt cost | 12 | 측정 후 확정 — 목표 해시 1회 200~300ms ([기술 노트](../tech-notes.md) `password-hashing.md`) |
+| bcrypt | 네이티브 `bcrypt`, cost 12 | 스파이크 측정 205ms(목표 200~300ms), 배포 환경에서 다시 측정. 순수 JS 구현은 해시 동안 이벤트 루프를 394ms 막아 쓰지 않는다 ([인증 실험](../tech-notes.md#jwt와-비밀번호-해시)) |
+| 비밀번호 길이 | 8~64자 **그리고** UTF-8 72바이트 이하 | bcrypt는 앞 72바이트만 쓴다 [AC-SU-09, T-12](../troubleshooting.md#t-12) |
 | 없는 이메일 로그인 | 더미 해시와 비교 | 응답 시간으로 계정 존재를 알 수 없게 [AC-LI-06] |
 | 흔한 비밀번호 목록 | 상위 1만 개, 메모리 `Set` | 가입 · 변경 시 [AC-SU-09] |
 | JWT 비밀키 | 환경 변수, 32바이트 이상, 없으면 부팅 실패 | — |
@@ -1048,6 +1050,7 @@ GET /products?limit=20                  → { items: [...20], nextCursor: "eyJ0I
 GET /products?limit=20&cursor=eyJ0Ijoi... → { items: [...20], nextCursor: null }   // 마지막
 ```
 
+- 커서에 담는 시각은 DB 정밀도 그대로여야 한다. Prisma `DateTime`의 기본 `timestamp(3)`(밀리초)을 유지하고 `@db.Timestamptz(6)`을 쓰지 않는다 — 마이크로초 열을 JS `Date`로 옮기면 값이 잘려 마지막 항목이 다음 페이지에 다시 나온다 ([PostgreSQL 실험 02 ⑥](../tech-notes.md#postgresql-제약과-트랜잭션)).
 - 커서는 **불투명 문자열**이다. 내부는 마지막 항목의 `(정렬 시각, id)`(메시지는 `seq`)를 base64url로 감싼 것이지만 클라이언트는 만들거나 해석하지 않는다.
 - 서버는 `limit + 1`개를 조회해 다음이 있을 때만 `nextCursor`를 준다 — 빈 마지막 페이지 요청이 생기지 않는다 [PL-DT-02].
 - 잘못된 커서는 `400 INVALID_CURSOR` [AC-PL-04].
