@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { LoginForm, safeNext } from '@/features/auth';
 import { getSessionUser } from '@/features/auth/session';
+import { getDemoPassword } from '@/lib/config';
 
 export const metadata: Metadata = { title: '로그인' };
 
@@ -20,7 +21,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ n
       </header>
       <main className="flex-1 px-4 py-8">
         <h1 className="mb-6 text-xl font-semibold">로그인</h1>
-        <LoginForm next={next} />
+        <LoginForm next={next} demoPassword={getDemoPassword()} />
       </main>
     </>
   );

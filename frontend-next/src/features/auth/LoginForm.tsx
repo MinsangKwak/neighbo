@@ -10,7 +10,19 @@ import { apiFetch } from '@/lib/api/apiFetch';
 import { useForm } from '@/lib/form/useForm';
 import { announceLogin } from './crossTab';
 
-export function LoginForm({ next }: { next: string }) {
+// 둘러보기용 계정 — 가입 없이 두 역할을 번갈아 써 본다 [AC-LI-19]
+const DEMO_ACCOUNTS = [
+  { email: 'demo@neighbo.app', role: '판매자 역할' },
+  { email: 'demo2@neighbo.app', role: '구매자 역할' },
+];
+
+interface LoginFormProps {
+  next: string;
+  // 없으면 데모 안내를 숨긴다
+  demoPassword: string | null;
+}
+
+export function LoginForm({ next, demoPassword }: LoginFormProps) {
   const router = useRouter();
 
   const form = useForm({
@@ -56,6 +68,36 @@ export function LoginForm({ next }: { next: string }) {
           회원가입
         </Link>
       </p>
+
+      {demoPassword !== null && (
+        <section aria-labelledby="demo-heading" className="rounded-lg bg-surface p-4">
+          <h2 id="demo-heading" className="text-sm font-semibold">
+            둘러보기용 계정
+          </h2>
+          <p className="mt-1 text-sm text-text-muted">
+            여러 사람이 함께 쓰는 계정이에요. 개인정보를 적지 마세요. 매일 새벽에 초기화돼요
+          </p>
+          <ul className="mt-3 flex flex-col gap-2">
+            {DEMO_ACCOUNTS.map((account) => (
+              <li key={account.email} className="flex items-center justify-between gap-3">
+                <span className="text-sm">
+                  {account.email} <span className="text-text-muted">· {account.role}</span>
+                </span>
+                <Button
+                  variant="secondary"
+                  aria-label={`${account.role} 계정 채워 넣기`}
+                  onClick={() => {
+                    form.fill({ email: account.email, password: demoPassword });
+                    form.focus('password');
+                  }}
+                >
+                  채워 넣기
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </form>
   );
 }

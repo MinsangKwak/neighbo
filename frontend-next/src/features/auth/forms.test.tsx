@@ -166,7 +166,7 @@ describe('가입 폼', () => {
 });
 
 describe('로그인 폼', () => {
-  const renderForm = () => render(<LoginForm next="/" />);
+  const renderForm = (demoPassword: string | null = null) => render(<LoginForm next="/" demoPassword={demoPassword} />);
 
   it('[AC-LI-05, 05c] 형식 오류는 서버를 부르기 전에 막고, 비밀번호 칸은 current-password다', () => {
     renderForm();
@@ -201,6 +201,21 @@ describe('로그인 폼', () => {
     fireEvent.click(screen.getByRole('button', { name: '로그인' }));
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/'));
     expect(calls.at(-1)?.body).toEqual({ email: 'kim@example.com', password: 'correct horse' });
+  });
+
+  it('[AC-LI-19] 데모 계정 두 개의 안내와 [채워 넣기]가 있고, 누르면 이메일 · 비밀번호가 채워진다', () => {
+    renderForm('demo password 1');
+    expect(screen.getByRole('heading', { name: '둘러보기용 계정' })).toBeDefined();
+    expect(screen.getByText(/여러 사람이 함께 쓰는 계정이에요. 개인정보를 적지 마세요. 매일 새벽에 초기화돼요/)).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: '구매자 역할 계정 채워 넣기' }));
+    expect(screen.getByLabelText('이메일')).toHaveProperty('value', 'demo2@neighbo.app');
+    expect(screen.getByLabelText('비밀번호')).toHaveProperty('value', 'demo password 1');
+    expect(screen.getByRole('button', { name: '판매자 역할 계정 채워 넣기' })).toBeDefined();
+  });
+
+  it('[AC-LI-19] 데모 비밀번호가 설정되지 않은 환경에서는 안내를 숨긴다', () => {
+    renderForm(null);
+    expect(screen.queryByRole('heading', { name: '둘러보기용 계정' })).toBeNull();
   });
 
   it('[AC-LI-16] 끊겨서 실패하면 비밀번호를 유지한다', async () => {

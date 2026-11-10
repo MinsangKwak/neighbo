@@ -79,6 +79,13 @@ export function useForm<V extends Values, Output>(options: UseFormOptions<V, Out
     return { value: cleaned, valid: found[name] === undefined };
   };
 
+  // 여러 칸을 한 번에 채운다 (데모 계정 [채워 넣기]). 보이던 오류는 지운다
+  const fill = (partial: Partial<V>) => {
+    setValues((current) => ({ ...current, ...partial }));
+    setErrors({});
+    setFormError(null);
+  };
+
   const setFieldError = (name: keyof V, message: string) => {
     setErrors((current) => ({ ...current, [name]: message }));
   };
@@ -142,6 +149,7 @@ export function useForm<V extends Values, Output>(options: UseFormOptions<V, Out
     field,
     blur,
     setValue,
+    fill,
     setFieldError,
     focus: (name: keyof V) => inputs.current.get(name)?.focus(),
     handleSubmit,
