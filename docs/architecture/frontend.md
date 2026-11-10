@@ -749,8 +749,8 @@ App Router는 경로 이동 후 포커스를 관리하지 않는다. 그대로 �
 
 ```
 frontend-next/
-├─ proxy.ts                    # 보호 경로의 1겹 검사 — 쿠키 유무만 [01]
 └─ src/
+   ├─ proxy.ts                 # 보호 경로의 1겹 검사 — 쿠키 유무만 [01]. `src/`를 쓰면 `app/`과 같은 층에 둬야 인식된다
    ├─ app/
    │  ├─ layout.tsx            # 루트 — Provider · 토스트 · 라이브 리전 · 로그인 사용자
    │  ├─ (tabs)/               # 탭바 있는 화면: / · /search · /chats · /me
