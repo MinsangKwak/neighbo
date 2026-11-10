@@ -1,0 +1,16 @@
+{
+  "name": "spike-postgres",
+  "private": true,
+  "type": "module",
+  "description": "유니크 경합 · 트랜잭션 시각 · 방별 번호 · 조건부 UPDATE 재현 스파이크 — 서비스 코드 아님",
+  "scripts": {
+    "01": "node 01-unique-race.mjs",
+    "02": "node 02-now-is-tx-start.mjs",
+    "03": "node 03-seq-fixes-order.mjs",
+    "04": "node 04-conditional-update.mjs",
+    "05": "node 05-for-share-vs-delete.mjs"
+  },
+  "dependencies": {
+    "pg": "^8.16.0"
+  }
+}
