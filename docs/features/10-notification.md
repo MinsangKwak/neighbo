@@ -1,21 +1,53 @@
-# NT · 채팅 알림
+# 10 · 채팅 알림
 
-[경우의 수 목차](README.md) · 공통: [00-common.md](00-common.md) · 앞: [08-chat.md](08-chat.md)
+[문서 목차](../README.md) · 앞: [09 · 마이페이지](09-mypage.md) · 설계: [흐름](../architecture/flow.md) · [프론트엔드](../architecture/frontend.md) · [백엔드](../architecture/backend.md)
 
 **채팅 알림은 하단 탭 배지, 채팅 목록, 토스트로 새 메시지를 안내합니다.** 탭 배지는 읽지 않은 방 수이며, `lastSeq`와 `lastReadSeq`로 계산합니다. 브라우저 푸시·이메일·소리는 1차 범위에 포함하지 않습니다.
 
-## 핵심 정의 (제안)
+## 요구사항
+
+**유저 스토리** — 사용자로서, 다른 화면에 있어도 새 메시지가 온 걸 알고 한 번에 그 방으로 가고 싶다.
+
+**권한** — 로그인. 알림은 `user:{id}` 룸으로만 전달.
+
+| AC | 조건 | 프론트가 하는 것 | 백엔드가 하는 것 | 근거 |
+| --- | --- | --- | --- | --- |
+| AC-NT-01 | 하단 탭 [채팅] 배지는 **읽지 않은 메시지가 있는 방의 수**이며 `GET /me/unread → { rooms }`와 소켓 `notification:unread { total }`로 유지된다 | `['me','unread']` 쿼리 · 소켓으로 갱신 [F03](../architecture/frontend.md#03--캐시와-낙관적-갱신) | `GET /me/unread` · `notification:unread` [B09](../architecture/backend.md#09--소켓-서버) | 핵심 정의, 결정 0008, NT-DT-01 |
+| AC-NT-02 | 계산은 `ChatRoom.lastSeq > ChatRoomMember.lastReadSeq`인 방의 수이며 Message 테이블을 조인하지 않는다 (내 메시지는 저장 때 내 `lastReadSeq`가 함께 올라간다) | — | 비정규화 컬럼으로 계산 [B02](../architecture/backend.md#02--데이터-모델) | NT-DT-02 |
+| AC-NT-03 | `Notification` 테이블은 없다 | — | 테이블 없음 [B02](../architecture/backend.md#02--데이터-모델) | 핵심 정의 |
+| AC-NT-04 | 로그인 직후 · 포그라운드 복귀 · 소켓 재연결 시 `GET /me/unread`로 배지를 맞춘다 | 로그인 · 포커스 · 재연결 시 재조회 [F07](../architecture/frontend.md#07--소켓-클라이언트) | — | NT-OK-01, NT-CC-09 |
+| AC-NT-05 | 채팅 목록 · 해당 방이 아닌 화면에서 새 메시지가 오면 상대 아바타 · 닉네임 · 1줄 미리보기 토스트가 뜨고, 클릭하면 그 방으로 간다(작성 중 폼이 있으면 이탈 확인 먼저) | 토스트 조건 판단 · 클릭 이동 · 이탈 확인 [F07](../architecture/frontend.md#07--소켓-클라이언트) | `latest` 요약 포함 [B09](../architecture/backend.md#09--소켓-서버) | NT-OK-02~07 |
+| AC-NT-06 | 같은 방의 5초 안 연속 메시지는 "{닉네임}: 메시지 N개" 하나로 합치고, 토스트는 최대 3개까지 쌓인다 | 같은 방 5초 합침 · 최대 3 [F02](../architecture/frontend.md#02--상태-소유권) | — | 핵심 정의, NT-CC-01, 02 |
+| AC-NT-07 | 방에 들어가 읽으면 배지가 즉시 줄고(낙관적) 내 다른 세션에도 `notification:unread`가 간다 | 낙관적 −1 [F03](../architecture/frontend.md#03--캐시와-낙관적-갱신) | T8 후 내 세션에 전달 [B09](../architecture/backend.md#09--소켓-서버) | NT-OK-09, NT-CC-07 |
+| AC-NT-08 | 읽지 않은 방이 있으면 브라우저 제목이 `(N) neighbo`다 | `document.title` 갱신 | — | NT-OK-11 |
+| AC-NT-09 | 삭제 · 거래완료 상품의 방도 배지에 포함된다 | — | 상품 상태 무관 계산 | NT-ST-01, 02 |
+| AC-NT-10 | 로그아웃 시 배지 0 · 토스트 큐 비움 · 소켓 끊김이다 | 로그아웃 정리 [F07](../architecture/frontend.md#07--소켓-클라이언트) | — | NT-ST-04 |
+| AC-NT-11 | 탭 접근 가능한 이름은 "채팅, 읽지 않은 대화 N개"이고 토스트는 `role="status"`로 포커스를 뺏지 않으며 상단 중앙(1024px은 우상단)에 뜬다 | 탭 이름 · 토스트 역할 · 위치 [F06](../architecture/frontend.md#06--포커스와-라이브-리전) | — | NT-A11Y-01~04 |
+| AC-NT-12 | `notification:unread`는 서버가 `user:{id}` 룸에만 emit하며 `GET /me/unread`는 분당 60회 제한이다 | — | `user:{id}` 룸만 · 분당 60 [B07](../architecture/backend.md#07--보호-장치와-배치) [B09](../architecture/backend.md#09--소켓-서버) | NT-SEC-02, 03 |
+| AC-NT-13 | 재연결 시 배지만 `GET /me/unread`로 맞추고, 끊긴 동안 온 메시지의 토스트는 띄우지 않는다 | 재연결 시 배지만 맞추고 토스트 없음 [F07](../architecture/frontend.md#07--소켓-클라이언트) | — | NT-CC-05 |
+| AC-NT-14 | 탭이 숨겨진 동안에는 토스트 없이 배지와 탭 제목만 갱신하고, 돌아왔을 때 밀린 토스트를 몰아 띄우지 않는다 | 숨김 동안 토스트 없음 [F07](../architecture/frontend.md#07--소켓-클라이언트) | — | NT-CC-08 |
+| AC-NT-15 | 소켓이 끊겨도 별도 폴링을 하지 않는다 | 폴링 없음 | — | NT-NW-02 |
+
+범위 밖: 알림 목록 화면, 소리 · 진동, Web Push, 이메일, 방별 · 전체 알림 끄기, 상태 변경 알림 [NT-OK-14~19, 알림 종류].
+
+---
+
+## 경우의 수
+
+**채팅 알림은 하단 탭 배지, 채팅 목록, 토스트로 새 메시지를 안내합니다.** 탭 배지는 읽지 않은 방 수이며, `lastSeq`와 `lastReadSeq`로 계산합니다. 브라우저 푸시·이메일·소리는 1차 범위에 포함하지 않습니다.
+
+### 핵심 정의 (제안)
 
 | 항목 | 제안 | 결정 |
 | --- | --- | --- |
-| 배지 숫자의 의미 | **읽지 않은 메시지가 있는 방의 수** (메시지 총수 아님). 방 3개에 메시지 50개면 "3" → [결정 0008](../decisions/0008-badge-means-rooms.md) | — |
-| 알림 저장 | `Notification` 테이블 **없음.** 배지 = `COUNT(room WHERE lastSeq > 내 lastReadSeq)` → [결정 0008](../decisions/0008-badge-means-rooms.md) | — |
+| 배지 숫자의 의미 | **읽지 않은 메시지가 있는 방의 수** (메시지 총수 아님). 방 3개에 메시지 50개면 "3" → [결정 0008](../decisions.md#0008--배지-숫자는-읽지-않은-방의-수다) | — |
+| 알림 저장 | `Notification` 테이블 **없음.** 배지 = `COUNT(room WHERE lastSeq > 내 lastReadSeq)` → [결정 0008](../decisions.md#0008--배지-숫자는-읽지-않은-방의-수다) | — |
 | 알림 종류 | 새 메시지 하나뿐. 상태 변경 · 거래완료 지정 알림은 1차 없음 | — |
 | 전달 경로 | 소켓 `notification:unread { total }` (서버가 메시지 저장 후 수신자의 모든 세션에 push) + 앱 진입 · 포커스 복귀 시 HTTP `GET /me/unread` | — |
 | 토스트 | 채팅 목록 · 해당 채팅방이 **아닌** 화면에 있을 때만. 내용: 상대 아바타 · 닉네임 · 메시지 1줄. 클릭 시 그 방으로. 5초 자동 소멸 | — |
 | 토스트 억제 | 같은 방에서 5초 안에 연속 메시지면 토스트 하나로 합침 "{닉네임}: 메시지 N개" | — |
 
-## 정상
+### 정상
 
 | ID | 상황 | 기대 동작 (제안) | 결정 |
 | --- | --- | --- | --- |
@@ -39,18 +71,18 @@
 | NT-OK-18 | 방별 알림 끄기 | 없음 | ⛔ |
 | NT-OK-19 | 전체 알림 끄기 (설정) | 1차 없음. 토스트는 채팅 목록 · 해당 방이 아닌 화면에서만 뜨므로 방해가 제한적 | — |
 
-## 상태
+### 상태
 
 | ID | 상황 | 기대 동작 (제안) | 결정 |
 | --- | --- | --- | --- |
-| NT-ST-01 | 삭제된 상품의 방에 읽지 않은 메시지 | 배지에 **포함** (→ PX-ST-13) → [결정 0006](../decisions/0006-always-soft-delete.md) | — |
+| NT-ST-01 | 삭제된 상품의 방에 읽지 않은 메시지 | 배지에 **포함** (→ PX-ST-13) → [결정 0006](../decisions.md#0006--상품-삭제는-항상-soft-delete-채팅방은-열람만) | — |
 | NT-ST-02 | 거래완료 상품의 방 | 포함 | — |
 | NT-ST-03 | 비로그인 | 배지 없음, 소켓 연결 안 함 | — |
 | NT-ST-04 | 로그아웃 | 배지 0, 토스트 큐 비움, 소켓 끊음 (→ LI-LO-04) | — |
 | NT-ST-05 | 세션 만료 | 소켓 `connect_error` → 배지 유지한 채 재로그인 유도. 재로그인 후 재조회 | — |
 | NT-ST-06 | 상대가 탈퇴 | 1차 범위 밖 | ⛔ |
 
-## 동시성 · 실시간
+### 동시성 · 실시간
 
 | ID | 상황 | 기대 동작 (제안) | 결정 |
 | --- | --- | --- | --- |
@@ -65,7 +97,7 @@
 | NT-CC-09 | 포그라운드 복귀 | `visibilitychange` → 연결 확인 → `GET /me/unread` | — |
 | NT-CC-10 | 서버 재시작 | 모든 클라이언트 재연결 → NT-CC-05 | — |
 
-## 네트워크
+### 네트워크
 
 | ID | 상황 | 기대 동작 (제안) | 결정 |
 | --- | --- | --- | --- |
@@ -74,7 +106,7 @@
 | NT-NW-03 | 소켓은 되는데 HTTP 실패 | 배지는 소켓 push로 유지됨 | — |
 | NT-NW-04 | 느린 네트워크로 토스트 아바타 로드 실패 | 기본 아바타 | — |
 
-## 접근성 · 화면
+### 접근성 · 화면
 
 | ID | 상황 | 기대 동작 (제안) | 결정 |
 | --- | --- | --- | --- |
@@ -89,7 +121,7 @@
 | NT-UI-03 | 토스트 3개 쌓임 | 세로 쌓기, 최신이 위 | — |
 | NT-UI-04 | 채팅방 안에서 탭바 숨김 (→ CH-UI-07) | 배지도 안 보임 — 방 안에서 다른 방 알림은 토스트로만 | — |
 
-## 보안
+### 보안
 
 | ID | 상황 | 기대 동작 (제안) | 결정 |
 | --- | --- | --- | --- |
@@ -97,11 +129,11 @@
 | NT-SEC-02 | `notification:unread`를 남의 세션에 보냄 | 서버가 `userId` 룸(`user:{id}`)에만 emit. 클라이언트는 룸 지정 불가 | — |
 | NT-SEC-03 | `GET /me/unread` 과다 호출 | rate limit 분당 60 | — |
 
-## 데이터
+### 데이터
 
 | ID | 상황 | 기대 동작 (제안) | 결정 |
 | --- | --- | --- | --- |
-| NT-DT-01 | `GET /me/unread` | `{ rooms: number }`. 메시지 수는 내리지 않음 → [결정 0008](../decisions/0008-badge-means-rooms.md) | — |
+| NT-DT-01 | `GET /me/unread` | `{ rooms: number }`. 메시지 수는 내리지 않음 → [결정 0008](../decisions.md#0008--배지-숫자는-읽지-않은-방의-수다) | — |
 | NT-DT-02 | 계산 쿼리 | `SELECT COUNT(*) FROM ChatRoom r JOIN ChatRoomMember m ON m.roomId = r.id AND m.userId = :me WHERE r."lastSeq" > m."lastReadSeq"`. 비정규화 컬럼 덕에 Message 테이블 조인 없음 | — |
 | NT-DT-03 | 인덱스 | `ChatRoomMember(userId, roomId)` + `ChatRoom(lastMessageAt)` | — |
 | NT-DT-04 | 소켓 사용자 룸 | 연결 시 `socket.join("user:" + userId)`. 알림은 이 룸으로 | — |
