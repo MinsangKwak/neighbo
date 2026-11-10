@@ -24,5 +24,9 @@ RUN npm run db:generate --workspace backend-node \
 ENV NODE_ENV=production
 USER node
 
+WORKDIR /app/backend-node
+
 # 마이그레이션이 성공해야 서버가 뜬다. 실패하면 컨테이너가 종료되어 배포가 중단된다
-CMD ["sh", "-c", "npm run db:deploy --workspace backend-node && npm run start --workspace backend-node"]
+# 서버는 exec로 띄워 SIGTERM을 직접 받게 한다 — npm · sh를 거치면 종료 신호가 닿지 않아
+# 진행 중인 요청을 끝내는 종료 처리(server.ts)가 돌지 않는다
+CMD ["sh", "-c", "npx prisma migrate deploy && exec node --import tsx src/server.ts"]

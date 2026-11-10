@@ -69,8 +69,11 @@ jobs:
             -e STORAGE_LOCAL_DIR=/tmp/uploads \
             neighbo-backend
           for i in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:4000/readyz; then exit 0; fi
+            if curl -fsS http://127.0.0.1:4000/readyz; then break; fi
             sleep 2
           done
+          # 종료 신호가 서버까지 닿아 정상 종료(코드 0)하는지 확인한다
+          docker stop --time 10 backend
           docker logs backend
-          exit 1
+          test "$(docker inspect backend --format '{{.State.ExitCode}}')" = "0"
+          docker logs backend 2>&1 | grep -q '"shutdown":"SIGTERM"'
