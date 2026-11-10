@@ -39,6 +39,9 @@
 | [S-05](#s-05) | 스키마가 검증을 통과하지 못함 | Prisma 7부터 연결 주소를 스키마에서 받지 않음 | [B02](architecture/backend.md#3-prisma-스키마) |
 | [S-06](#s-06) | [더 보기]에서 마지막 항목이 한 번 더 나옴 | 커서의 시각을 JS `Date`로 옮기면 마이크로초가 잘린다 | [B02](architecture/backend.md#02--데이터-모델) |
 | [S-07](#s-07) | 중복 요청에 기존 결과 대신 `500` | 유니크 위반 뒤 같은 트랜잭션은 중단 상태(`25P02`) | [B03](architecture/backend.md#03--트랜잭션-경계) |
+| [I-01](#i-01) | 설치 직후 lint가 TypeScript 버전 경고와 함께 불안정 | `latest` 태그의 TypeScript 7.0이 typescript-eslint 지원 범위(`<6.1.0`) 밖 | 루트 · 각 앱 `package.json` |
+| [I-02](#i-02) | `/api/products/%2E%2E/admin`이 백엔드의 `/admin`으로 감 | URL 표준은 `%2E%2E`도 `..`로 보고 경로를 접는다 | [흐름 설계](architecture/flow.md) |
+| [I-03](#i-03) | 엔진 바이너리를 받지 못하는 환경에서 `prisma migrate`가 멈춤 | 마이그레이션 명령은 스키마 엔진 바이너리를 내려받아 실행한다 | [B11](architecture/backend.md#11--구성과-시드) |
 
 ---
 
@@ -186,6 +189,18 @@ T-01 재현 실험에서 "복구 조회 0건"을 기대했는데 1건이 나왔�
 ### S-07
 
 채팅방 유니크 경합 실험에서 `23505`를 잡은 뒤 같은 트랜잭션으로 기존 방을 조회하니 `25P02`(현재 트랜잭션은 중단됨)로 실패했다. PostgreSQL은 트랜잭션 안에서 오류가 나면 롤백 전까지 모든 문장을 거부한다. 명세의 T2 · T7은 "유니크 위반 → 기존 것 조회"라고만 적어, 같은 트랜잭션 안에서 조회하도록 구현할 여지가 있었다. **위반을 잡으면 트랜잭션을 끝내고 새 쿼리로 다시 읽는다**를 트랜잭션 원칙에 넣었다.
+
+### I-01
+
+구현 0단계에서 의존성을 버전 지정 없이 설치하니 TypeScript 7.0.2가 들어왔다. typescript-eslint 8.72의 지원 범위는 `>=4.8.4 <6.1.0`이라 lint가 지원하지 않는 컴파일러 위에서 돌게 된다. **TypeScript를 `~6.0.0`으로 고정**했고, 올릴 때는 typescript-eslint의 지원 범위를 먼저 확인한다. Prisma도 같은 이유로 `latest`(8.0 RC)가 아니라 7.10.1로 고정되어 있다 ([S-05](#s-05)).
+
+### I-02
+
+프록시 테스트에서 `new URL('http://app/api/products/%2E%2E/admin')`의 경로가 `/api/admin`으로 바뀌는 것을 봤다. WHATWG URL은 퍼센트 인코딩된 점(`%2E`)도 점 조각으로 취급해 경로를 접는다. 프록시가 받은 경로를 문자열로 이어 붙여 `fetch`에 넘기면 백엔드 주소 안에서 의도하지 않은 경로로 갈 수 있다. **경로 조각이 `.` · `..`이면 `404`로 끊고, 나머지는 조각마다 `encodeURIComponent`로 다시 인코딩**한다 (`frontend-next/src/lib/api/proxy.ts`, 테스트 "경로 조각은 다시 인코딩되어…").
+
+### I-03
+
+`prisma migrate dev`는 스키마 엔진 바이너리를 `binaries.prisma.sh`에서 내려받는다. 이 주소가 막힌 작업 환경에서는 명령이 시작하지 못했다. 같은 엔진의 WASM 판(`@prisma/schema-engine-wasm`, 엔진 해시 동일)에 드라이버 어댑터를 붙여 "빈 DB → 스키마" 차이를 SQL로 뽑아 첫 마이그레이션을 만들었고, CHECK 제약 6개를 같은 파일 끝에 붙였다. 그 SQL을 PostgreSQL 16에 적용해 통합 테스트 7개로 제약을 확인했다. `prisma migrate deploy` 자체는 CI(테스트 전 단계)에서 실행된다. 클라이언트 생성(`prisma generate`)은 엔진 바이너리 없이 동작한다.
 
 ---
 
