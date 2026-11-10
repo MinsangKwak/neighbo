@@ -1,6 +1,6 @@
 # 스파이크 · WebSocket
 
-**운영 코드가 아닙니다.** 라이브러리가 감추는 것을 한 번 직접 만들어 보는 실험이며, 결과와 해석은 [기술 노트 `websocket.md`](../../docs/tech/websocket.md)에 있습니다.
+**WebSocket 핸드셰이크부터 Socket.IO 재연결·버퍼까지 확인하는 여섯 개의 실험 코드입니다.** 서비스와 분리해 실행하며, 관찰 결과와 적용할 설계는 [WebSocket 기술 노트](../../docs/tech/websocket.md)에 정리했습니다.
 
 ```bash
 npm install

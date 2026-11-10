@@ -2,7 +2,7 @@
 
 [경우의 수 목차](README.md) · 공통: [00-common.md](00-common.md) · 앞: [07-chat-list.md](07-chat-list.md)
 
-**상품 하나를 두고 판매자와 구매자가 1:1로 텍스트를 주고받습니다.** 실시간은 Socket.IO([결정 0005](../decisions/0005-socket-io.md)), 이력 조회는 HTTP. 읽음의 정의는 [결정 0007](../decisions/0007-read-state.md)로 확정했고, 끊김 복구 · 전송 실패 처리는 [기술 노트 `websocket.md`](../tech/websocket.md)의 스파이크 여섯 개로 확인한 뒤 닫았습니다.
+**채팅은 상품별 판매자·구매자 간 1:1 텍스트 대화입니다.** 실시간 전달에는 [Socket.IO](../decisions/0005-socket-io.md), 이력 조회에는 HTTP를 사용하도록 정했습니다. 읽음 정책은 [결정 0007](../decisions/0007-read-state.md), 읽음·복구의 번호 단위는 [결정 0016](../decisions/0016-message-seq.md)에 있습니다. 연결 동작은 [WebSocket 실험](../tech/websocket.md)에서 확인했습니다.
 
 ## 핵심 정의 (제안)
 
