@@ -1,6 +1,6 @@
 # 01 · 요구사항
 
-[문서 목차](README.md) · 앞: [00 개요](00-overview.md) · [경우의 수](cases/README.md) · 다음: 02 데이터 모델
+[문서 목차](README.md) · 앞: [00 개요](00-overview.md) · [경우의 수](cases/README.md) · 다음: [백엔드 설계](backend/README.md) · [프론트엔드 설계](frontend/README.md)
 
 **이 문서는 "무엇이 되어야 하는가"의 최종본입니다.** 각 기능은 유저 스토리 → 권한 → 수용 조건 순서로 적고, 수용 조건마다 [경우의 수](cases/README.md)의 ID를 달아 근거를 추적합니다. 수용 조건 문장은 그대로 테스트 이름이 됩니다. 여기에 없는 동작은 만들지 않고, 여기 있는 동작은 빠짐없이 만듭니다.
 
@@ -32,7 +32,7 @@
 | --- | --- | --- | --- | --- |
 | AC-CM-01 | 로그인이 필요한 화면에 비로그인으로 접근하면 로그인 화면으로 보내고, 로그인 후 원래 URL로 돌아온다. `next`는 같은 오리진 경로만 허용한다 | 미들웨어가 쿠키 유무로 즉시 이동, 서버 컴포넌트가 `/me` 401이면 이동. `next`는 같은 오리진 경로만 [F01](frontend/01-rendering.md) | — (API는 401만 돌려줌) | CM-AU-01, LI-AU-03 |
 | AC-CM-02 | 로그인이 필요한 API를 비로그인으로 호출하면 `401 UNAUTHORIZED`를 돌려준다 | 전역 401 처리 → 캐시 비우고 로그인 화면 [F04](frontend/04-errors.md) | `requireAuth`가 판정해 `401 UNAUTHORIZED` [B01](backend/01-layers.md) | CM-AU-02 |
-| AC-CM-03 | 세션은 httpOnly 쿠키의 JWT이며 7일 동안 유효하고, 남은 기간이 절반 아래인 요청에서 새 쿠키로 연장된다 | — (쿠키를 읽을 수 없음, 신경 쓰지 않음) | JWT 발급 · httpOnly 쿠키 · 절반 아래면 응답에 새 쿠키 [B01](backend/01-layers.md) | CM-AU-04, LI-TK-01, LI-TK-04 |
+| AC-CM-03 | 세션은 httpOnly 쿠키의 JWT이며 7일 동안 유효하고, 남은 기간이 절반 아래인 요청에서 새 쿠키로 연장된다. 연장은 브라우저가 부른 `/api/*` 응답에서만 일어난다 — 서버 컴포넌트는 쿠키를 쓸 수 없다 | `serverFetch()`는 백엔드의 `Set-Cookie`를 버린다. 로그인 상태의 모든 화면은 클라이언트에서 `/api/me/unread`를 부르므로 화면을 열기만 해도 연장된다 [F01](frontend/01-rendering.md) | JWT 발급 · httpOnly 쿠키 · 절반 아래면 응답에 새 쿠키 [B01](backend/01-layers.md) | CM-AU-04, LI-TK-01, LI-TK-04 |
 | AC-CM-04 | 서명이 틀리거나 `tokenVersion`이 맞지 않는 토큰은 `401`이며 쿠키 삭제 헤더를 함께 보낸다 | 401이면 로그인 화면 [F04](frontend/04-errors.md) | 서명 · 만료 · `tokenVersion` 검증, 실패 시 401 + 쿠키 삭제 헤더 [B01](backend/01-layers.md) | CM-AU-05, LI-TK-05 |
 | AC-CM-05 | 로그인 상태에서 로그인 · 회원가입 화면에 접근하면 홈으로 보낸다 | 미들웨어가 쿠키 있으면 홈으로 [F01](frontend/01-rendering.md) | — (막지 않음) | CM-AU-09 |
 | AC-CM-06 | 서버는 요청 본문의 사용자 ID를 신뢰하지 않고 항상 토큰의 사용자 ID를 쓴다 | 본문에 사용자 ID를 넣지 않음 | `req.user.id`만 사용, 본문의 사용자 ID 무시 [B01](backend/01-layers.md) | CM-SEC-03 |
@@ -64,10 +64,10 @@
 | AC | 조건 | 프론트가 하는 것 | 백엔드가 하는 것 | 근거 |
 | --- | --- | --- | --- | --- |
 | AC-CM-30 | 사용자 입력은 원문 그대로 저장하고 출력 시 이스케이프한다. `dangerouslySetInnerHTML`을 쓰지 않는다 | React 이스케이프에 맡기고 `dangerouslySetInnerHTML` 금지(lint) | 원문 저장, HTML 태그 제거 안 함 | CM-SEC-01 |
-| AC-CM-31 | 쿠키는 `HttpOnly; Secure; SameSite=Lax`이며 쓰기 API는 `Origin` 헤더를 검사한다 | 같은 오리진 프록시로만 요청 [F01](frontend/01-rendering.md) | 쿠키 속성 · 쓰기 요청 `Origin` 검사 [B01](backend/01-layers.md) | CM-SEC-02 |
+| AC-CM-31 | 쿠키는 `HttpOnly; Secure; SameSite=Lax`이며 쓰기 API는 `Origin` 헤더를 검사한다. 허용 목록은 환경마다 다르고(staging은 Vercel 미리보기 주소 패턴), HTTP와 소켓이 같은 함수를 쓴다 | 같은 오리진 프록시로만 요청 [F01](frontend/01-rendering.md) | 쿠키 속성 · 쓰기 요청 `Origin` 검사 [B01](backend/01-layers.md) | CM-SEC-02 |
 | AC-CM-32 | 로그인 · 회원가입 · 이메일/닉네임 중복 확인은 IP당 분당 10회, 그 외 쓰기 API는 사용자당 분당 30회를 넘으면 `429`다 | 429 처리 [F04](frontend/04-errors.md) | 경로별 rate limit (IP · 사용자) [B07](backend/07-protection.md) | CM-SEC-04, CM-SEC-05 |
 | AC-CM-33 | 업로드 파일은 매직 바이트로 형식을 검사하고 불일치면 `400 INVALID_FILE`이다 | — (확장자 검사는 편의) | 매직 바이트 검사 [B07](backend/07-protection.md) | CM-SEC-06 |
-| AC-CM-34 | 요청 본문은 1MB, 이미지 업로드는 장당 10MB를 넘으면 `413`이다 | 업로드 전 클라이언트 리사이즈로 한도 아래로 [F05](frontend/05-forms.md) | 본문 1MB · 업로드 10MB, 스트림에서 차단 [B07](backend/07-protection.md) | CM-SEC-10, PC-IM-06 |
+| AC-CM-34 | 요청 본문은 1MB, 이미지 업로드는 장당 4MB를 넘으면 `413`이다. 4MB는 업로드가 지나는 Vercel 프록시의 요청 본문 한도(4.5MB) 아래로 잡은 값이다 | 업로드 전 클라이언트 재인코딩으로 한도 아래로 [F05](frontend/05-forms.md) | 본문 1MB · 업로드 4MB, 스트림에서 차단 [B07](backend/07-protection.md) | CM-SEC-10, PC-IM-06, 트러블슈팅 T-04 |
 | AC-CM-35 | 외부에 노출되는 모든 ID는 추측 불가능한 형식(cuid)이다 | ID를 해석하지 않고 불투명 문자열로 다룸 | Prisma `cuid()` [B02](backend/02-data-model.md) | CM-DT-10 |
 
 ### 0.5 접근성 · 화면
@@ -239,8 +239,8 @@
 | --- | --- | --- | --- | --- |
 | AC-PC-10 | 사진은 선택 즉시 `POST /uploads`로 올라가고(동시 3개) 썸네일 위에 진행률이 보이며, 등록 요청은 `imageIds`만 보낸다 | 선택 즉시 업로드 · 동시 3 · 진행률 [F05](frontend/05-forms.md) | `POST /uploads` · 처리 대기열 동시 2 [B07](backend/07-protection.md) | PC-OK-03, PC-IM-15, PC-CC-02 |
 | AC-PC-11 | 최대 10장이며 11장째는 "사진은 10장까지 올릴 수 있어요"와 함께 앞 10장만 채택한다 | 10장 초과 안내 · 앞 10장 채택 | `imageIds` 10개 초과 거부 | PC-IM-02 |
-| AC-PC-12 | `jpeg · png · webp · heic`만 허용하고 GIF는 거부하며, HEIC는 서버에서 변환한다 | `accept` 속성 (편의) | 매직 바이트 · HEIC 변환 [B07](backend/07-protection.md) | PC-IM-03~05 |
-| AC-PC-13 | 클라이언트가 긴 변 1600px · 품질 0.85로 먼저 줄이고, 서버는 10MB · 5,000만 픽셀을 넘으면 거부한다 | `createImageBitmap` + `canvas`로 1600px 리사이즈 [F05](frontend/05-forms.md) | 10MB · 5천만 픽셀 한도 [B07](backend/07-protection.md) | PC-IM-06, 11 |
+| AC-PC-12 | 서버는 `jpeg · png · webp`만 받는다. HEIC 등 다른 형식은 클라이언트가 디코드해 JPEG로 다시 인코딩해 보내고, 브라우저가 열지 못하면 "이 사진은 열 수 없어요. jpg · png로 바꿔 올려 주세요"를 띄운다. GIF는 거부한다 | `accept="image/*"` · `createImageBitmap` 디코드 실패 처리 · JPEG 재인코딩 [F05](frontend/05-forms.md) | 매직 바이트로 세 형식만 [B07](backend/07-protection.md) | PC-IM-03~05, 트러블슈팅 T-04 |
+| AC-PC-13 | 클라이언트가 긴 변 1600px · JPEG 품질 0.85로 다시 인코딩해 보내고(4MB를 넘으면 품질 0.7로 한 번 더), 서버는 4MB · 5,000만 픽셀을 넘으면 거부한다 | `createImageBitmap` + `canvas`로 1600px 재인코딩 [F05](frontend/05-forms.md) | 4MB · 5천만 픽셀 한도 [B07](backend/07-protection.md) | PC-IM-06, 11 |
 | AC-PC-14 | 서버는 EXIF 회전을 적용한 뒤 EXIF를 제거하고 1600px 원본 · 400px 썸네일 두 벌을 webp로 저장한다 | — | EXIF 회전 · 제거 · webp 두 벌 [B07](backend/07-protection.md) | PC-IM-07, 08, PC-DT-05 |
 | AC-PC-15 | 0바이트 · 손상 · 형식 불일치 파일은 `400 INVALID_FILE`이며 해당 썸네일에 오류와 [다시 시도]가 표시된다 | 썸네일 오류 · [다시 시도] [F04](frontend/04-errors.md) | `400 INVALID_FILE` [B06](backend/06-errors.md) | PC-IM-12, PC-IM-17 |
 | AC-PC-16 | 업로드 중에는 [등록하기]가 비활성이고 "사진 올리는 중 N/M"이 보인다 | 업로드 중 버튼 비활성 + 이유 문구 [F05](frontend/05-forms.md) | — | PC-IM-16 |
@@ -379,18 +379,18 @@
 
 | AC | 조건 | 프론트가 하는 것 | 백엔드가 하는 것 | 근거 |
 | --- | --- | --- | --- | --- |
-| AC-CH-01 | 읽음은 방 단위 `ChatRoomMember.lastReadAt` 하나이며, 방 화면이 보이는 상태에서 메시지 목록이 렌더된 시점에 갱신된다 — 입장 · 보이는 동안 수신 · 포그라운드 복귀 세 순간에 `room:read`(HTTP 폴백 `POST /chat-rooms/{id}/read`) | 세 순간에 `room:read` · `visibilitychange` [F07](frontend/07-socket-client.md) | T8 `GREATEST` [B03](backend/03-transactions.md) | 핵심 정의, 결정 0007 |
-| AC-CH-02 | 내 마지막 메시지 아래에 상대 `lastReadAt >= createdAt`이면 "읽음"이 한 번 표시된다 | 상대 `lastReadAt`과 비교해 "읽음" [F03](frontend/03-cache.md) | `room:read` 전달 · 방 상세에 상대 `lastReadAt` [B09](backend/09-socket-server.md) | 핵심 정의, CH-CC-12 |
+| AC-CH-01 | 읽음은 방 단위 `ChatRoomMember.lastReadSeq` 하나이며, 방 화면이 보이는 상태에서 **실제로 그린 마지막 메시지의 `seq`**로 갱신된다 — 입장 · 보이는 동안 수신 · 포그라운드 복귀 세 순간에 `room:read { roomId, seq }`(HTTP 폴백 `POST /chat-rooms/{id}/read`) | 세 순간에 그린 마지막 `seq`로 `room:read` · `visibilitychange` [F07](frontend/07-socket-client.md) | T8 `GREATEST(lastReadSeq, LEAST(seq, lastSeq))` [B03](backend/03-transactions.md) | 핵심 정의, 결정 0007 · 0016 |
+| AC-CH-02 | 내 마지막 메시지 아래에 상대 `lastReadSeq >= 그 메시지의 seq`이면 "읽음"이 한 번 표시된다 | 상대 `lastReadSeq`와 비교해 "읽음" [F03](frontend/03-cache.md) | `room:read` 전달 · 방 상세에 상대 `lastReadSeq` [B09](backend/09-socket-server.md) | 핵심 정의, CH-CC-12 |
 | AC-CH-03 | 전송은 `tempId`를 만들어 즉시 "전송 중" 말풍선을 그리고 `message:send`를 emit하며, ack `{ ok, message }`로 확정한다 | `tempId` · 대기열 · `emitWithAck` [F07](frontend/07-socket-client.md) | T7 · ack [B03](backend/03-transactions.md) [B09](backend/09-socket-server.md) | 핵심 정의 |
 | AC-CH-04 | 5초 안에 ack가 없으면 "전송 실패 [재시도] [삭제]"가 되고, 재시도는 같은 `tempId`로 보내며 서버는 `(roomId, senderId, tempId)` 유니크로 중복 저장을 막는다 | 5초 실패 · 같은 `tempId` 재시도 · 말풍선 유지 [F07](frontend/07-socket-client.md) | `(roomId, senderId, tempId)` 유니크 → 기존 반환 [B05](backend/05-idempotency.md) | 핵심 정의, CH-CC-02, 03 |
-| AC-CH-05 | 재연결 시 `room:join { roomId, after }`로 누락분(최대 100개 + `hasMore`)을 받고, 넘치면 HTTP로 나머지를 가져온다 | 재연결 시 방마다 `after`로 조인 · 합침 [F07](frontend/07-socket-client.md) | 누락분 101개 조회 · `hasMore` [B09](backend/09-socket-server.md) | 핵심 정의, CH-CC-08 |
-| AC-CH-06 | 메시지 저장은 한 트랜잭션에서 참여자 검사 → 상품 삭제 검사 → insert → `ChatRoom` 비정규화 갱신 → 발신자 `lastReadAt` 갱신 순으로 처리하고, 커밋 후 참여자에게 `message:new`, 수신자 전 세션에 `notification:unread`를 보낸다 | — | T7 순서 · 커밋 후 emit [B03](backend/03-transactions.md) | CH-DT-12 |
+| AC-CH-05 | 재연결 시 `room:join { roomId, after: 마지막 seq }`로 누락분(최대 100개 + `hasMore`)을 받고, 넘치면 HTTP로 나머지를 가져온다. 연결 중이라도 `message:new`의 `seq`가 마지막 + 1이 아니면 같은 방법으로 틈을 채운다 | 재연결 · 틈 감지 시 `after`로 조인 · 합침 [F07](frontend/07-socket-client.md) | `seq > after` 101개 조회 · `hasMore` [B09](backend/09-socket-server.md) | 핵심 정의, CH-CC-08, 결정 0016 |
+| AC-CH-06 | 메시지 저장은 한 트랜잭션에서 참여자 검사 → 상품 삭제 검사 → 방 행 잠금 · `tempId` 중복 확인 → `lastSeq` +1 · 비정규화 갱신 → insert(`seq`) → 발신자 `lastReadSeq` 갱신 순으로 처리하고, 커밋 후 참여자에게 `message:new`, 수신자 전 세션에 `notification:unread`를 보낸다 | — | T7 순서 · 커밋 후 emit [B03](backend/03-transactions.md) | CH-DT-12 |
 
 ### 8.2 화면 · 입력
 
 | AC | 조건 | 프론트가 하는 것 | 백엔드가 하는 것 | 근거 |
 | --- | --- | --- | --- | --- |
-| AC-CH-10 | `/chats/{roomId}`는 헤더(← · 상대 닉네임) · 상품 요약 바 · 메시지 목록 · 입력창으로 구성되고, 최신 50개를 HTTP로 받은 뒤 맨 아래로 스크롤하고 `room:join` · `room:read`를 보낸다 | 서버에서 방 · 50개 → 마지막 id를 `after`로 조인 [F01](frontend/01-rendering.md) | 방 상세 · 메시지 API · 비참여자 404 [B04](backend/04-authorization.md) | CH-OK-01, 02 |
+| AC-CH-10 | `/chats/{roomId}`는 헤더(← · 상대 닉네임) · 상품 요약 바 · 메시지 목록 · 입력창으로 구성되고, 최신 50개를 HTTP로 받은 뒤 맨 아래로 스크롤하고 `room:join` · `room:read`를 보낸다 | 서버에서 방 · 50개 → 마지막 `seq`를 `after`로 조인 [F01](frontend/01-rendering.md) | 방 상세 · 메시지 API · 비참여자 404 [B04](backend/04-authorization.md) | CH-OK-01, 02 |
 | AC-CH-11 | 상단에 도달하면 이전 50개를 `?before=`로 받아 스크롤 위치를 유지하며, [이전 메시지 보기] 버튼도 함께 있다 | 위 방향 무한 쿼리 · 스크롤 유지 · 버튼 병행 [F03](frontend/03-cache.md) | `before` 커서 · 역방향 인덱스 [B02](backend/02-data-model.md) | CH-OK-03, CH-A11Y-08 |
 | AC-CH-12 | PC는 Enter 전송 · Shift+Enter 줄바꿈, 모바일은 Enter 줄바꿈 · 버튼 전송이며 IME 조합 중 Enter는 무시한다 | 포인터 종류 · `isComposing` 판별 [F05](frontend/05-forms.md) | — | CH-OK-04, CH-IN-07 |
 | AC-CH-13 | 빈 · 공백 · 줄바꿈만인 메시지는 보낼 수 없고, 1,000자를 넘으면 입력이 막히며 900자부터 카운터가 보인다 | 전송 비활성 · 카운터 | 스키마 + CHECK [B02](backend/02-data-model.md) | CH-IN-01, 02, 06 |
@@ -410,8 +410,8 @@
 | --- | --- | --- | --- | --- |
 | AC-CH-30 | 비참여자의 `room:join` · `message:send`는 `error: FORBIDDEN`이며 조인하지 않은 방에는 보낼 수 없다 | 방 화면이면 404 처리 | 참여자 · 조인 확인 `FORBIDDEN` [B09](backend/09-socket-server.md) | CH-AU-02, 03, CH-SEC-01 |
 | AC-CH-31 | 비로그인 소켓 연결은 핸드셰이크에서 거부되고, 이벤트 처리 시 토큰이 만료돼 있으면 `error: UNAUTHORIZED` 후 끊는다. 클라이언트는 끊긴 이유가 `io server disconnect`면 자동 재연결을 기다리지 않고 재로그인 화면으로 보내며, 로그인 후 직접 다시 연결한다 | `io server disconnect` → `needs_login` → 재로그인 후 수동 연결 [F07](frontend/07-socket-client.md) | 이벤트마다 `exp` 확인 → `UNAUTHORIZED` + 끊기 [B09](backend/09-socket-server.md) | CH-AU-04, 05 |
-| AC-CH-32 | 모든 수신 이벤트는 Zod로 검증하고 실패 시 `error: INVALID_PAYLOAD`로 연결은 유지한다. 페이로드 한도는 10KB다 | — | Zod 검증 · `maxHttpBufferSize` 10KB [B09](backend/09-socket-server.md) | CH-SEC-03, 04 |
-| AC-CH-33 | 사용자당 초당 5개를 넘는 전송은 `error: RATE_LIMITED`와 10초 차단이고, 소켓 연결은 사용자당 5개까지다 | 10초 전송 비활성 + 이유 [F07](frontend/07-socket-client.md) | 초당 5 · 연결 5개 [B07](backend/07-protection.md) | CH-SEC-02, 05 |
+| AC-CH-32 | 모든 수신 이벤트는 Zod로 검증하고 실패 시 `error: INVALID_PAYLOAD`로 연결은 유지한다. 페이로드 한도는 80KB다 (1,000자 메시지가 이모지로만 이뤄져도 통과하는 값) | — | Zod 검증 · `maxHttpBufferSize` 80KB [B09](backend/09-socket-server.md) | CH-SEC-03, 04 |
+| AC-CH-33 | 전송은 사용자당 토큰 버킷(용량 10, 초당 5개 충전)으로 제한하고, 넘으면 ack `{ ok: false, code: RATE_LIMITED, retryAfterMs }`다. 대기열 재전송은 200ms 간격으로 보내고, `RATE_LIMITED`를 받은 대기 메시지는 실패로 바꾸지 않고 `retryAfterMs` 뒤 다시 보낸다. 소켓 연결은 사용자당 5개까지다 | 재전송 간격 · 거절 시 대기 유지 · 직접 입력은 그동안 [전송] 비활성 + 이유 [F07](frontend/07-socket-client.md) | 토큰 버킷 · 연결 5개 [B07](backend/07-protection.md) | CH-SEC-02, 05, 트러블슈팅 T-03 |
 | AC-CH-34 | 소켓 이벤트는 클라→서버 `room:join · room:leave · message:send · room:read`, 서버→클라 `message:new · room:read · room:product_updated · notification:unread · error`이며 ack 형식은 CH-DT-08을 따른다 | `useChatSocket` 훅이 이벤트 이름 · 타입 공유 | 이벤트 핸들러 [B09](backend/09-socket-server.md) | CH-DT-06~08 |
 | AC-CH-35 | WebSocket이 막힌 네트워크에서는 long-polling으로 폴백한다 | `transports` 기본 유지 | `["websocket", "polling"]` [B09](backend/09-socket-server.md) | CH-NW-07 |
 | AC-CH-36 | 서버 재시작 후 클라이언트가 자동 재연결해 누락분을 복구하며 서버 메모리에 조인 상태를 의존하지 않는다 | 자동 재연결 + 복구 절차 [F07](frontend/07-socket-client.md) | 메모리 상태 없음 · DB가 출처 [B09](backend/09-socket-server.md) | CH-CC-13 |
@@ -462,7 +462,7 @@
 | AC | 조건 | 프론트가 하는 것 | 백엔드가 하는 것 | 근거 |
 | --- | --- | --- | --- | --- |
 | AC-NT-01 | 하단 탭 [채팅] 배지는 **읽지 않은 메시지가 있는 방의 수**이며 `GET /me/unread → { rooms }`와 소켓 `notification:unread { total }`로 유지된다 | `['me','unread']` 쿼리 · 소켓으로 갱신 [F03](frontend/03-cache.md) | `GET /me/unread` · `notification:unread` [B09](backend/09-socket-server.md) | 핵심 정의, 결정 0008, NT-DT-01 |
-| AC-NT-02 | 계산은 `ChatRoom.lastMessageAt > ChatRoomMember.lastReadAt AND lastMessageSenderId != me`인 방의 수이며 Message 테이블을 조인하지 않는다 | — | 비정규화 컬럼으로 계산 [B02](backend/02-data-model.md) | NT-DT-02 |
+| AC-NT-02 | 계산은 `ChatRoom.lastSeq > ChatRoomMember.lastReadSeq`인 방의 수이며 Message 테이블을 조인하지 않는다 (내 메시지는 저장 때 내 `lastReadSeq`가 함께 올라간다) | — | 비정규화 컬럼으로 계산 [B02](backend/02-data-model.md) | NT-DT-02 |
 | AC-NT-03 | `Notification` 테이블은 없다 | — | 테이블 없음 [B02](backend/02-data-model.md) | 핵심 정의 |
 | AC-NT-04 | 로그인 직후 · 포그라운드 복귀 · 소켓 재연결 시 `GET /me/unread`로 배지를 맞춘다 | 로그인 · 포커스 · 재연결 시 재조회 [F07](frontend/07-socket-client.md) | — | NT-OK-01, NT-CC-09 |
 | AC-NT-05 | 채팅 목록 · 해당 방이 아닌 화면에서 새 메시지가 오면 상대 아바타 · 닉네임 · 1줄 미리보기 토스트가 뜨고, 클릭하면 그 방으로 간다(작성 중 폼이 있으면 이탈 확인 먼저) | 토스트 조건 판단 · 클릭 이동 · 이탈 확인 [F07](frontend/07-socket-client.md) | `latest` 요약 포함 [B09](backend/09-socket-server.md) | NT-OK-02~07 |

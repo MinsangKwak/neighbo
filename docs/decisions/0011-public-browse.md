@@ -31,4 +31,4 @@
 
 ## 바뀔 가능성과 되돌리는 법
 
-낮음. 전부 비공개로 바꾸려면 두 라우트의 미들웨어를 `requireAuth`로 바꾸고 `middleware.ts`의 공개 경로 목록에서 빼면 된다.
+낮음. 전부 비공개로 바꾸려면 두 라우트의 미들웨어를 `requireAuth`로 바꾸고 `proxy.ts`(Next.js 16의 이전 `middleware.ts`)의 공개 경로 목록에서 빼면 된다.

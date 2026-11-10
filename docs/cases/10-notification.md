@@ -2,14 +2,14 @@
 
 [경우의 수 목차](README.md) · 공통: [00-common.md](00-common.md) · 앞: [08-chat.md](08-chat.md)
 
-**새 메시지가 오면 앱 안에서 세 곳이 바뀝니다 — 하단 탭 [채팅] 배지(읽지 않은 방 수) · 채팅 목록 순서 · 현재 화면의 토스트.** 브라우저 푸시 · 이메일 · 소리는 1차 범위 밖입니다. 알림은 별도 테이블 없이 `lastReadAt`에서 계산합니다.
+**새 메시지가 오면 앱 안에서 세 곳이 바뀝니다 — 하단 탭 [채팅] 배지(읽지 않은 방 수) · 채팅 목록 순서 · 현재 화면의 토스트.** 브라우저 푸시 · 이메일 · 소리는 1차 범위 밖입니다. 알림은 별도 테이블 없이 방 번호(`lastSeq`)와 읽음 번호(`lastReadSeq`)에서 계산합니다.
 
 ## 핵심 정의 (제안)
 
 | 항목 | 제안 | 결정 |
 | --- | --- | --- |
 | 배지 숫자의 의미 | **읽지 않은 메시지가 있는 방의 수** (메시지 총수 아님). 방 3개에 메시지 50개면 "3" → [결정 0008](../decisions/0008-badge-means-rooms.md) | — |
-| 알림 저장 | `Notification` 테이블 **없음.** 배지 = `COUNT(room WHERE 상대 메시지 createdAt > 내 lastReadAt)` → [결정 0008](../decisions/0008-badge-means-rooms.md) | — |
+| 알림 저장 | `Notification` 테이블 **없음.** 배지 = `COUNT(room WHERE lastSeq > 내 lastReadSeq)` → [결정 0008](../decisions/0008-badge-means-rooms.md) | — |
 | 알림 종류 | 새 메시지 하나뿐. 상태 변경 · 거래완료 지정 알림은 1차 없음 | — |
 | 전달 경로 | 소켓 `notification:unread { total }` (서버가 메시지 저장 후 수신자의 모든 세션에 push) + 앱 진입 · 포커스 복귀 시 HTTP `GET /me/unread` | — |
 | 토스트 | 채팅 목록 · 해당 채팅방이 **아닌** 화면에 있을 때만. 내용: 상대 아바타 · 닉네임 · 메시지 1줄. 클릭 시 그 방으로. 5초 자동 소멸 | — |
@@ -30,7 +30,7 @@
 | NT-OK-09 | 방에 들어가 읽음 | 배지 −1 (그 방이 "읽지 않은 방"이었다면). 다른 탭 · 기기에도 `notification:unread` push (→ CH-CC-05) | — |
 | NT-OK-10 | 모든 방 읽음 | 배지 숨김 (0 표시 안 함) | — |
 | NT-OK-11 | 브라우저 탭 제목 | 읽지 않은 방이 있으면 `(3) neighbo`. 파비콘 점은 없음 | — |
-| NT-OK-12 | 내가 보낸 메시지 | 내 배지에 영향 없음 (발신자 `lastReadAt` 갱신 → CH-DT-12) | — |
+| NT-OK-12 | 내가 보낸 메시지 | 내 배지에 영향 없음 (발신자 `lastReadSeq` 갱신 → CH-DT-12) | — |
 | NT-OK-13 | 새 방 생성 (상대가 [채팅하기]만 누르고 메시지 없음) | 알림 없음. 첫 메시지가 와야 (→ CL-CC-05) | — |
 | NT-OK-14 | 알림 목록 화면 (종 아이콘) | 없음. 채팅 목록이 그 역할 | ⛔ |
 | NT-OK-15 | 소리 · 진동 | 없음 | ⛔ |
@@ -102,7 +102,7 @@
 | ID | 상황 | 기대 동작 (제안) | 결정 |
 | --- | --- | --- | --- |
 | NT-DT-01 | `GET /me/unread` | `{ rooms: number }`. 메시지 수는 내리지 않음 → [결정 0008](../decisions/0008-badge-means-rooms.md) | — |
-| NT-DT-02 | 계산 쿼리 | `SELECT COUNT(*) FROM ChatRoom r JOIN ChatRoomMember m ON m.roomId = r.id AND m.userId = :me WHERE r.lastMessageAt > m.lastReadAt AND r.lastMessageSenderId != :me`. 비정규화 컬럼 덕에 Message 테이블 조인 없음 | — |
+| NT-DT-02 | 계산 쿼리 | `SELECT COUNT(*) FROM ChatRoom r JOIN ChatRoomMember m ON m.roomId = r.id AND m.userId = :me WHERE r."lastSeq" > m."lastReadSeq"`. 비정규화 컬럼 덕에 Message 테이블 조인 없음 | — |
 | NT-DT-03 | 인덱스 | `ChatRoomMember(userId, roomId)` + `ChatRoom(lastMessageAt)` | — |
 | NT-DT-04 | 소켓 사용자 룸 | 연결 시 `socket.join("user:" + userId)`. 알림은 이 룸으로 | — |
 | NT-DT-05 | 토스트 페이로드 | `notification:unread`에 `latest?: { roomId, partner, preview, createdAt }` 포함 → 토스트용. 합쳐진 경우 `latest.count` | — |

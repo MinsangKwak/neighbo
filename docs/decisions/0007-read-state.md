@@ -1,6 +1,6 @@
-# 0007 · 읽음은 방 단위 `lastReadAt` 하나로 센다
+# 0007 · 읽음은 방 단위 위치 하나로 센다
 
-| 상태 | 결정 2026-11-09 |
+| 상태 | 결정 2026-11-09 · **시각 비교 부분은 [0016](0016-message-seq.md)으로 대체** (2026-11-10) |
 | --- | --- |
 | 영향 | ChatRoomMember · 채팅방 · 채팅 목록 · 배지 · 소켓 이벤트 |
 
@@ -10,11 +10,11 @@
 
 ## 선택
 
-- `ChatRoomMember(roomId, userId).lastReadAt` 하나. 메시지별 `readAt` 없음.
+- `ChatRoomMember(roomId, userId)`에 읽음 위치 하나. 메시지별 `readAt` 없음. 위치의 단위는 처음엔 시각(`lastReadAt`)이었으나, 동시 트랜잭션에서 순서가 어긋나 방별 번호(`lastReadSeq`)로 바꿨다 → [0016](0016-message-seq.md).
 - **읽음의 정의**: 방 화면이 보이는 상태(탭 활성 + `document.visibilityState === "visible"`)에서 메시지 목록이 렌더된 시점. 세 순간에 `room:read`를 보낸다 — 방 입장 · 보이는 동안 새 메시지 수신 · 백그라운드에서 복귀.
-- 읽지 않은 수 = `COUNT(Message WHERE roomId AND senderId != me AND createdAt > lastReadAt)`. 목록 화면에선 비정규화 컬럼 `ChatRoom.lastMessageAt > lastReadAt`로 **방 단위 유무**만 판단(0008).
-- 상대 읽음 표시: 내 마지막 메시지 아래 "읽음" 한 번. 상대 `lastReadAt >= message.createdAt`이면.
-- 내가 보낸 메시지는 저장 트랜잭션에서 내 `lastReadAt`도 갱신(내 메시지는 내가 읽은 것).
+- 읽지 않은 수 = `COUNT(Message WHERE roomId AND senderId != me AND seq > lastReadSeq)`. 목록 화면에선 비정규화 컬럼 `ChatRoom.lastSeq > lastReadSeq`로 **방 단위 유무**만 판단(0008).
+- 상대 읽음 표시: 내 마지막 메시지 아래 "읽음" 한 번. 상대 `lastReadSeq >= message.seq`이면.
+- 내가 보낸 메시지는 저장 트랜잭션에서 내 `lastReadSeq`도 그 번호로 갱신(내 메시지는 내가 읽은 것).
 
 ## 버린 대안
 

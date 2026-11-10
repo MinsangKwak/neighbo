@@ -27,7 +27,7 @@
 | `prisma.md` | Prisma 7 스키마 · `prisma.config.ts` · 드라이버 어댑터 · 마이그레이션 · 클라이언트 확장 | ① 마이그레이션 파일이 실제로 어떤 SQL인지 읽기 ② `$extends`로 `deletedAt IS NULL` 자동 주입 만들고 빠지는 케이스(`$queryRaw` · 관계 조회) 찾기 ③ N+1을 일부러 만들고 `include`로 해결 | 예정 |
 | `nextjs-app-router.md` | 서버 컴포넌트 · 쿠키 전달 · 캐시 · Route Handler 프록시 | ① 서버 컴포넌트에서 백엔드로 쿠키를 넘기는 방법과 넘어가지 않는 경우 ② `fetch` 캐시 기본값 때문에 로그인 상태가 다른 사용자에게 보이는 사고 **재현** → `no-store` ③ 프록시 Route Handler로 스트리밍 · multipart가 지나가는지 | 예정 |
 | `tanstack-query.md` | 캐시 키 · 무효화 · 낙관적 갱신 · 뒤로가기 복원 | ① 캐시 키 설계 없이 시작했을 때 무효화가 안 되는 상황 재현 ② 메시지 전송 낙관적 갱신 → 실패 롤백 ③ `useInfiniteQuery`로 커서 페이지 복원 | 예정 |
-| `image-pipeline.md` | multipart · 매직 바이트 · EXIF · sharp · webp | ① 확장자만 `.jpg`인 텍스트 파일이 매직 바이트 검사에서 걸리는지 ② EXIF 회전 값 6인 사진이 회전 없이 저장될 때 어떻게 보이는지 ③ HEIC → webp 변환 ④ 압축 폭탄(작은 파일 · 거대한 픽셀) 방어 | 예정 |
+| `image-pipeline.md` | multipart · 매직 바이트 · EXIF · sharp · webp | ① 확장자만 `.jpg`인 텍스트 파일이 매직 바이트 검사에서 걸리는지 ② EXIF 회전 값 6인 사진이 회전 없이 저장될 때 어떻게 보이는지 ③ 브라우저별 HEIC 디코드 가능 여부 (아이폰 사파리 · 안드로이드 크롬 · 데스크톱 크롬) — 서버 변환을 뺀 근거 확인 ④ 압축 폭탄(작은 파일 · 거대한 픽셀) 방어 | 예정 |
 | `zod-shared.md` | 스키마 공유 · 타입 추론 · 에러 포맷 | ① 프론트 · 백엔드가 같은 스키마를 import하는 모노레포 구성 ② `safeParse` 에러를 `fields: {name: message}`로 변환 ③ 프론트 검증을 꺼도 서버가 막는지 | 예정 |
 | `tailwind-tokens.md` | 디자인 토큰 · 임의 값 금지 · 명암비 | ① 토큰만으로 명암비 AA를 보장하는 색 조합 표 ② 임의 값(`w-[137px]`)을 lint로 막기 ③ `prefers-reduced-motion` · `100dvh` | 예정 |
 | `accessibility.md` | 포커스 관리 · 라이브 리전 · 모달 트랩 | ① 라우트 전환 후 포커스를 `h1`으로 옮기는 최소 구현 ② `aria-live` 영역에 같은 문장을 두 번 넣으면 안 읽히는 문제 재현 ③ 포커스 트랩을 라이브러리 없이 | 예정 |

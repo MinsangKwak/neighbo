@@ -89,7 +89,7 @@
 | ID | 상황 | 기대 동작 (제안) | 결정 |
 | --- | --- | --- | --- |
 | CL-DT-20 | 목록 API | `GET /chat-rooms?cursor=&limit=30&productId=` → `items: [{ id, product: {id, title, thumbnailUrl, status, deletedAt}, partner: 공개용 user, lastMessage: {content, createdAt, senderId} \| null, unreadCount, myRole: "seller"\|"buyer" }]` | — |
-| CL-DT-21 | `unreadCount` 계산 | `COUNT(Message WHERE roomId AND senderId != me AND createdAt > myLastReadAt)`. `ChatRoomMember.lastReadAt` 방식 → [결정 0007](../decisions/0007-read-state.md) | — |
+| CL-DT-21 | `unreadCount` 계산 | `COUNT(Message WHERE roomId AND senderId != me AND seq > myLastReadSeq)`. `ChatRoomMember.lastReadSeq` 방식 → [결정 0007](../decisions/0007-read-state.md) · [0016](../decisions/0016-message-seq.md) | — |
 | CL-DT-22 | 비정규화 컬럼 | `ChatRoom.lastMessageAt · lastMessagePreview · lastMessageSenderId`. 메시지 저장 트랜잭션에서 갱신 | — |
 | CL-DT-23 | 상대(partner) 결정 | `myRole === "seller" ? buyer : seller` | — |
 | CL-DT-24 | 삭제된 상품 포함 조회 | `withDeleted()` 명시 (→ PX-DT-04) | — |

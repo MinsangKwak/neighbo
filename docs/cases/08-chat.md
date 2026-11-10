@@ -8,11 +8,11 @@
 
 | 항목 | 제안 | 결정 |
 | --- | --- | --- |
-| 읽음 | 방마다 `ChatRoomMember.lastReadAt` 하나. "읽음" = **방 화면이 보이는 상태(탭 활성 + 문서 visible)에서 메시지 목록이 렌더된 시점.** 메시지별 `readAt` 없음 → [결정 0007](../decisions/0007-read-state.md) | — |
+| 읽음 | 방마다 `ChatRoomMember.lastReadSeq` 하나. "읽음" = **방 화면이 보이는 상태(탭 활성 + 문서 visible)에서 렌더된 마지막 메시지의 번호.** 메시지별 `readAt` 없음 → [결정 0007](../decisions/0007-read-state.md) | — |
 | 읽음 갱신 시점 | ① 방 입장 시 ② 방이 보이는 동안 새 메시지 수신 시 ③ 백그라운드에서 포그라운드로 복귀 시. 각각 `room:read { roomId }` 소켓 이벤트 (HTTP 폴백 `POST /chat-rooms/{id}/read`) | — |
-| 상대 읽음 표시 ("읽음" / "1") | **표시한다.** 내 마지막 메시지 아래 "읽음" 한 번만. 상대 `lastReadAt >= 메시지 createdAt`이면 읽음 → [결정 0007](../decisions/0007-read-state.md) | — |
+| 상대 읽음 표시 ("읽음" / "1") | **표시한다.** 내 마지막 메시지 아래 "읽음" 한 번만. 상대 `lastReadSeq >= 메시지 seq`이면 읽음 → [결정 0007](../decisions/0007-read-state.md) | — |
 | 전송 흐름 | 클라이언트가 `tempId` 생성 → 즉시 화면에 "전송 중" 말풍선 → `message:send` emit → 서버 저장 → ack `{ tempId, message }` → 말풍선 확정. 상대에게는 `message:new` | — |
-| 끊김 복구 | 재연결 시 `room:join { roomId, after: 마지막 메시지 id }` → 서버가 누락분 반환. 소켓 재연결 자체는 Socket.IO 기본(지수 백오프) | — |
+| 끊김 복구 | 재연결 시 `room:join { roomId, after: 마지막 메시지 seq }` → 서버가 누락분 반환. 연결 중에도 번호가 건너뛰면 같은 방법으로 채운다. 소켓 재연결 자체는 Socket.IO 기본(지수 백오프) | — |
 | 전송 실패 | ack가 5초 안에 안 오면 말풍선에 "전송 실패 [재시도] [삭제]". 재시도는 같은 `tempId`로 — 서버는 `(roomId, senderId, tempId)` 유니크로 중복 저장 방지 | — |
 | 타이핑 표시 | 1차 없음 | ⛔ |
 | 메시지 종류 | 텍스트만. 시스템 메시지(상태 변경 안내 등) 없음 | — |
@@ -81,12 +81,12 @@
 | CH-CC-04 | 내 두 탭에서 같은 방 | 둘 다 `room:join`. 한 탭이 보낸 메시지는 다른 탭에도 `message:new`로 (내 다른 세션에게도 브로드캐스트) | — |
 | CH-CC-05 | 내 두 탭 중 한 탭만 보는 중 | 보는 탭이 `room:read` → 서버가 `user:{id}` 룸으로 내 모든 세션에 `room:read` → 다른 탭 배지도 0. 스파이크 ⑤에서 두 탭 동기화 확인 → [websocket.md](../tech/websocket.md) | — |
 | CH-CC-06 | 상대와 동시에 전송 | 서버 도착 순 = `createdAt` 순. 클라이언트는 ack 받은 뒤 서버 `createdAt`으로 재정렬 (전송 중 말풍선은 임시로 맨 아래) | — |
-| CH-CC-07 | 같은 밀리초 메시지 2개 | `(createdAt, id)` 정렬 — 같은 시각이면 `id`가 순서를 고정. `id`는 cuid라 시간순은 아니지만 정렬 안정성에는 충분 → [백엔드 02](../backend/02-data-model.md) | — |
+| CH-CC-07 | 같은 밀리초 메시지 2개 · 먼저 시작해 늦게 커밋된 메시지 | 방별 번호 `seq` 정렬 — 방 행 잠금으로 번호 순서 = 커밋 순서. 시각(`createdAt`)은 트랜잭션 시작 시각이라 순서 · 커서에 쓰지 않는다 → [결정 0016](../decisions/0016-message-seq.md) | — |
 | CH-CC-08 | 끊긴 동안 메시지 200개 | 재연결 시 `after` 기준 최대 100개 반환 + `hasMore`. 넘으면 클라이언트가 HTTP로 나머지 | — |
 | CH-CC-09 | 소켓은 끊겼는데 사용자가 전송 | `connected=false`면 emit하지 않고 앱 대기열에 보관, 말풍선 "연결 중…". `connect` 이벤트에서 같은 `tempId`로 순서대로 재전송, 30초 넘으면 "전송 실패". Socket.IO 내부 버퍼에 기대지 않는다 — 타임아웃 없이 버퍼에 남으면 재연결 후 몰래 전송되는 것을 스파이크 ⑤에서 확인 → [websocket.md](../tech/websocket.md) | — |
 | CH-CC-10 | 소켓 재연결 직후 `room:join` 전에 메시지 도착 | 서버는 조인 안 된 소켓에 안 보냄. 조인 응답의 누락분에 포함됨 | — |
 | CH-CC-11 | 백그라운드 탭 (모바일 사파리가 소켓 끊음) | `visibilitychange`로 복귀 감지 → 연결 확인 → `room:join` 누락분 → `room:read` | — |
-| CH-CC-12 | 상대가 읽음 → 내 "읽음" 표시 | `room:read` 수신 시 상대 `lastReadAt` 갱신 → 내 마지막 메시지 아래 "읽음" | — |
+| CH-CC-12 | 상대가 읽음 → 내 "읽음" 표시 | `room:read` 수신 시 상대 `lastReadSeq` 갱신 → 내 마지막 메시지 아래 "읽음" | — |
 | CH-CC-13 | 서버 재시작 (배포) | 모든 소켓 끊김 → 클라이언트 자동 재연결 → 누락분 복구. 서버 메모리에 상태 없음(조인 정보는 재연결 시 다시 받음) | — |
 | CH-CC-14 | 서버 인스턴스 2개 이상 | 1차: 단일 인스턴스. 수평 확장 시 Redis 어댑터 필요 — 06 규칙에 "확장 시 할 일"로 기록 | — |
 | CH-CC-15 | 하트비트 | Socket.IO `pingInterval 10s` · `pingTimeout 5s` → 최대 15초 안에 끊김 감지. 기본값(25s + 20s = 45초)은 "보낸 줄 아는 창"이 너무 길다 → [websocket.md](../tech/websocket.md) | — |
@@ -130,9 +130,9 @@
 | ID | 상황 | 기대 동작 (제안) | 결정 |
 | --- | --- | --- | --- |
 | CH-SEC-01 | 소켓으로 다른 방 ID에 전송 | 조인 여부 + 참여자 검사 (→ CH-AU-03) | — |
-| CH-SEC-02 | 초당 50개 전송 | 소켓 레벨 rate limit: 사용자당 초당 5개, 초과 시 `error: RATE_LIMITED` + 10초 차단 | — |
+| CH-SEC-02 | 초당 50개 전송 | 소켓 레벨 토큰 버킷: 용량 10, 초당 5개 충전. 비면 ack `RATE_LIMITED` + `retryAfterMs`. 끊긴 동안 쌓인 대기열의 재전송(200ms 간격)은 막지 않는다 | — |
 | CH-SEC-03 | 소켓 이벤트 페이로드 검증 | 모든 수신 이벤트를 Zod로 검증. 실패 시 `error: INVALID_PAYLOAD`, 연결 유지 | — |
-| CH-SEC-04 | 거대 페이로드 (1MB) | Socket.IO `maxHttpBufferSize` 10KB | — |
+| CH-SEC-04 | 거대 페이로드 (1MB) | Socket.IO `maxHttpBufferSize` 80KB — 정상 최대 메시지(64KB)는 통과 | — |
 | CH-SEC-05 | 소켓 연결 수 폭주 (한 사용자가 100 연결) | 사용자당 최대 5 연결. 초과 시 가장 오래된 연결 끊음 | — |
 | CH-SEC-06 | CORS (소켓) | 허용 오리진 목록만 | — |
 | CH-SEC-07 | `tempId`를 다른 사용자 것으로 위조 | 유니크 키에 `senderId` 포함이라 영향 없음 | — |
@@ -142,14 +142,14 @@
 | ID | 상황 | 기대 동작 (제안) | 결정 |
 | --- | --- | --- | --- |
 | CH-DT-01 | ChatRoom | `id, productId, sellerId, buyerId, lastMessageAt, lastMessagePreview, lastMessageSenderId, createdAt`. 유니크 `(productId, buyerId)` | — |
-| CH-DT-02 | ChatRoomMember | `roomId, userId, lastReadAt, joinedAt`. 복합 PK. 방 생성 시 두 행 생성. `ChatRoom` 두 컬럼 안과의 선택은 동작에 영향이 없어 02 데이터 모델에서 쿼리 단순성으로 결정 (01 12절) → [결정 0007](../decisions/0007-read-state.md) | — |
-| CH-DT-03 | Message | `id(cuid), roomId, senderId, content, tempId, createdAt`. 인덱스 `(roomId, createdAt, id)`. 유니크 `(roomId, senderId, tempId)` | — |
+| CH-DT-02 | ChatRoomMember | `roomId, userId, lastReadSeq, lastActivityAt, joinedAt`. 복합 PK. 방 생성 시 두 행 생성. `ChatRoom` 두 컬럼 안과의 선택은 동작에 영향이 없어 02 데이터 모델에서 쿼리 단순성으로 결정 (01 12절) → [결정 0007](../decisions/0007-read-state.md) | — |
+| CH-DT-03 | Message | `id(cuid), roomId, senderId, seq, content, tempId, createdAt`. 유니크 `(roomId, seq)` · `(roomId, senderId, tempId)` | — |
 | CH-DT-04 | 메시지 삭제 · 수정 컬럼 | 없음 (`deletedAt` 등 두지 않음) | — |
 | CH-DT-05 | 메시지 보존 기간 | 영구 | — |
-| CH-DT-06 | 소켓 이벤트 목록 (클라 → 서버) | `room:join {roomId, after?}` · `room:leave {roomId}` · `message:send {roomId, tempId, content}` · `room:read {roomId}` | — |
-| CH-DT-07 | 소켓 이벤트 목록 (서버 → 클라) | `message:new {message}` · `room:read {roomId, userId, lastReadAt}` · `room:product_updated {roomId, product}` · `notification:unread {total}` · `error {code, message}` | — |
+| CH-DT-06 | 소켓 이벤트 목록 (클라 → 서버) | `room:join {roomId, after?}` · `room:leave {roomId}` · `message:send {roomId, tempId, content}` · `room:read {roomId, seq}` | — |
+| CH-DT-07 | 소켓 이벤트 목록 (서버 → 클라) | `message:new {message}` · `room:read {roomId, userId, lastReadSeq}` · `room:product_updated {roomId, product}` · `notification:unread {total}` · `error {code, message}` | — |
 | CH-DT-08 | ack 형식 | `message:send` ack `{ ok: true, message } \| { ok: false, code }`. `room:join` ack `{ ok, missed: Message[], hasMore }` | — |
 | CH-DT-09 | 메시지 조회 API | `GET /chat-rooms/{id}/messages?before=&limit=50` → `{ items, nextCursor }` (과거 방향) | — |
 | CH-DT-10 | 읽음 HTTP 폴백 | `POST /chat-rooms/{id}/read` — 소켓 없이도 배지가 맞도록 | — |
-| CH-DT-11 | 방 상세 API | `GET /chat-rooms/{id}` → 방 + 상품(삭제 포함) + 상대 + 내 역할 + 상대 `lastReadAt` | — |
-| CH-DT-12 | 전송 시 서버 처리 (트랜잭션) | 참여자 검사 → 상품 삭제 검사 → Message insert(tempId 충돌 시 기존 반환) → ChatRoom 비정규화 갱신 → 발신자 `lastReadAt = now` → 커밋 → 방 참여자 소켓에 `message:new` → 수신자 전체 세션에 `notification:unread` | — |
+| CH-DT-11 | 방 상세 API | `GET /chat-rooms/{id}` → 방 + 상품(삭제 포함) + 상대 + 내 역할 + 상대 `lastReadSeq` | — |
+| CH-DT-12 | 전송 시 서버 처리 (트랜잭션) | 참여자 검사 → 상품 삭제 검사 → 방 행 잠금 → tempId 있으면 기존 반환 → `lastSeq` +1 · 비정규화 갱신 → Message insert(`seq`) → 발신자 `lastReadSeq = seq` → 커밋 → 방 참여자 소켓에 `message:new` → 수신자 전체 세션에 `notification:unread` | — |
