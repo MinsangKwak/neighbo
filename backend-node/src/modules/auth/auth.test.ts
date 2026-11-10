@@ -152,11 +152,14 @@ describe('세션', () => {
   });
 
   it('[AC-CM-02] 쿠키 없이 부르면 401 UNAUTHORIZED다', async () => {
-    const { app } = await loggedIn();
+    const { app, lines } = await loggedIn();
     const res = await request(app).get('/me');
     expect(res.status).toBe(401);
     expect(res.body.error.code).toBe('UNAUTHORIZED');
     expect(res.headers['set-cookie']).toBeUndefined();
+    // 오류로 끝난 요청도 로그의 route는 붙인 경로까지 포함한 패턴이다
+    expect(lines.at(-1)).toMatchObject({ route: '/me', status: 401, code: 'UNAUTHORIZED' });
+    expect(lines.find((line) => line.status === 201)).toMatchObject({ route: '/auth/signup' });
   });
 
   it('[AC-CM-04] 변조된 토큰 · 다른 비밀로 서명한 토큰은 401이고 쿠키 삭제 헤더가 온다', async () => {

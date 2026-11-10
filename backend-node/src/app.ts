@@ -4,7 +4,7 @@ import type { Db } from './db/client.js';
 import { createClientIp } from './lib/clientIp.js';
 import type { Logger } from './lib/log.js';
 import type { PasswordHasher } from './lib/password.js';
-import { accessLog } from './middleware/accessLog.js';
+import { accessLog, mountedAt } from './middleware/accessLog.js';
 import { createSession } from './middleware/auth.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import { createOriginCheck, originGuard } from './middleware/origin.js';
@@ -54,8 +54,8 @@ export function createApp({ config, log, db, hasher, pingDb }: AppDeps): Express
   const ipLimit = (name: string) =>
     rateLimit({ store: limitStore, name, limit: 10, windowMs: 60_000, key: clientIp });
 
-  app.use('/auth', createAuthRouter({ service: createAuthService(db, hasher), session, ipLimit }));
-  app.use('/me', createMeRouter({ session }));
+  app.use('/auth', mountedAt('/auth'), createAuthRouter({ service: createAuthService(db, hasher), session, ipLimit }));
+  app.use('/me', mountedAt('/me'), createMeRouter({ session }));
 
   // ⑦ 에러 처리
   app.use(notFound);

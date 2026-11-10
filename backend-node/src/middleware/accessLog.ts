@@ -7,7 +7,9 @@ export function accessLog(log: Logger): RequestHandler {
     const started = performance.now();
     res.on('finish', () => {
       const pattern: unknown = req.route?.path;
-      const route = typeof pattern === 'string' ? `${req.baseUrl}${pattern}` : '(unmatched)';
+      // 오류로 끝난 요청은 이 시점에 req.baseUrl이 비어 있어, 라우터를 붙일 때 적어 둔 경로를 쓴다
+      const mount = typeof res.locals.mount === 'string' ? res.locals.mount : '';
+      const route = typeof pattern === 'string' ? `${mount}${pattern === '/' && mount !== '' ? '' : pattern}` : '(unmatched)';
       const code: unknown = res.locals.errorCode;
       log.info('http', {
         reqId: res.locals.requestId,
@@ -18,6 +20,14 @@ export function accessLog(log: Logger): RequestHandler {
         ...(typeof code === 'string' ? { code } : {}),
       });
     });
+    next();
+  };
+}
+
+// 라우터를 붙인 경로를 기록해 둔다 — 접근 로그의 route 패턴에 쓴다
+export function mountedAt(path: string): RequestHandler {
+  return (_req, res, next) => {
+    res.locals.mount = path;
     next();
   };
 }
