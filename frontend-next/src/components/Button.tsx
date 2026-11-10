@@ -36,10 +36,10 @@ export function Button({
     <button
       {...rest}
       type={type}
-      aria-disabled={loading || undefined}
+      aria-disabled={loading || rest['aria-disabled'] || undefined}
       aria-busy={loading || undefined}
       onClick={(event) => {
-        if (loading) {
+        if (loading || rest['aria-disabled'] === true) {
           event.preventDefault();
           return;
         }

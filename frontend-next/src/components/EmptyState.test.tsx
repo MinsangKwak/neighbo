@@ -11,9 +11,9 @@ describe('EmptyState', () => {
 
   it('설명과 행동은 줄 때만 그린다', () => {
     const { rerender } = render(<EmptyState title="비어 있어요" />);
-    expect(screen.queryByRole('link')).toBeNull();
-    rerender(<EmptyState title="비어 있어요" description="설명" action={<a href="/products/new">첫 물건 올리기</a>} />);
+    expect(screen.queryByRole('button')).toBeNull();
+    rerender(<EmptyState title="비어 있어요" description="설명" action={<button type="button">첫 물건 올리기</button>} />);
     expect(screen.getByText('설명')).toBeDefined();
-    expect(screen.getByRole('link', { name: '첫 물건 올리기' })).toBeDefined();
+    expect(screen.getByRole('button', { name: '첫 물건 올리기' })).toBeDefined();
   });
 });

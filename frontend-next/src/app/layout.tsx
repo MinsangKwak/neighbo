@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { ToastProvider } from '@/components/Toast';
 import { AuthSync, Flash, SessionProvider } from '@/features/auth';
 import { getSessionUser } from '@/features/auth/session';
+import { QueryProvider } from '@/lib/query/QueryProvider';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
@@ -20,6 +21,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="ko">
       <body className="min-h-dvh bg-surface text-base text-text antialiased">
         <SessionProvider user={user}>
+          <QueryProvider>
           <ToastProvider>
             {/* 본문 폭 640px 단일 열 — PC에서도 같은 구성 (결정 0014) */}
             <div className="mx-auto flex min-h-dvh w-full max-w-app flex-col bg-bg">
@@ -28,6 +30,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             </div>
             <Flash />
           </ToastProvider>
+          </QueryProvider>
         </SessionProvider>
       </body>
     </html>
