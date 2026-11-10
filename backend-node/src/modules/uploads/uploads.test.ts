@@ -108,6 +108,25 @@ describe('POST /uploads', () => {
     expect(noFile.body.error.code).toBe('INVALID_FILE');
   });
 
+  it('닫는 경계 없이 끊긴 multipart 본문은 400 INVALID_FILE이고 서버는 계속 응답한다', async () => {
+    const { app } = createTestApp();
+    const user = await signup(app, 'seller');
+    const truncated = Buffer.concat([
+      Buffer.from('--xyz\r\nContent-Disposition: form-data; name="file"; filename="a.jpg"\r\nContent-Type: image/jpeg\r\n\r\n'),
+      await solid(50, 50).jpeg().toBuffer(),
+    ]);
+    const res = await request(app)
+      .post('/uploads')
+      .query({ kind: 'PRODUCT' })
+      .set('Origin', ORIGIN)
+      .set('Cookie', user.cookie)
+      .set('Content-Type', 'multipart/form-data; boundary=xyz')
+      .send(truncated);
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('INVALID_FILE');
+    expect((await request(app).get('/healthz')).status).toBe(200);
+  });
+
   it('[AC-PC-13] 5,000만 픽셀을 넘는 사진은 디코딩하지 않고 400 INVALID_FILE이다', async () => {
     const { app } = createTestApp();
     const user = await signup(app, 'seller');

@@ -117,6 +117,19 @@ describe('POST /products', () => {
     expect(await db.upload.count()).toBe(1);
   });
 
+  it('같은 업로드를 동시에 두 상품에 붙이면 하나만 성공한다 — 파일 하나를 두 상품이 나눠 갖지 않는다', async () => {
+    const { app } = createTestApp();
+    const seller = await signup(app, 'seller');
+    for (let round = 0; round < 5; round += 1) {
+      const upload = await makeUpload(seller.id);
+      const results = await Promise.all([1, 2, 3].map(() => create(app, seller.cookie, { imageIds: [upload.id] })));
+      expect(results.map((r) => r.status).sort()).toEqual([201, 400, 400]);
+      expect(await db.productImage.count({ where: { storageKey: upload.storageKey } })).toBe(1);
+    }
+    // 실패한 요청은 상품도 남기지 않는다
+    expect(await db.product.count()).toBe(5);
+  });
+
   it('[AC-PC-19] 없는 업로드 · 24시간 지난 업로드 · 아바타용 업로드는 "사진을 다시 올려 주세요"다', async () => {
     const { app } = createTestApp();
     const seller = await signup(app, 'seller');
@@ -396,6 +409,15 @@ describe('PATCH /products/:id/status', () => {
     expect((await change({ status: 'RESERVED' }, buyer.cookie)).status).toBe(403);
     await del(app, `/products/${id}`, seller.cookie);
     expect((await change({ status: 'RESERVED' })).status).toBe(404);
+  });
+
+  it('거래 시점 가격은 갱신되는 행의 가격으로 남고, 그 뒤의 가격 수정은 스냅샷을 바꾸지 않는다', async () => {
+    const { app, change, seller, id } = await setup();
+    await patch(app, `/products/${id}`, seller.cookie).send({ price: 7000 });
+    await change({ status: 'SOLD' });
+    expect(await db.product.findUniqueOrThrow({ where: { id } })).toMatchObject({ price: 7000, soldPrice: 7000 });
+    await patch(app, `/products/${id}`, seller.cookie).send({ price: 9000 });
+    expect(await db.product.findUniqueOrThrow({ where: { id } })).toMatchObject({ price: 9000, soldPrice: 7000 });
   });
 
   it('동시에 다른 상태로 바꾸면 하나만 반영되고 나머지는 409다', async () => {

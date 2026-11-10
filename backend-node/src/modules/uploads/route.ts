@@ -47,6 +47,12 @@ function readSingleFile(req: Request): Promise<Buffer> {
       stream.on('end', () => {
         file = Buffer.concat(chunks);
       });
+      // 닫는 경계 없이 끊긴 본문은 parser가 아니라 이 스트림에서 오류가 난다
+      // 받아 주지 않으면 처리되지 않은 오류로 프로세스가 죽는다
+      stream.on('error', () => {
+        failure = new AppError('INVALID_FILE');
+        reject(failure);
+      });
     });
     parser.on('error', () => reject(new AppError('INVALID_FILE')));
     parser.on('close', () => {

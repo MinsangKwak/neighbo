@@ -37,7 +37,7 @@ function escapeLike(value: string): string {
 }
 
 export function createProductService(db: Db, storage: ImageStorage) {
-  // 상품에 붙일 업로드를 확인한다 — 존재 · 만료 · 종류 · 소유자 [AC-PC-18]
+  // 상품에 붙일 업로드를 확인하고 넘겨받는다 — 존재 · 만료 · 종류 · 소유자 [AC-PC-18]
   async function claimUploads(tx: Tx, userId: string, uploadIds: string[]): Promise<Upload[]> {
     if (uploadIds.length === 0) return [];
     const found = await tx.upload.findMany({ where: { id: { in: uploadIds } } });
@@ -52,6 +52,10 @@ export function createProductService(db: Db, storage: ImageStorage) {
       if (upload.uploaderId !== userId) throw new AppError('FORBIDDEN');
       uploads.push(upload);
     }
+    // 읽은 것만으로는 내 것이 아니다 — 같은 업로드를 붙이려는 다른 요청이 동시에 읽었을 수 있다
+    // 임시 행을 지우는 데 성공한 요청만 파일을 넘겨받는다. 늦은 쪽은 0행을 지우고 여기서 멈춘다
+    const { count } = await tx.upload.deleteMany({ where: { id: { in: uploadIds }, uploaderId: userId } });
+    if (count !== uploadIds.length) throw new AppError('VALIDATION_FAILED', { imageIds: '사진을 다시 올려 주세요' });
     return uploads;
   }
 
@@ -148,8 +152,6 @@ export function createProductService(db: Db, storage: ImageStorage) {
           });
           if (uploads.length > 0) {
             await tx.productImage.createMany({ data: uploads.map((upload, order) => imageRow(product.id, upload, order)) });
-            // 파일은 상품 사진이 넘겨받는다 — 임시 행만 지운다
-            await tx.upload.deleteMany({ where: { id: { in: uploads.map((upload) => upload.id) } } });
           }
           return product.id;
         });
@@ -215,7 +217,6 @@ export function createProductService(db: Db, storage: ImageStorage) {
             if (upload !== undefined) await tx.productImage.create({ data: imageRow(id, upload, order) });
           }
         }
-        if (uploadIds.length > 0) await tx.upload.deleteMany({ where: { id: { in: uploadIds } } });
         return removed.map((image) => image.storageKey);
       });
 
@@ -257,14 +258,21 @@ export function createProductService(db: Db, storage: ImageStorage) {
       }
 
       // 읽은 뒤 바뀌었을 수 있으니 "읽었던 상태일 때만" 갱신한다
-      const { count } = await db.product.updateMany({
-        where: { id, sellerId: user.id, status: from },
-        data:
-          to === 'SOLD'
-            ? { status: to, buyerId, soldAt: new Date(), soldPrice: product.price }
-            : // 거래완료에서 되돌리면 구매자 정보가 지워진다 [AC-PD-06]
-              { status: to, buyerId: null, soldAt: null, soldPrice: null },
-      });
+      let count: number;
+      if (to === 'SOLD') {
+        // 거래 시점 가격은 읽어 둔 값이 아니라 갱신되는 행의 값으로 남긴다
+        // 읽기와 갱신 사이에 가격 수정이 끼어들어도 가격과 스냅샷이 어긋나지 않는다
+        count = await db.$executeRaw`
+          UPDATE "Product"
+          SET "status" = 'SOLD', "buyerId" = ${buyerId}, "soldAt" = now(), "soldPrice" = "price", "updatedAt" = now()
+          WHERE "id" = ${id} AND "sellerId" = ${user.id} AND "status" = ${from}::"ProductStatus" AND "deletedAt" IS NULL`;
+      } else {
+        // 거래완료에서 되돌리면 구매자 정보가 지워진다 [AC-PD-06]
+        ({ count } = await db.product.updateMany({
+          where: { id, sellerId: user.id, status: from },
+          data: { status: to, buyerId: null, soldAt: null, soldPrice: null },
+        }));
+      }
       if (count === 0) throw await explainMiss(id, user.id);
       return findDetail(id);
     },
