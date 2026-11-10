@@ -36,3 +36,41 @@ jobs:
       # 백엔드 테스트는 시작할 때 테스트 DB에 prisma migrate deploy를 적용한다
       - run: npm test
       - run: npm run build
+
+  # Railway가 쓰는 Dockerfile이 실제로 빌드되고, 마이그레이션 후 서버가 뜨는지 확인한다
+  image:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: neighbo
+          POSTGRES_PASSWORD: neighbo
+          POSTGRES_DB: neighbo_image
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U neighbo -d neighbo_image"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t neighbo-backend .
+      - name: 컨테이너를 띄우고 상태 확인
+        run: |
+          docker run -d --name backend --network host \
+            -e PORT=4000 \
+            -e DATABASE_URL=postgresql://neighbo:neighbo@127.0.0.1:5432/neighbo_image \
+            -e JWT_SECRET=ci-only-jwt-secret-0123456789-0123456789 \
+            -e PROXY_SECRET=ci-only-proxy-secret-0123456789-0123456789 \
+            -e ALLOWED_ORIGIN=https://example.com \
+            -e STORAGE_DRIVER=local \
+            -e STORAGE_LOCAL_DIR=/tmp/uploads \
+            neighbo-backend
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4000/readyz; then exit 0; fi
+            sleep 2
+          done
+          docker logs backend
+          exit 1

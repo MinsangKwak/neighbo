@@ -179,6 +179,7 @@ neighbo/
 ├─ LICENSE                # MIT
 ├─ package.json           # npm workspaces — 아래 세 폴더를 묶음
 ├─ docker-compose.yml     # 로컬 PostgreSQL 16 (개발 DB · 테스트 DB)
+├─ Dockerfile             # 백엔드 실행 이미지 — 마이그레이션 적용 후 서버 시작
 ├─ frontend-next/         # 프론트엔드 · Next.js — README가 프론트엔드 설계의 입구
 ├─ backend-node/          # 백엔드 · Node.js — README가 백엔드 설계의 입구
 ├─ shared-schema/         # 공유 — Zod 스키마 · 타입 · 정규화 함수
@@ -201,7 +202,7 @@ neighbo/
 | 폴더 | 역할 | 대표 기술 | 배포 | 커밋 범위 |
 | --- | --- | --- | --- | --- |
 | `frontend-next/` | 프론트엔드 | Next.js (React 기반) | Vercel 루트 디렉터리 | `web` |
-| `backend-node/` | 백엔드 | Node.js (Express) | Railway 루트 디렉터리 | `server` |
+| `backend-node/` | 백엔드 | Node.js (Express) | Railway — 저장소 루트의 `Dockerfile`로 빌드 (공유 패키지를 함께 담기 위해) | `server` |
 | `shared-schema/` | 공유 | Zod | 두 앱이 빌드 때 포함 | (비움) |
 
 ---
