@@ -2,3 +2,11 @@ node_modules/
 .env
 .env.*
 !.env.example
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+backend-node/src/generated/
+backend-node/.data/

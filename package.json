@@ -1,0 +1,15 @@
+{
+  "name": "neighbo",
+  "private": true,
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "workspaces": ["shared-schema", "backend-node", "frontend-next"],
+  "scripts": {
+    "dev": "npm run dev -w backend-node & npm run dev -w frontend-next",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "build": "npm run build -w frontend-next",
+    "build:preview": "npm run build:preview -w frontend-next"
+  }
+}
