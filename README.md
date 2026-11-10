@@ -13,28 +13,28 @@
 
 | 항목 | 내용 | 문서 |
 | --- | --- | --- |
-| 기능별 시나리오 758개 | 정상 흐름, 입력, 경합, 네트워크, 보안, 접근성 조건 | [경우의 수](docs/cases/README.md) |
-| 수용 조건 251개 | 조건별 프론트엔드·백엔드 책임 | [요구사항](docs/01-requirements.md) |
-| 결정 기록 16개 | 선택한 방안, 대안, 제약, 변경 시 영향 | [결정 기록](docs/decisions/README.md) |
+| 기능별 시나리오 758개 | 정상 흐름, 입력, 경합, 네트워크, 보안, 접근성 조건 | [기능별 문서](docs/README.md#기능별-요구사항--한-기능--한-장) |
+| 수용 조건 251개 | 조건별 프론트엔드·백엔드 책임 | [기능별 문서](docs/README.md#기능별-요구사항--한-기능--한-장) |
+| 결정 기록 16개 | 선택한 방안, 대안, 제약, 변경 시 영향 | [결정 기록](docs/decisions.md) |
 | 문제 분석 기록 15건 | 명세 검토 10건, 스파이크 검증 5건 | [트러블슈팅](docs/troubleshooting.md) |
-| HTTP 25개 · 소켓 이벤트 9개 | 요청·응답 형식, 에러, 권한, 트랜잭션 | [API 명세](docs/backend/10-api.md) |
-| WebSocket 스파이크 6개 | 핸드셰이크, 하트비트, 재연결, 누락 복구, 전송 버퍼 실험 | [기술 노트](docs/tech/websocket.md) |
+| HTTP 25개 · 소켓 이벤트 9개 | 요청·응답 형식, 에러, 권한, 트랜잭션 | [API 명세](docs/architecture/backend.md#10--api-명세) |
+| WebSocket 스파이크 6개 | 핸드셰이크, 하트비트, 재연결, 누락 복구, 전송 버퍼 실험 | [기술 노트](docs/tech-notes.md#websocket과-socketio) |
 
 ## 주요 설계
 
 | 주제 | 설계 내용 | 상세 문서 |
 | --- | --- | --- |
-| 동시성·데이터 정합성 | 쓰기 작업 11종의 트랜잭션 경계를 정의했습니다. 중복 생성은 유니크 제약으로, 상태 변경은 조건부 UPDATE로, 메시지 순서는 방별 행 잠금으로 처리하도록 설계했습니다. | [트랜잭션 경계](docs/backend/03-transactions.md) |
-| 실시간 통신 | 연결이 끊긴 동안의 전송 대기열, 같은 `tempId`를 이용한 재시도, 방별 번호를 이용한 누락 감지·복구를 정의했습니다. | [소켓 서버](docs/backend/09-socket-server.md) · [소켓 클라이언트](docs/frontend/07-socket-client.md) |
-| 렌더링·캐시 | 화면별 서버·클라이언트 렌더링 범위와 캐시 전달 방식을 정했습니다. 사용자별 응답이 공유 캐시에 남지 않도록 서버 조회 규칙을 정의했습니다. | [렌더링](docs/frontend/01-rendering.md) · [캐시](docs/frontend/03-cache.md) |
-| API 계약 | 화면 단위 응답 타입과 공통 에러 코드를 정의했습니다. 요청·응답 검증은 공유 Zod 스키마로 구현할 예정입니다. | [API 명세](docs/backend/10-api.md) · [에러 코드](docs/backend/06-errors.md) |
-| 입력·접근성 | 입력 제한·정규화·오류 안내 시점을 구분하고, 키보드 조작과 화면 변화에 따른 포커스·라이브 리전 규칙을 정했습니다. | [폼](docs/frontend/05-forms.md) · [포커스](docs/frontend/06-focus.md) |
+| 동시성·데이터 정합성 | 쓰기 작업 11종의 트랜잭션 경계를 정의했습니다. 중복 생성은 유니크 제약으로, 상태 변경은 조건부 UPDATE로, 메시지 순서는 방별 행 잠금으로 처리하도록 설계했습니다. | [트랜잭션 경계](docs/architecture/backend.md#03--트랜잭션-경계) |
+| 실시간 통신 | 연결이 끊긴 동안의 전송 대기열, 같은 `tempId`를 이용한 재시도, 방별 번호를 이용한 누락 감지·복구를 정의했습니다. | [소켓 서버](docs/architecture/backend.md#09--소켓-서버) · [소켓 클라이언트](docs/architecture/frontend.md#07--소켓-클라이언트) |
+| 렌더링·캐시 | 화면별 서버·클라이언트 렌더링 범위와 캐시 전달 방식을 정했습니다. 사용자별 응답이 공유 캐시에 남지 않도록 서버 조회 규칙을 정의했습니다. | [렌더링](docs/architecture/frontend.md#01--렌더링-전략) · [캐시](docs/architecture/frontend.md#03--캐시와-낙관적-갱신) |
+| API 계약 | 화면 단위 응답 타입과 공통 에러 코드를 정의했습니다. 요청·응답 검증은 공유 Zod 스키마로 구현할 예정입니다. | [API 명세](docs/architecture/backend.md#10--api-명세) · [에러 코드](docs/architecture/backend.md#06--에러-코드) |
+| 입력·접근성 | 입력 제한·정규화·오류 안내 시점을 구분하고, 키보드 조작과 화면 변화에 따른 포커스·라이브 리전 규칙을 정했습니다. | [폼](docs/architecture/frontend.md#05--폼) · [포커스](docs/architecture/frontend.md#06--포커스와-라이브-리전) |
 
-항목별 문서와 검증 범위는 [설계·검증 현황](docs/capabilities.md)에서 확인할 수 있습니다.
+항목별 문서와 검증 범위는 [설계·검증 현황](docs/overview.md#9-설계검증-현황)에서 확인할 수 있습니다.
 
 ## 문제 분석 사례
 
-**메시지 복구 순서는 방별 번호로 관리하도록 변경했습니다.** 명세 검토에서 PostgreSQL의 `now()`가 트랜잭션 시작 시각을 반환하므로, 커밋이 늦어진 메시지가 시각 기준 복구 조회에서 빠질 수 있음을 확인했습니다. 방 행을 잠근 뒤 `seq`를 발급하는 설계로 변경하고, 클라이언트가 번호의 빈 구간을 감지하도록 정했습니다. [T-01](docs/troubleshooting.md#t-01) · [결정 0016](docs/decisions/0016-message-seq.md)
+**메시지 복구 순서는 방별 번호로 관리하도록 변경했습니다.** 명세 검토에서 PostgreSQL의 `now()`가 트랜잭션 시작 시각을 반환하므로, 커밋이 늦어진 메시지가 시각 기준 복구 조회에서 빠질 수 있음을 확인했습니다. 방 행을 잠근 뒤 `seq`를 발급하는 설계로 변경하고, 클라이언트가 번호의 빈 구간을 감지하도록 정했습니다. [T-01](docs/troubleshooting.md#t-01) · [결정 0016](docs/decisions.md#0016--방-안-순서와-읽음-위치는-시각이-아니라-방별-번호seq로-센다)
 
 **요청 제한에는 프록시를 거치기 전의 사용자 IP를 사용하도록 설계했습니다.** Vercel 프록시의 IP로 제한하면 여러 사용자가 같은 한도를 공유할 수 있습니다. 프록시가 원 IP와 공유 비밀을 전달하고, 백엔드는 비밀이 일치할 때만 전달된 IP를 신뢰하도록 명세를 수정했습니다. [T-02](docs/troubleshooting.md#t-02)
 
@@ -44,25 +44,25 @@
 
 | 영역 | 담당 범위 | 문서 |
 | --- | --- | --- |
-| 프론트엔드 · Next.js | 렌더링, 상태·캐시, 입력, 오류 화면, 접근성, 소켓 연결 상태 | [frontend-next/](frontend-next/README.md) · [설계 문서](docs/frontend/README.md) |
-| 백엔드 · Node.js | 인증·권한, 데이터 제약, 트랜잭션, 멱등성, 요청 제한, 소켓 서버 | [backend-node/](backend-node/README.md) · [설계 문서](docs/backend/README.md) |
+| 프론트엔드 · Next.js | 렌더링, 상태·캐시, 입력, 오류 화면, 접근성, 소켓 연결 상태 | [frontend-next/](frontend-next/README.md) · [설계 문서](docs/architecture/frontend.md) |
+| 백엔드 · Node.js | 인증·권한, 데이터 제약, 트랜잭션, 멱등성, 요청 제한, 소켓 서버 | [backend-node/](backend-node/README.md) · [설계 문서](docs/architecture/backend.md) |
 | 공유 패키지 · Zod | 요청·응답 스키마, 타입, 입력 정규화 함수 | `shared-schema/` — 구현 단계에서 추가 예정 |
 
-백엔드는 권한과 데이터 규칙을 검증하고, 프론트엔드는 입력 안내와 처리 결과를 표시합니다. 수용 조건별 역할은 [요구사항](docs/01-requirements.md)에 정리했습니다.
+백엔드는 권한과 데이터 규칙을 검증하고, 프론트엔드는 입력 안내와 처리 결과를 표시합니다. 한 동작이 두 역할을 지나는 길은 [흐름 설계](docs/architecture/flow.md)에, 수용 조건별 역할은 [기능별 문서](docs/README.md#기능별-요구사항--한-기능--한-장)에 정리했습니다.
 
 ## 예정 기술 스택
 
 | 영역 | 선택 | 용도 |
 | --- | --- | --- |
 | 프론트엔드 | Next.js 16 (App Router) · TypeScript · Tailwind CSS · TanStack Query | 서버 렌더링, 공유 메타데이터, 화면 상태·캐시 관리 |
-| 백엔드 | Node.js · Express · TypeScript · Prisma 7 · PostgreSQL 16 | 인증·권한 처리, 데이터 제약, 트랜잭션 ([결정 0001](docs/decisions/0001-no-baas.md)) |
-| 실시간 | Socket.IO | 재연결, 룸, ack, 폴링 폴백 ([결정 0005](docs/decisions/0005-socket-io.md)) |
-| 인증 | JWT · httpOnly 쿠키 · 같은 오리진 프록시 | HTTP·소켓 인증과 쿠키 전달 ([결정 0003](docs/decisions/0003-jwt-httponly-cookie.md) · [0004](docs/decisions/0004-api-proxy-same-origin.md)) |
+| 백엔드 | Node.js · Express · TypeScript · Prisma 7 · PostgreSQL 16 | 인증·권한 처리, 데이터 제약, 트랜잭션 ([결정 0001](docs/decisions.md#0001--인증거래채팅-로직은-별도-백엔드에서-관리한다)) |
+| 실시간 | Socket.IO | 재연결, 룸, ack, 폴링 폴백 ([결정 0005](docs/decisions.md#0005--실시간-전달은-socketio-누락-복구는-db-커서로-처리한다)) |
+| 인증 | JWT · httpOnly 쿠키 · 같은 오리진 프록시 | HTTP·소켓 인증과 쿠키 전달 ([결정 0003](docs/decisions.md#0003--인증은-jwt를-httponly-쿠키에-담는다) · [0004](docs/decisions.md#0004--프론트가-백엔드를-프록시해-같은-오리진을-유지한다)) |
 | 검증 | 공유 Zod 스키마 | 프론트엔드·백엔드의 입력 규칙 통일 |
-| 테스트 | Vitest · supertest · Testing Library · Playwright | PostgreSQL 통합 테스트, 컴포넌트 테스트, 거래 흐름 E2E ([테스트 전략](docs/dev/TESTING.md)) |
-| 배포 | Vercel · Railway | 프론트엔드와 백엔드·DB의 배포 환경 분리 ([브랜치·배포 전략](docs/dev/BRANCHING.md)) |
+| 테스트 | Vitest · supertest · Testing Library · Playwright | PostgreSQL 통합 테스트, 컴포넌트 테스트, 거래 흐름 E2E ([테스트 전략](docs/dev.md#테스트-전략--수용-조건-하나에-테스트-하나)) |
+| 배포 | Vercel · Railway | 프론트엔드와 백엔드·DB의 배포 환경 분리 ([브랜치·배포 전략](docs/dev.md#브랜치--배포-전략--main은-언제나-배포-가능하게)) |
 
-기술 선택의 대안과 제약은 [결정 기록](docs/decisions/README.md)에, 의존성 추가 기준은 [개요](docs/00-overview.md#의존성-추가-규칙)에 있습니다.
+기술 선택의 대안과 제약은 [결정 기록](docs/decisions.md)에, 의존성 추가 기준은 [개요](docs/overview.md#의존성-추가-규칙)에 있습니다.
 
 ## 1차 범위
 
@@ -75,7 +75,7 @@
 | 신고·차단·후기 | 운영 정책과 별도 처리 흐름이 필요합니다. |
 | 이미지 메시지·브라우저 푸시 | 텍스트 채팅과 앱 내 알림을 먼저 구현합니다. |
 
-상세 범위는 [개요 3절](docs/00-overview.md#3-범위)에 있습니다.
+상세 범위는 [개요 3절](docs/overview.md#3-범위)에 있습니다.
 
 ## 진행 상황
 
@@ -91,12 +91,12 @@
 
 | 문서 | 내용 |
 | --- | --- |
-| [개요](docs/00-overview.md) | 목표, 엔티티·업무 흐름, 변경 영향, 범위, 기술 결정 |
-| [경우의 수](docs/cases/README.md) · [요구사항](docs/01-requirements.md) | 기능별 상황과 수용 조건, 프론트엔드·백엔드 역할 |
-| [프론트엔드 설계](docs/frontend/README.md) · [백엔드 설계](docs/backend/README.md) | 역할별 처리 방식과 책임 범위 |
-| [결정 기록](docs/decisions/README.md) · [기술 노트](docs/tech/README.md) · [트러블슈팅](docs/troubleshooting.md) | 선택 근거, 실험 결과, 문제 원인과 수정 내용 |
-| [커밋](docs/dev/COMMITS.md) · [브랜치](docs/dev/BRANCHING.md) · [테스트](docs/dev/TESTING.md) · [AI 작업·검증](docs/dev/AI-WORKFLOW.md) | 개발·검증 절차 |
-| [검토 요청](docs/review-queue.md) | 반영된 설계 중 추가 확인이 필요한 판단 |
+| [개요](docs/overview.md) | 목표, 엔티티·업무 흐름, 변경 영향, 범위, 기술 결정 |
+| [기능별 요구사항](docs/README.md#기능별-요구사항--한-기능--한-장) (11장) | 기능 하나 = 한 장 — 수용 조건과 프론트엔드·백엔드 역할, 경우의 수 |
+| [흐름 설계](docs/architecture/flow.md) · [프론트엔드 설계](docs/architecture/frontend.md) · [백엔드 설계](docs/architecture/backend.md) | 두 역할이 만나는 흐름, 역할별 처리 방식과 책임 범위 — 역할마다 한 장 |
+| [결정 기록](docs/decisions.md) · [기술 노트](docs/tech-notes.md) · [트러블슈팅](docs/troubleshooting.md) | 선택 근거, 실험 결과, 문제 원인과 수정 내용 |
+| [커밋](docs/dev.md#커밋-메시지--변경-이유를-찾을-수-있게-쓰기) · [브랜치](docs/dev.md#브랜치--배포-전략--main은-언제나-배포-가능하게) · [테스트](docs/dev.md#테스트-전략--수용-조건-하나에-테스트-하나) · [AI 작업·검증](docs/dev.md#ai-작업검증-기록) | 개발·검증 절차 |
+| [검토 요청](docs/decisions.md#검토-요청) | 반영된 설계 중 추가 확인이 필요한 판단 |
 
 ## 라이선스와 고지
 

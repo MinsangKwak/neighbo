@@ -1,6 +1,6 @@
 # 스파이크 · WebSocket
 
-**WebSocket 핸드셰이크부터 Socket.IO 재연결·버퍼까지 확인하는 여섯 개의 실험 코드입니다.** 서비스와 분리해 실행하며, 관찰 결과와 적용할 설계는 [WebSocket 기술 노트](../../docs/tech/websocket.md)에 정리했습니다.
+**WebSocket 핸드셰이크부터 Socket.IO 재연결·버퍼까지 확인하는 여섯 개의 실험 코드입니다.** 서비스와 분리해 실행하며, 관찰 결과와 적용할 설계는 [WebSocket 기술 노트](../../docs/tech-notes.md#websocket과-socketio)에 정리했습니다.
 
 ```bash
 npm install
