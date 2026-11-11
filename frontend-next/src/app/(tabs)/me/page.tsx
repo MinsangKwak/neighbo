@@ -36,7 +36,10 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
           <div className="min-w-0 flex-1">
             <p className="text-xl font-semibold">{user.nickname}</p>
             <p className="truncate text-sm text-text-muted">{user.email}</p>
-            <p className="text-sm text-text-muted">{formatJoinedMonth(user.createdAt)}</p>
+            <p className="text-sm text-text-muted">
+              {user.neighborhood !== null && `${user.neighborhood} · `}
+              {formatJoinedMonth(user.createdAt)}
+            </p>
           </div>
         </section>
         <div className="flex gap-2 px-4 pb-4">

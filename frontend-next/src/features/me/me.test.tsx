@@ -42,8 +42,8 @@ const wrap = (ui: ReactNode) =>
     </QueryClientProvider>,
   );
 
-const seller = { id: 'u2', nickname: '김당근', avatarUrl: null, createdAt: '2026-11-01T00:00:00.000Z' };
-const user: UserSelf = { id: 'me', nickname: '테스터', avatarUrl: null, createdAt: '2026-11-01T00:00:00.000Z', email: 'me@example.com', isDemo: false };
+const seller = { id: 'u2', nickname: '김당근', avatarUrl: null, neighborhood: null, createdAt: '2026-11-01T00:00:00.000Z' };
+const user: UserSelf = { id: 'me', nickname: '테스터', avatarUrl: null, neighborhood: null, createdAt: '2026-11-01T00:00:00.000Z', email: 'me@example.com', isDemo: false };
 const counts = { onSale: 3, reserved: 0, sold: 1200, purchased: 2 };
 const card = (id: string, extra: Partial<MyProductCard> = {}): MyProductCard => ({
   id,
@@ -52,6 +52,7 @@ const card = (id: string, extra: Partial<MyProductCard> = {}): MyProductCard => 
   status: 'ON_SALE',
   thumbnail: null,
   chatRoomCount: 0,
+  neighborhood: null,
   createdAt: '2026-11-10T00:00:00.000Z',
   buyer: null,
   ...extra,
@@ -182,6 +183,29 @@ describe('프로필 수정', () => {
     fireEvent.click(screen.getByRole('button', { name: '기본 이미지로' }));
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     await waitFor(() => expect(calls).toEqual([{ url: '/api/me', method: 'PATCH', body: { avatarUploadId: null } }]));
+  });
+
+  it('AC-NB-02 동네는 목록에서 고르고, 바뀐 것만 보낸다 — "정하지 않음"은 null', async () => {
+    handler = () => ({ status: 200, body: { user } });
+    const first = wrap(<ProfileForm user={user} />);
+    const select = screen.getByLabelText('내 동네') as HTMLSelectElement;
+    // 정하지 않음 + 서울 25개 구
+    expect(select.options).toHaveLength(26);
+    expect(select.value).toBe('');
+    fireEvent.change(select, { target: { value: '마포구' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/me'));
+    expect(calls).toEqual([{ url: '/api/me', method: 'PATCH', body: { neighborhood: '마포구' } }]);
+    first.unmount();
+
+    calls = [];
+    wrap(<ProfileForm user={{ ...user, neighborhood: '마포구' }} />);
+    const saved = screen.getByLabelText('내 동네') as HTMLSelectElement;
+    expect(saved.value).toBe('마포구');
+    fireEvent.change(saved, { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    await waitFor(() => expect(calls).toHaveLength(1));
+    expect(calls[0]?.body).toEqual({ neighborhood: null });
   });
 
   it('[AC-LI-19] 둘러보기 계정은 폼 대신 바꿀 수 없는 이유를 보여준다', () => {

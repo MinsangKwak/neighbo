@@ -44,6 +44,8 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
       <span className="text-base font-semibold">{formatPrice(product.price)}</span>
       <span className="flex flex-wrap items-center gap-2 text-sm text-text-muted">
         <StatusBadge status={product.status} />
+        {/* 동네를 정한 판매자의 물건만 보인다 [AC-NB-06] */}
+        {product.neighborhood !== null && <span>{product.neighborhood}</span>}
         <RelativeTime iso={product.createdAt} />
         {chats !== null && <span>채팅 {chats}</span>}
       </span>

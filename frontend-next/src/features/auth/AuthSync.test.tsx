@@ -10,7 +10,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const user = { id: 'u1', email: 'kim@example.com', nickname: '김당근', avatarUrl: null, createdAt: '2026-11-10T00:00:00.000Z', isDemo: false };
+const user = { id: 'u1', email: 'kim@example.com', nickname: '김당근', avatarUrl: null, neighborhood: null, createdAt: '2026-11-10T00:00:00.000Z', isDemo: false };
 
 describe('세션 연장 요청', () => {
   it('[AC-CM-03] 로그인 상태로 열면 브라우저가 /api/me를 한 번 불러 연장 쿠키를 받을 수 있게 한다', async () => {

@@ -53,7 +53,7 @@ const router = { push: vi.fn() };
 let pathname = '/';
 vi.mock('next/navigation', () => ({ useRouter: () => router, usePathname: () => pathname }));
 
-const me: UserSelf = { id: 'me', nickname: '나', avatarUrl: null, createdAt: '2026-11-01T00:00:00.000Z', email: 'me@example.com', isDemo: false };
+const me: UserSelf = { id: 'me', nickname: '나', avatarUrl: null, neighborhood: null, createdAt: '2026-11-01T00:00:00.000Z', email: 'me@example.com', isDemo: false };
 const msg = (roomId: string, seq: number, senderId = 'u2'): Message => ({
   id: `${roomId}-${seq}`,
   roomId,
@@ -203,7 +203,7 @@ describe('ChatSocketProvider', () => {
     total: 2,
     latest: {
       roomId,
-      partner: { id: 'u2', nickname: '김당근', avatarUrl: null, createdAt: '2026-11-01T00:00:00.000Z' },
+      partner: { id: 'u2', nickname: '김당근', avatarUrl: null, neighborhood: null, createdAt: '2026-11-01T00:00:00.000Z' },
       preview: '아직 있나요?',
       count: 1,
       createdAt: '2026-11-10T06:00:00.000Z',

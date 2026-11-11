@@ -1,9 +1,16 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { z } from 'zod';
-import { NICKNAME_MAX, nicknameField, normalizeNickname, type UserSelf } from '@neighbo/shared-schema';
+import {
+  NEIGHBORHOODS,
+  NICKNAME_MAX,
+  nicknameField,
+  normalizeNickname,
+  type Neighborhood,
+  type UserSelf,
+} from '@neighbo/shared-schema';
 import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
@@ -26,6 +33,10 @@ export function ProfileForm({ user }: { user: UserSelf }) {
   const picker = useRef<HTMLInputElement>(null);
   const [avatar, setAvatar] = useState<AvatarChange>({ kind: 'keep' });
   const [uploading, setUploading] = useState(false);
+  // 빈 문자열 = 정하지 않음. 목록에서 빠진 옛 값도 그렇게 보인다
+  const savedNeighborhood: Neighborhood | '' = NEIGHBORHOODS.find((name) => name === user.neighborhood) ?? '';
+  const [neighborhood, setNeighborhood] = useState(savedNeighborhood);
+  const neighborhoodId = useId();
   const shownAvatar = avatar.kind === 'new' ? avatar.url : avatar.kind === 'reset' ? null : user.avatarUrl;
 
   const form = useForm({
@@ -37,6 +48,7 @@ export function ProfileForm({ user }: { user: UserSelf }) {
       await updateMe({
         ...(nickname === user.nickname ? {} : { nickname }),
         ...(avatar.kind === 'new' ? { avatarUploadId: avatar.uploadId } : avatar.kind === 'reset' ? { avatarUploadId: null } : {}),
+        ...(neighborhood === savedNeighborhood ? {} : { neighborhood: neighborhood === '' ? null : neighborhood }),
       });
       leave.allow();
       toast('프로필을 저장했어요');
@@ -47,7 +59,9 @@ export function ProfileForm({ user }: { user: UserSelf }) {
   });
 
   // 닉네임이나 사진을 고친 채 탭을 닫거나 새로고침하면 브라우저가 확인한다 [AC-MP-10]
-  const leave = useLeaveGuard(form.values.nickname !== user.nickname || avatar.kind !== 'keep');
+  const leave = useLeaveGuard(
+    form.values.nickname !== user.nickname || avatar.kind !== 'keep' || neighborhood !== savedNeighborhood,
+  );
 
   const pick = async (file: File | undefined) => {
     if (file === undefined) return;
@@ -117,6 +131,31 @@ export function ProfileForm({ user }: { user: UserSelf }) {
         maxGraphemes={NICKNAME_MAX}
         {...form.field('nickname')}
       />
+
+      {/* 목록에서만 고른다 — 직접 적지 않으니 오타로 갈리지 않는다 [AC-NB-02] */}
+      <div className="flex flex-col gap-1">
+        <label htmlFor={neighborhoodId} className="text-sm font-semibold">
+          내 동네
+        </label>
+        <select
+          id={neighborhoodId}
+          name="neighborhood"
+          value={neighborhood}
+          aria-describedby={`${neighborhoodId}-hint`}
+          onChange={(event) => setNeighborhood(event.target.value as Neighborhood | '')}
+          className="min-h-touch w-full rounded-lg border border-border bg-bg px-3 text-base"
+        >
+          <option value="">정하지 않음</option>
+          {NEIGHBORHOODS.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
+        <p id={`${neighborhoodId}-hint`} className="text-sm text-text-muted">
+          서울의 구 가운데 하나를 고르면 홈에서 내 동네 물건만 볼 수 있어요. 판매 중인 내 물건도 이 동네로 옮겨져요
+        </p>
+      </div>
 
       <Button type="submit" block loading={form.submitting} aria-disabled={uploading || form.coolingDown || undefined}>
         저장

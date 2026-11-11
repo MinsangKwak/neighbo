@@ -33,7 +33,7 @@ afterEach(() => {
 
 const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
 const leave = (label: string) => fireEvent.blur(screen.getByLabelText(label));
-const user = { id: 'u1', email: 'kim@example.com', nickname: '김당근', avatarUrl: null, createdAt: '2026-11-10T00:00:00.000Z' };
+const user = { id: 'u1', email: 'kim@example.com', nickname: '김당근', avatarUrl: null, neighborhood: null, createdAt: '2026-11-10T00:00:00.000Z' };
 
 describe('가입 폼', () => {
   const renderForm = () =>

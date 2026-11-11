@@ -3,7 +3,7 @@ import { createMessageToasts, shouldToast } from './messageToasts';
 
 const latest = (roomId: string, count = 1, nickname = '김당근') => ({
   roomId,
-  partner: { id: `u-${roomId}`, nickname, avatarUrl: null, createdAt: '2026-11-01T00:00:00.000Z' },
+  partner: { id: `u-${roomId}`, nickname, avatarUrl: null, neighborhood: null, createdAt: '2026-11-01T00:00:00.000Z' },
   preview: `${roomId}의 메시지`,
   count,
   createdAt: '2026-11-10T06:00:00.000Z',

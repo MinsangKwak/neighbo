@@ -4,6 +4,8 @@ export interface ProductListFilters {
   hideSold: boolean;
   // 한 판매자가 올린 것만 — 판매자 프로필
   sellerId?: string;
+  // 한 동네의 것만 — 홈의 "내 동네만"
+  neighborhood?: string;
   // 내가 관심을 누른 것만 — 관심 목록. 누른 순서의 역순이다
   favorites?: true;
 }

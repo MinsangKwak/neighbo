@@ -43,7 +43,11 @@ export default async function UserPage({ params, searchParams }: UserPageProps) 
           <Avatar url={user.avatarUrl} large />
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-xl font-semibold">{user.nickname}</h2>
-            <p className="text-sm text-text-muted">{formatJoinedMonth(user.createdAt)}</p>
+            {/* 동네를 정한 사람만 보인다 [AC-NB-06] */}
+            <p className="text-sm text-text-muted">
+              {user.neighborhood !== null && `${user.neighborhood} · `}
+              {formatJoinedMonth(user.createdAt)}
+            </p>
           </div>
           {/* 내 프로필이면 고치는 곳으로 가는 길을 둔다 [AC-UP-07] */}
           {viewer?.id === user.id && (
@@ -68,7 +72,11 @@ export default async function UserPage({ params, searchParams }: UserPageProps) 
           ))}
         </dl>
         <h2 className="px-4 pt-5 text-base font-semibold">올린 물건</h2>
-        {total > 0 && <HideSoldToggle checked={filters.hideSold} />}
+        {total > 0 && (
+          <div className="px-4">
+            <HideSoldToggle checked={filters.hideSold} />
+          </div>
+        )}
         <HydrationBoundary state={state}>
           <ProductList
             filters={filters}

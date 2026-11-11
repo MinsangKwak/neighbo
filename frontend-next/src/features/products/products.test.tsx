@@ -10,14 +10,16 @@ import { FavoriteButton } from './FavoriteButton';
 import { UnreadableImageError } from './imageUpload';
 import { ProductForm } from './ProductForm';
 import { ProductList } from './ProductList';
+import { HideSoldToggle, NearToggle } from './QueryToggle';
 import { SearchForm } from './SearchForm';
 import { SellerControls } from './SellerControls';
 
 const router = { replace: vi.fn(), refresh: vi.fn(), push: vi.fn(), back: vi.fn() };
+let searchParams = '';
 vi.mock('next/navigation', () => ({
   useRouter: () => router,
   usePathname: () => '/',
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(searchParams),
 }));
 
 type Reply = { status: number; body: unknown };
@@ -57,6 +59,7 @@ const card = (n: number, extra: Partial<Card> = {}): Card => ({
   status: 'ON_SALE',
   thumbnail: null,
   chatRoomCount: 0,
+  neighborhood: null,
   createdAt: '2026-11-10T00:00:00.000Z',
   ...extra,
 });
@@ -68,8 +71,9 @@ const detail = (extra: Partial<ProductDetail> = {}): ProductDetail => ({
   description: '상태 좋아요',
   status: 'ON_SALE',
   images: [],
-  seller: { id: 'u1', nickname: '김당근', avatarUrl: null, createdAt: '2026-11-01T00:00:00.000Z' },
+  seller: { id: 'u1', nickname: '김당근', avatarUrl: null, neighborhood: null, createdAt: '2026-11-01T00:00:00.000Z' },
   chatRoomCount: 0,
+  neighborhood: null,
   favoriteCount: 0,
   soldAt: null,
   createdAt: '2026-11-10T00:00:00.000Z',
@@ -267,7 +271,7 @@ describe('SellerControls', () => {
   it('[AC-PD-04] 거래완료를 고르면 대화 상대와 "선택 안 함"을 묻고, 고른 사람을 구매자로 보낸다', async () => {
     handler = (url) =>
       url.includes('chat-partners')
-        ? { status: 200, body: { items: [{ roomId: 'r1', user: { id: 'u2', nickname: '구매왕', avatarUrl: null, createdAt: '2026-11-01T00:00:00.000Z' }, lastActivityAt: '2026-11-10T00:00:00.000Z' }] } }
+        ? { status: 200, body: { items: [{ roomId: 'r1', user: { id: 'u2', nickname: '구매왕', avatarUrl: null, neighborhood: null, createdAt: '2026-11-01T00:00:00.000Z' }, lastActivityAt: '2026-11-10T00:00:00.000Z' }] } }
         : { status: 200, body: { product: detail({ status: 'SOLD' }) } };
     wrap(<SellerControls product={detail()} />);
     fireEvent.change(screen.getByLabelText('거래 상태'), { target: { value: 'SOLD' } });
@@ -461,5 +465,39 @@ describe('UnreadableImageError', () => {
     const error = new UnreadableImageError();
     expect(error.name).toBe('UnreadableImageError');
     expect(error).toBeInstanceOf(Error);
+  });
+});
+
+describe('동네', () => {
+  beforeEach(() => {
+    searchParams = '';
+  });
+
+  it('AC-NB-06 카드는 동네가 있을 때만 동네를 보여준다', () => {
+    const { unmount } = render(<ProductCard product={card(1, { neighborhood: '마포구' })} />);
+    expect(screen.getByText('마포구')).toBeTruthy();
+    unmount();
+    render(<ProductCard product={card(2)} />);
+    expect(screen.queryByText(/구$/)).toBeNull();
+  });
+
+  it('AC-NB-07 "내 동네만"을 켜면 주소에 near=1이 붙고, 다른 조건은 그대로 남는다', async () => {
+    searchParams = 'hideSold=1';
+    render(<NearToggle checked={false} neighborhood="마포구" />);
+    const box = screen.getByRole('checkbox', { name: '내 동네만 (마포구)' });
+    fireEvent.click(box);
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/?hideSold=1&near=1', { scroll: false }));
+  });
+
+  it('AC-NB-07 끄면 near만 빠진다', async () => {
+    searchParams = 'hideSold=1&near=1';
+    render(
+      <>
+        <HideSoldToggle checked />
+        <NearToggle checked neighborhood="마포구" />
+      </>,
+    );
+    fireEvent.click(screen.getByRole('checkbox', { name: '내 동네만 (마포구)' }));
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/?hideSold=1', { scroll: false }));
   });
 });

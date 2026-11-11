@@ -60,6 +60,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 <span aria-hidden="true" className="block text-xs text-text-muted">
                   판매자
                 </span>
+                {/* 물건이 있는 동네 [AC-NB-06] */}
+                {product.neighborhood !== null && (
+                  <span className="block text-xs text-text-muted">
+                    <span className="sr-only">동네 </span>
+                    {product.neighborhood}
+                  </span>
+                )}
               </span>
               <span aria-hidden="true" className="text-text-muted">
                 ›

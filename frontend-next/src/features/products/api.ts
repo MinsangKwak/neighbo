@@ -17,6 +17,7 @@ export function listQuery(filters: ProductListFilters, cursor: string | null): R
     limit: String(PAGE_SIZE),
     ...(filters.q === null ? {} : { q: filters.q }),
     ...(filters.hideSold ? { hideSold: '1' } : {}),
+    ...(filters.neighborhood === undefined ? {} : { neighborhood: filters.neighborhood }),
     ...(filters.sellerId === undefined ? {} : { sellerId: filters.sellerId }),
     ...(cursor === null ? {} : { cursor }),
   };
