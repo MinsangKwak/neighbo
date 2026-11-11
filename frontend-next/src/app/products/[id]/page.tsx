@@ -50,15 +50,21 @@ export default async function ProductPage({ params }: ProductPageProps) {
       <main className="flex flex-1 flex-col">
         <Carousel images={product.images} title={product.title} />
         <div className="flex flex-col gap-4 px-4 py-5">
-          <p className="flex items-center gap-3 text-sm">
-            <Avatar url={product.seller.avatarUrl} />
-            <span>
-              <span className="sr-only">판매자 </span>
-              <span className="block font-semibold">{product.seller.nickname}</span>
-              <span aria-hidden="true" className="block text-xs text-text-muted">
-                판매자
+          {/* 판매자가 올린 다른 물건을 보러 간다 [AC-UP-04] */}
+          <p>
+            <Link href={`/users/${product.seller.id}`} className="flex min-h-touch items-center gap-3 text-sm">
+              <Avatar url={product.seller.avatarUrl} />
+              <span className="flex-1">
+                <span className="sr-only">판매자 </span>
+                <span className="block font-semibold">{product.seller.nickname}</span>
+                <span aria-hidden="true" className="block text-xs text-text-muted">
+                  판매자
+                </span>
               </span>
-            </span>
+              <span aria-hidden="true" className="text-text-muted">
+                ›
+              </span>
+            </Link>
           </p>
           <div className="flex flex-col gap-2">
             <h1 className="text-xl font-semibold">{product.title}</h1>

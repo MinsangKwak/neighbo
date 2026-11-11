@@ -36,6 +36,8 @@ async function wrappedButtons(page: Page) {
         const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
         const lines = new Set<number>();
         for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+          // 화면에 보이지 않는 보조 글자는 줄을 차지하지 않는다
+          if (node.parentElement?.closest('.sr-only') != null) continue;
           const range = document.createRange();
           range.selectNodeContents(node);
           for (const rect of range.getClientRects()) {

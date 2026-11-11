@@ -2,6 +2,8 @@
 export interface ProductListFilters {
   q: string | null;
   hideSold: boolean;
+  // 한 판매자가 올린 것만 — 판매자 프로필
+  sellerId?: string;
 }
 
 export const queryKeys = {
