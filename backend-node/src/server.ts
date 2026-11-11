@@ -3,6 +3,7 @@ import { createApp } from './app.js';
 import { ConfigError, loadConfig } from './config.js';
 import { createDb } from './db/client.js';
 import { resetDemo } from './jobs/demoReset.js';
+import { cleanFiles } from './jobs/fileCleanup.js';
 import { startDaily } from './jobs/scheduler.js';
 import { createLogger } from './lib/log.js';
 import { createPasswordHasher } from './lib/password.js';
@@ -84,11 +85,20 @@ const demoReset =
         run: () => resetDemo(db, storage, { sample: config.SEED_SAMPLE === '1' }),
       });
 
+// 붙지 않은 업로드와 지운 지 30일 넘은 상품의 사진을 매일 치운다 [AC-PC-19] [AC-PX-12]
+const fileCleanup = startDaily(db, log, {
+  name: 'file-cleanup',
+  hourKst: 3,
+  lockKey: 40402,
+  run: () => cleanFiles(db, storage),
+});
+
 // 배포 때 진행 중인 요청을 끝내고 내려간다
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {
   process.on(signal, () => {
     log.info('boot', { shutdown: signal });
     demoReset?.stop();
+    fileCleanup.stop();
     // 소켓 연결을 끊고 진행 중인 HTTP 요청이 끝나면 닫힌다. 클라이언트는 새 인스턴스로 다시 붙는다 [AC-CH-36]
     void hub.close().finally(() => {
       void db.$disconnect().finally(() => process.exit(0));
