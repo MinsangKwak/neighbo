@@ -201,6 +201,25 @@ describe('FavoriteButton', () => {
     expect(screen.getByRole('button', { name: '관심 2' }).getAttribute('aria-pressed')).toBe('false');
   });
 
+  it('[AC-FV-05] 서버가 새 값을 보내면 따라간다 — 다른 탭에서 로그인한 뒤 끄는 요청이 나간다', async () => {
+    handler = () => ({ status: 200, body: { isFavorite: false, favoriteCount: 2 } });
+    const view = button({ loggedIn: false, initial: { on: false, count: 3 } });
+    const again = (
+      <QueryClientProvider client={makeQueryClient()}>
+        <ToastProvider>
+          <FavoriteButton productId="p1" loggedIn initial={{ on: true, count: 3 }} />
+        </ToastProvider>
+      </QueryClientProvider>
+    );
+
+    view.rerender(again);
+
+    const el = screen.getByRole('button', { name: '관심 3' });
+    expect(el.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(el);
+    await waitFor(() => expect(calls[0]).toMatchObject({ method: 'DELETE' }));
+  });
+
   it('[AC-FV-04] 비로그인이면 로그인으로 보내고 요청하지 않는다', () => {
     button({ loggedIn: false });
     fireEvent.click(screen.getByRole('button', { name: '관심 2' }));

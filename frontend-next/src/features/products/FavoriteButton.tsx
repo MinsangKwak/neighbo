@@ -26,6 +26,13 @@ export function FavoriteButton({ productId, loggedIn, initial }: FavoriteButtonP
   const toast = useToast();
   const queryClient = useQueryClient();
   const [state, setState] = useState(initial);
+  // 서버가 새 값을 그려 보내면 따라간다 — 다른 탭에서 로그인하면 화면이 새로 그려지는데(AuthSync),
+  // 처음 값만 붙들고 있으면 이미 눌러 둔 물건이 안 눌린 것으로 보인다
+  const [seen, setSeen] = useState(initial);
+  if (seen.on !== initial.on || seen.count !== initial.count) {
+    setSeen(initial);
+    setState(initial);
+  }
   // 응답을 기다리는 동안의 연타는 버린다 — 켜기와 끄기가 엇갈려 도착하지 않게
   const busy = useRef(false);
 
