@@ -16,3 +16,13 @@ export const userSelfSchema = userPublicSchema.extend({
   isDemo: z.boolean().default(false),
 });
 export type UserSelf = z.infer<typeof userSelfSchema>;
+
+// GET /users/{id} — 누구나 보는 판매자 프로필. 구매 수는 본인만 본다 [AC-UP-01, 02]
+export const userCountsSchema = z.object({
+  onSale: z.number().int().min(0),
+  reserved: z.number().int().min(0),
+  sold: z.number().int().min(0),
+});
+export type UserCounts = z.infer<typeof userCountsSchema>;
+export const userProfileResponseSchema = z.object({ user: userPublicSchema, counts: userCountsSchema });
+export type UserProfileResponse = z.infer<typeof userProfileResponseSchema>;

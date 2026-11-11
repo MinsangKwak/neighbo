@@ -205,6 +205,8 @@ export const listProductsQuerySchema = z.object({
     .string()
     .optional()
     .transform((value) => value === '1'),
+  // 한 판매자가 올린 것만 — 판매자 프로필 [AC-UP-03]
+  sellerId: z.string().min(1).max(64).optional(),
 });
 export type ListProductsQuery = z.infer<typeof listProductsQuerySchema>;
 
