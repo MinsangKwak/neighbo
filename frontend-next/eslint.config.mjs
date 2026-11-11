@@ -2,7 +2,7 @@ import nextVitals from 'eslint-config-next/core-web-vitals';
 import nextTs from 'eslint-config-next/typescript';
 
 const config = [
-  { ignores: ['.next/**', 'next-env.d.ts'] },
+  { ignores: ['.next/**', 'next-env.d.ts', 'test-results/**', 'playwright-report/**'] },
   ...nextVitals,
   ...nextTs,
   {
@@ -39,6 +39,11 @@ const config = [
         },
       ],
     },
+  },
+  {
+    // 테스트 실행기 설정은 앱이 뜨기 전에 돈다 — 검증된 config가 아직 없다
+    files: ['playwright.config.ts'],
+    rules: { 'no-restricted-properties': 'off' },
   },
 ];
 
