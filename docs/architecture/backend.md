@@ -1084,6 +1084,7 @@ interface UserPublic {
 // 본인에게만 [AC-CM-14]
 interface UserSelf extends UserPublic {
   email: string;
+  isDemo: boolean;   // 둘러보기 계정 — 화면이 프로필 · 비밀번호 변경을 막고 이유를 적는다 [AC-LI-19]
 }
 
 interface Image {
