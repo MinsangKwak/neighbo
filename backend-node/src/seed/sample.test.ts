@@ -91,6 +91,18 @@ describe('데모 상품 시드', () => {
     const sold = await db.product.findUniqueOrThrow({ where: { id: 'demo_p5' } });
     expect(sold.soldAt?.getTime()).toBe(sold.createdAt.getTime() + 20 * 3_600_000);
   });
+
+  it('삭제된 거래완료 상품을 되살릴 때도 거래완료 시각이 처음 값 그대로다', async () => {
+    await seedDemoProducts(db, storage, images);
+    const before = await db.product.findUniqueOrThrow({ where: { id: 'demo_p5' } });
+    await db.product.update({ where: { id: 'demo_p5' }, data: { deletedAt: new Date() } });
+
+    await seedDemoProducts(db, storage, images, new Date(Date.now() + 30 * 86_400_000));
+    const after = await db.product.findUniqueOrThrow({ where: { id: 'demo_p5' } });
+    expect(after.deletedAt).toBeNull();
+    expect(after.soldAt).toEqual(before.soldAt);
+    expect(after.createdAt).toEqual(before.createdAt);
+  });
 });
 
 describe('샘플 데이터 시드', () => {

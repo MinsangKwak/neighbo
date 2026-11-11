@@ -29,7 +29,8 @@ export async function upsertSeedProduct(
   images: SeedImage[],
   now: Date,
 ): Promise<void> {
-  const existing = await db.product.findUnique({ where: { id: spec.id }, select: { createdAt: true } });
+  // 삭제된 시드 상품도 찾는다 — 기본 조회는 삭제된 행을 빼므로, 그대로면 되살릴 때 시각의 기준이 바뀐다
+  const existing = await db.withDeleted().product.findUnique({ where: { id: spec.id }, select: { createdAt: true } });
   const createdAt = existing?.createdAt ?? new Date(now.getTime() - spec.hoursAgo * HOUR);
   // 거래완료 시각은 등록 시각에서 계산한다 — 배포할 때마다 밀리지 않게
   const soldAt = new Date(Math.min(createdAt.getTime() + 20 * HOUR, now.getTime()));
