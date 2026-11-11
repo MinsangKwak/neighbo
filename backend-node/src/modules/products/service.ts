@@ -111,6 +111,7 @@ export function createProductService(db: Db, storage: ImageStorage, realtime: Re
       const cursor = query.cursor === undefined ? null : decodeCursor(query.cursor);
       const where: Prisma.ProductWhereInput = {
         ...(query.hideSold ? { status: { not: 'SOLD' } } : {}),
+        ...(query.sellerId === undefined ? {} : { sellerId: query.sellerId }),
         ...(query.q === undefined ? {} : { title: { contains: escapeLike(query.q), mode: 'insensitive' } }),
         // (createdAt, id)가 커서보다 뒤인 행 — 같은 시각이면 id로 가른다
         ...(cursor === null

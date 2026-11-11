@@ -22,6 +22,7 @@ import { createProductRouter } from './modules/products/route.js';
 import { createProductService } from './modules/products/service.js';
 import { createWorkQueue } from './modules/uploads/queue.js';
 import { createUploadRouter } from './modules/uploads/route.js';
+import { createUserRouter } from './modules/users/route.js';
 import type { Realtime } from './realtime/Realtime.js';
 import type { ImageStorage } from './storage/ImageStorage.js';
 
@@ -112,6 +113,8 @@ export function createApp({ config, log, db, hasher, storage, chat, realtime, pi
       writeLimit: userLimit('product-create'),
     }),
   );
+
+  app.use('/users', mountedAt('/users'), createUserRouter({ db }));
 
   app.use(
     '/uploads',
