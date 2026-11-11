@@ -1,6 +1,6 @@
 # 10 · 채팅 알림
 
-[문서 목차](../README.md) · 앞: [09 · 마이페이지](09-mypage.md) · 설계: [흐름](../architecture/flow.md) · [프론트엔드](../architecture/frontend.md) · [백엔드](../architecture/backend.md)
+[문서 목차](../README.md) · 앞: [09 · 마이페이지](09-mypage.md) · 다음: [11 · 판매자 프로필](11-seller-profile.md) · 설계: [흐름](../architecture/flow.md) · [프론트엔드](../architecture/frontend.md) · [백엔드](../architecture/backend.md)
 
 **채팅 알림은 하단 탭 배지, 채팅 목록, 토스트로 새 메시지를 안내합니다.** 탭 배지는 읽지 않은 방 수이며, `lastSeq`와 `lastReadSeq`로 계산합니다. 브라우저 푸시·이메일·소리는 1차 범위에 포함하지 않습니다.
 

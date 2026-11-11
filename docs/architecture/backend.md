@@ -550,6 +550,7 @@ API 명세(예정)에서 요청 · 응답 모양을 확정하며, 여기서는 �
 | 업로드 | `POST /uploads` |
 | 채팅 | `POST /chat-rooms` · `GET /chat-rooms` · `GET /chat-rooms/:id` · `GET /chat-rooms/:id/messages` · `POST /chat-rooms/:id/read` |
 | 내 정보 | `GET /me` · `PATCH /me` · `PATCH /me/password` · `GET /me/products` · `GET /me/purchases` · `GET /me/unread` |
+| 사용자 (2차) | `GET /users/:id` — 누구나. `{ user: UserPublic, counts: { onSale, reserved, sold } }`, 없으면 `404` ([11 판매자 프로필](../features/11-seller-profile.md)) |
 
 ### 매트릭스
 
@@ -1299,6 +1300,7 @@ interface Page<T> {
 | `limit` | number | 20 | 1~50 (넘으면 50) |
 | `q` | string | — | `normalizeText()` 후 2자 이상, 있으면 제목 검색 |
 | `hideSold` | `1` | — | 있으면 거래완료 제외 |
+| `sellerId` | string | — | 있으면 그 판매자가 올린 것만. 없는 사용자면 빈 목록 [AC-UP-03] |
 
 ```ts
 // 200
