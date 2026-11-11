@@ -25,6 +25,18 @@ test('판매자와 구매자가 가입부터 거래완료까지 끊기지 않고
   await expect(s.page.getByText('15,000원')).toBeVisible();
   await expect(s.page.getByText('1 / 2')).toBeVisible();
 
+  await test.step('판매자: 사진을 누르면 크게 보이고, 다음 사진으로 넘긴 뒤 닫으면 누른 사진으로 돌아온다', async () => {
+    const first = s.page.getByRole('button', { name: '사진 1 크게 보기' });
+    await first.click();
+    const viewer = s.page.getByRole('dialog', { name: '사진 크게 보기' });
+    await expect(viewer.getByRole('img', { name: title })).toBeVisible();
+    await viewer.getByRole('button', { name: '다음 사진 크게 보기' }).click();
+    await expect(viewer.getByRole('img', { name: `${title} 사진 2` })).toBeVisible();
+    await s.page.keyboard.press('Escape');
+    await expect(viewer).toBeHidden();
+    await expect(first).toBeFocused();
+  });
+
   await test.step('구매자: 가입하면 목록 맨 위에 그 물건이 있고, 사진이 실제로 열린다', async () => {
     await signUp(b.page, buyer);
     const card = b.page.getByRole('link', { name: new RegExp(title) }).first();
