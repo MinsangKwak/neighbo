@@ -29,7 +29,7 @@ describe('POST /auth/signup', () => {
     const { app } = createTestApp();
     const res = await post(app, '/auth/signup').send(kim);
     expect(JSON.stringify(res.body)).not.toMatch(/passwordHash|\$2b\$/);
-    expect(Object.keys(res.body.user).sort()).toEqual(['avatarUrl', 'createdAt', 'email', 'id', 'nickname']);
+    expect(Object.keys(res.body.user).sort()).toEqual(['avatarUrl', 'createdAt', 'email', 'id', 'isDemo', 'nickname']);
   });
 
   it('[AC-CM-31] staging · production의 쿠키에는 Secure가 붙는다', async () => {

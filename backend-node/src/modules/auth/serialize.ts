@@ -12,5 +12,5 @@ export function toUserPublic(user: User): UserPublic {
 }
 
 export function toUserSelf(user: User): UserSelf {
-  return { ...toUserPublic(user), email: user.email };
+  return { ...toUserPublic(user), email: user.email, isDemo: user.isDemo };
 }
