@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { newPasswordField, nicknameField } from './auth';
 import { normalizePassword } from './normalize';
 import { imageSchema, productCardSchema, productStatusSchema } from './product';
-import { userPublicSchema, userSelfSchema } from './user';
+import { neighborhoodSchema, userPublicSchema, userSelfSchema } from './user';
 
 // 근거: docs/architecture/backend.md 10 API 명세 7절 내 정보
 
@@ -25,6 +25,8 @@ export const updateMeSchema = z.object({
   nickname: nicknameField.optional(),
   // Upload id(kind=AVATAR). null = 기본 이미지로 [AC-MP-08]
   avatarUploadId: idField.nullable().optional(),
+  // 동네. null = 정하지 않음으로 되돌림 [AC-NB-02]
+  neighborhood: neighborhoodSchema.nullable().optional(),
 });
 export type UpdateMeInput = z.infer<typeof updateMeSchema>;
 

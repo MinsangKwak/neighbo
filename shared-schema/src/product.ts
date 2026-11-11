@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { countGraphemes, normalizeText } from './normalize';
-import { userPublicSchema } from './user';
+import { neighborhoodSchema, userPublicSchema } from './user';
 
 // 근거: docs/architecture/backend.md 10 API 명세 2절 공유 타입 · 4절 상품
 
@@ -53,6 +53,8 @@ export const productCardSchema = z.object({
   status: productStatusSchema,
   thumbnail: imageSchema.nullable(),
   chatRoomCount: z.number().int().min(0),
+  // 올릴 때 판매자의 동네. 없으면 null [AC-NB-03]
+  neighborhood: z.string().nullable().default(null),
   createdAt: z.iso.datetime(),
 });
 export type ProductCard = z.infer<typeof productCardSchema>;
@@ -69,6 +71,7 @@ export const productDetailSchema = z.object({
   chatRoomCount: z.number().int().min(0),
   // 관심을 누른 사람 수. 옛 서버의 응답에는 없다 — 배포가 엇갈리는 동안 0으로 읽는다 [AC-FV-05]
   favoriteCount: z.number().int().min(0).default(0),
+  neighborhood: z.string().nullable().default(null),
   soldAt: z.iso.datetime().nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
@@ -213,6 +216,8 @@ export const listProductsQuerySchema = z.object({
     .string()
     .optional()
     .transform((value) => value === '1'),
+  // 한 동네의 것만 [AC-NB-05]. 목록에 없는 이름이면 400
+  neighborhood: neighborhoodSchema.optional(),
   // 한 판매자가 올린 것만 — 판매자 프로필 [AC-UP-03]
   sellerId: z.string().min(1).max(64).optional(),
 });
