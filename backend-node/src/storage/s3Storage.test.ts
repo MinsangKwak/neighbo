@@ -95,6 +95,36 @@ describe('S3 호환 저장소', () => {
     await expect(storage.remove(['products/a.webp'])).rejects.toThrow(/500/);
   });
 
+  it('목록은 1,000개씩 이어 받아 키와 고친 시각을 돌려준다', async () => {
+    const page = (keys: string[], next: string | null) =>
+      `<?xml version="1.0"?><ListBucketResult><IsTruncated>${next !== null}</IsTruncated>${keys
+        .map((key) => `<Contents><Key>${key}</Key><LastModified>2026-11-01T00:00:00.000Z</LastModified><Size>3</Size></Contents>`)
+        .join('')}${next === null ? '' : `<NextContinuationToken>${next}</NextContinuationToken>`}</ListBucketResult>`;
+    const { storage, seen } = setup((request) =>
+      new URL(request.url).searchParams.get('continuation-token') === null
+        ? { status: 200, body: page(['products/a.webp', 'products/a&amp;b.webp'], 'next/token==') }
+        : { status: 200, body: page(['avatars/c.webp'], null) },
+    );
+
+    const files = await storage.list();
+
+    expect(files).toEqual([
+      { key: 'products/a.webp', modifiedAt: new Date('2026-11-01T00:00:00.000Z') },
+      { key: 'products/a&b.webp', modifiedAt: new Date('2026-11-01T00:00:00.000Z') },
+      { key: 'avatars/c.webp', modifiedAt: new Date('2026-11-01T00:00:00.000Z') },
+    ]);
+    expect(seen.map((request) => request.method)).toEqual(['GET', 'GET']);
+    const second = new URL(seen[1]!.url);
+    expect(second.pathname).toBe('/neighbo-images');
+    expect(Object.fromEntries(second.searchParams)).toEqual({ 'list-type': '2', 'continuation-token': 'next/token==' });
+    expect(seen[0]!.headers.authorization).toContain('AWS4-HMAC-SHA256');
+  });
+
+  it('목록이 거절되면 던진다 — 빈 목록으로 알고 넘어가지 않는다', async () => {
+    const { storage } = setup(() => ({ status: 403, body: '<Error><Code>AccessDenied</Code></Error>' }));
+    await expect(storage.list()).rejects.toThrow('저장소 목록 실패 (403)');
+  });
+
   it('버킷 밖을 가리키는 키는 요청을 보내기 전에 거절한다', async () => {
     const { storage, seen } = setup();
     await expect(storage.put('../other-bucket/x.webp', Buffer.from([1]), 'image/webp')).rejects.toThrow('저장소 밖');

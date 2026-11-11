@@ -15,7 +15,7 @@ import type { Prisma, User } from '../../generated/prisma/client.js';
 import { decodeCursor, takePage } from '../../lib/cursor.js';
 import { isCommonPassword, type PasswordHasher } from '../../lib/password.js';
 import type { Realtime } from '../../realtime/Realtime.js';
-import type { ImageStorage } from '../../storage/ImageStorage.js';
+import { keyFromUrl, type ImageStorage } from '../../storage/ImageStorage.js';
 
 
 const cover = { images: { orderBy: { order: 'asc' }, take: 1 } } satisfies Prisma.ProductInclude;
@@ -24,12 +24,6 @@ export function createMeService(db: Db, hasher: PasswordHasher, storage: ImageSt
   // 비밀번호가 공개된 계정은 누구나 로그인한다 — 한 사람이 바꾸면 다음 사람이 못 쓴다 (T-11)
   function assertNotDemo(user: User): void {
     if (user.isDemo) throw new AppError('DEMO_RESTRICTED');
-  }
-
-  // 저장소 주소에서 키를 되찾는다. 이 저장소의 주소가 아니면 null
-  function keyOf(url: string | null): string | null {
-    const base = storage.url('');
-    return url !== null && url.startsWith(base) ? url.slice(base.length) : null;
   }
 
   return {
@@ -86,7 +80,7 @@ export function createMeService(db: Db, hasher: PasswordHasher, storage: ImageSt
       }
 
       // 이전 아바타 파일은 커밋 뒤에 지운다. 실패하면 정리 배치의 몫이다
-      const previous = keyOf(user.avatarUrl);
+      const previous = keyFromUrl(storage, user.avatarUrl);
       if (previous !== null && updated.avatarUrl !== user.avatarUrl) {
         await storage.remove([previous]).catch(() => undefined);
       }

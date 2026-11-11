@@ -115,6 +115,7 @@ describe('외부 저장소에서의 시드', () => {
       },
       remove: () => Promise.resolve(),
       url: (key: string) => `https://img.example.com/${key}`,
+      list: () => Promise.resolve([]),
       localDirectory: null,
     };
     await seedDemoProducts(db, external, images);
@@ -141,6 +142,7 @@ describe('외부 저장소에서의 시드', () => {
       },
       remove: () => Promise.resolve(),
       url: (key: string) => `https://img.example.com/${key}`,
+      list: () => Promise.resolve([]),
       localDirectory: null,
     };
     await seedDemoProducts(db, external, images);
