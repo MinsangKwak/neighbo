@@ -6,6 +6,7 @@ import type { ProductCard as Card, ProductDetail, Upload } from '@neighbo/shared
 import { ProductCard } from '@/components/ProductCard';
 import { ToastProvider } from '@/components/Toast';
 import { makeQueryClient } from '@/lib/query/QueryProvider';
+import { FavoriteButton } from './FavoriteButton';
 import { UnreadableImageError } from './imageUpload';
 import { ProductForm } from './ProductForm';
 import { ProductList } from './ProductList';
@@ -69,6 +70,7 @@ const detail = (extra: Partial<ProductDetail> = {}): ProductDetail => ({
   images: [],
   seller: { id: 'u1', nickname: '김당근', avatarUrl: null, createdAt: '2026-11-01T00:00:00.000Z' },
   chatRoomCount: 0,
+  favoriteCount: 0,
   soldAt: null,
   createdAt: '2026-11-10T00:00:00.000Z',
   updatedAt: '2026-11-10T00:00:00.000Z',
@@ -146,6 +148,64 @@ describe('ProductList', () => {
     expect(await screen.findByRole('button', { name: '다시 시도' })).toBeDefined();
     expect(screen.getAllByRole('link')).toHaveLength(2);
     expect(screen.getByText('불러오지 못했어요').getAttribute('role')).toBe('alert');
+  });
+});
+
+describe('FavoriteButton', () => {
+  const button = (props: Partial<Parameters<typeof FavoriteButton>[0]> = {}) =>
+    wrap(<FavoriteButton productId="p1" loggedIn initial={{ on: false, count: 2 }} {...props} />);
+
+  it('[AC-FV-08] 누르는 즉시 켜지고 개수가 오른다. 응답의 값으로 맞춘다', async () => {
+    handler = () => ({ status: 200, body: { isFavorite: true, favoriteCount: 5 } });
+    button();
+    const el = screen.getByRole('button', { name: '관심 2' });
+    expect(el.getAttribute('aria-pressed')).toBe('false');
+
+    fireEvent.click(el);
+
+    // 응답 전에 이미 바뀌어 있다
+    expect(screen.getByRole('button', { name: '관심 3' }).getAttribute('aria-pressed')).toBe('true');
+    await waitFor(() => expect(screen.getByRole('button', { name: '관심 5' })).toBeDefined());
+    expect(calls).toEqual([{ url: '/api/products/p1/favorite', method: 'PUT', body: undefined }]);
+  });
+
+  it('[AC-FV-08] 켜져 있으면 끄는 요청을 보낸다', async () => {
+    handler = () => ({ status: 200, body: { isFavorite: false, favoriteCount: 1 } });
+    button({ initial: { on: true, count: 2 } });
+
+    fireEvent.click(screen.getByRole('button', { name: '관심 2' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '관심 1' }).getAttribute('aria-pressed')).toBe('false'));
+    expect(calls[0]).toMatchObject({ method: 'DELETE' });
+  });
+
+  it('[AC-FV-08] 응답을 기다리는 동안 다시 눌러도 요청은 하나다', async () => {
+    handler = () => ({ status: 200, body: { isFavorite: true, favoriteCount: 3 } });
+    button();
+    const el = screen.getByRole('button', { name: '관심 2' });
+
+    fireEvent.click(el);
+    fireEvent.click(el);
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '관심 3' })).toBeDefined());
+    expect(calls).toHaveLength(1);
+  });
+
+  it('[AC-FV-08] 실패하면 되돌리고 이유를 알린다', async () => {
+    handler = () => ({ status: 500, body: { error: { code: 'INTERNAL', message: '서버 오류' } } });
+    button();
+
+    fireEvent.click(screen.getByRole('button', { name: '관심 2' }));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toBeDefined());
+    expect(screen.getByRole('button', { name: '관심 2' }).getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('[AC-FV-04] 비로그인이면 로그인으로 보내고 요청하지 않는다', () => {
+    button({ loggedIn: false });
+    fireEvent.click(screen.getByRole('button', { name: '관심 2' }));
+    expect(router.push).toHaveBeenCalledWith('/login?next=%2Fproducts%2Fp1');
+    expect(calls).toEqual([]);
   });
 });
 

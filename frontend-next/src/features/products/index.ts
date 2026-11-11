@@ -1,4 +1,5 @@
 export { Carousel } from './Carousel';
+export { FavoriteButton } from './FavoriteButton';
 export { HideSoldToggle } from './HideSoldToggle';
 export { ProductForm } from './ProductForm';
 export { ProductList } from './ProductList';

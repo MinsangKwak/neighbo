@@ -7,7 +7,7 @@ import { RelativeTime } from '@/components/RelativeTime';
 import { StatusBadge } from '@/components/StatusBadge';
 import Link from 'next/link';
 import { ChatButton } from '@/features/chat';
-import { Carousel, SellerControls, ShareButton } from '@/features/products';
+import { Carousel, FavoriteButton, SellerControls, ShareButton } from '@/features/products';
 import { getProduct } from '@/features/products/server';
 import { formatPrice } from '@/lib/format';
 
@@ -73,6 +73,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
               <RelativeTime iso={product.createdAt} />
               {/* 다른 사람도 관심을 보이는 물건인지 알 수 있게 — 판매자에게는 아래 링크가 같은 수를 보인다 */}
               {!isSeller && product.chatRoomCount > 0 && <span>채팅 {product.chatRoomCount}</span>}
+              {/* 구매자는 아래 버튼에서 같은 수를 본다 */}
+              {isSeller && product.favoriteCount > 0 && <span>관심 {product.favoriteCount}</span>}
             </p>
           </div>
           {/* 줄바꿈은 보존하고, 입력한 글자를 그대로 보여준다. 주소를 링크로 바꾸지 않는다 [AC-PC-07] */}
@@ -80,8 +82,15 @@ export default async function ProductPage({ params }: ProductPageProps) {
         </div>
         {isSeller && <SellerControls product={product} />}
       </main>
-      <footer className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-divider bg-bg px-4 py-3">
-        <p className="text-lg font-semibold">{formatPrice(product.price)}</p>
+      <footer className="sticky bottom-0 flex items-center gap-3 border-t border-divider bg-bg px-4 py-3">
+        {!isSeller && (
+          <FavoriteButton
+            productId={product.id}
+            loggedIn={viewer !== null}
+            initial={{ on: viewer?.isFavorite === true, count: product.favoriteCount }}
+          />
+        )}
+        <p className="flex-1 text-lg font-semibold">{formatPrice(product.price)}</p>
         {isSeller ? (
           // 이 상품의 방만 모아 본다 [AC-CL-07]
           <Link

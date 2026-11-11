@@ -10,7 +10,8 @@ import { getMe, prefetchMyList } from '@/features/me/server';
 
 export const metadata: Metadata = { title: '마이' };
 
-const linkClass = 'inline-flex min-h-touch items-center rounded-lg border border-border px-4 text-sm font-semibold';
+const linkClass =
+  'inline-flex min-h-touch items-center rounded-lg border border-border px-3 text-sm font-semibold whitespace-nowrap';
 
 // 프로필 카드 → [프로필 수정] → 탭 + 목록 → [로그아웃] [AC-MP-01]
 export default async function MePage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
@@ -53,6 +54,9 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
           </Link>
           <Link href="/me/password" className={linkClass}>
             비밀번호 변경
+          </Link>
+          <Link href="/me/favorites" className={linkClass}>
+            관심 목록
           </Link>
         </div>
         <HydrationBoundary state={state}>

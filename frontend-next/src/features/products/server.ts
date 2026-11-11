@@ -3,7 +3,7 @@ import { dehydrate, QueryClient, type DehydratedState } from '@tanstack/react-qu
 import { productDetailResponseSchema, productPageSchema, type ProductDetailResponse } from '@neighbo/shared-schema';
 import { serverFetch } from '@/lib/api/serverFetch';
 import { queryKeys, type ProductListFilters } from '@/lib/query/queryKeys';
-import { listQuery } from './api';
+import { listPath, listQuery } from './api';
 
 // 서버가 첫 페이지를 가져와 브라우저 캐시로 넘긴다 — 같은 키라 브라우저는 다시 요청하지 않는다
 // 실패하면 빈 상태로 넘기고, 브라우저의 조회가 오류 화면과 [다시 시도]를 맡는다
@@ -14,7 +14,7 @@ export async function prefetchProductList(filters: ProductListFilters): Promise<
       queryKey: queryKeys.products(filters),
       initialPageParam: null as string | null,
       queryFn: async () => {
-        const response = await serverFetch(`/products?${new URLSearchParams(listQuery(filters, null)).toString()}`);
+        const response = await serverFetch(`${listPath(filters)}?${new URLSearchParams(listQuery(filters, null)).toString()}`);
         if (!response.ok) throw new Error(`목록 조회 실패 ${response.status}`);
         return productPageSchema.parse(await response.json());
       },

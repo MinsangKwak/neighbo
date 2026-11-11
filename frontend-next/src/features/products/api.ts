@@ -1,6 +1,7 @@
 import type {
   ChangeStatusInput,
   ChatPartnersResponse,
+  FavoriteResponse,
   ProductDetailResponse,
   ProductPage,
   ProductResponse,
@@ -21,8 +22,15 @@ export function listQuery(filters: ProductListFilters, cursor: string | null): R
   };
 }
 
+// 관심 목록은 내 것이라 경로가 다르다. 응답 모양은 같다
+export const listPath = (filters: ProductListFilters) => (filters.favorites === true ? '/me/favorites' : '/products');
+
 export const fetchProductPage = (filters: ProductListFilters, cursor: string | null) =>
-  apiFetch<ProductPage>('/products', { query: listQuery(filters, cursor) });
+  apiFetch<ProductPage>(listPath(filters), { query: listQuery(filters, cursor) });
+
+// 켜기는 PUT, 끄기는 DELETE — 같은 요청이 두 번 가도 결과가 같다 [AC-FV-01, 02]
+export const setFavorite = (id: string, on: boolean) =>
+  apiFetch<FavoriteResponse>(`/products/${id}/favorite`, { method: on ? 'PUT' : 'DELETE' });
 
 export const fetchProduct = (id: string) => apiFetch<ProductDetailResponse>(`/products/${id}`);
 
