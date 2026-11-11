@@ -28,7 +28,8 @@ export function RouteFocus() {
 
     const tryFocus = (): boolean => {
       const heading = document.querySelector('h1');
-      if (heading === null) return false;
+      // 뼈대 화면의 제목("불러오는 중")은 건너뛴다 — 진짜 화면이 그려질 때까지 기다린다
+      if (heading === null || heading.closest('[aria-busy="true"]') !== null) return false;
       const before = shown.current;
       // 아직 이전 화면의 제목이다
       if (before !== null && before.element === heading && before.text === (heading.textContent ?? '')) return false;

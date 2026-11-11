@@ -36,7 +36,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={show}>
       {children}
       {/* 영역은 항상 있어야 스크린리더가 새 내용을 읽는다 */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-20 z-50 flex justify-center px-4">
+      {/* 화면 위쪽(헤더 바로 아래)에 띄운다 — 아래쪽에는 탭바 · 하단 고정 바 · 입력창 · 판매자 버튼이 있어 가린다 */}
+      <div className="pointer-events-none fixed inset-x-0 top-16 z-50 flex justify-center px-4">
         <div role="status" aria-live="polite">
           {toast?.tone === 'info' && (
             <ToastBody key={toast.id} toast={toast} onHold={setHeld} />

@@ -120,6 +120,8 @@ export function ChatRoomScreen({ roomId, myId }: { roomId: string; myId: string 
     // 내가 보낸 것은 항상 맨 아래로. 받은 것은 아래를 보고 있을 때만 [AC-CH-14]
     if (sentMine || nearBottom.current || last?.senderId === myId) {
       el.scrollTop = el.scrollHeight;
+      // 스크롤 이벤트는 뒤늦게 온다 — 그 전에 "읽음"이 붙어도 아래를 보고 있는 것으로 안다
+      nearBottom.current = true;
       setHasNew(false);
     } else {
       setHasNew(true);
@@ -131,6 +133,13 @@ export function ChatRoomScreen({ roomId, myId }: { roomId: string; myId: string 
     // 그려진 결과가 바뀔 때만 다시 본다
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [first, lastSeqValue, pending.length, loaded]);
+
+  // 상대가 읽으면 내 마지막 말풍선 아래에 "읽음"이 생겨 높이가 늘어난다 — 아래를 보고 있었다면 따라 내려간다 [AC-CH-14]
+  const partnerReadSeq = roomQuery.data?.chatRoom.partnerLastReadSeq ?? 0;
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    if (el !== null && nearBottom.current) el.scrollTop = el.scrollHeight;
+  }, [partnerReadSeq]);
 
   // 위쪽 끝에 닿으면 과거 50개를 더 받는다. 버튼도 함께 둔다 [AC-CH-11]
   const topSentinel = useRef<HTMLDivElement>(null);
@@ -208,7 +217,9 @@ export function ChatRoomScreen({ roomId, myId }: { roomId: string; myId: string 
               </p>
             )}
             {/* 목록 자체는 읽어 주지 않는다 — 과거 메시지 로드와 내 메시지까지 읽히지 않게 [AC-CH-42] */}
-            <ol role="log" aria-live="off" aria-label="대화" className="flex flex-col gap-1">
+            {/* role은 목록 요소가 아니라 감싸는 상자에 둔다 — ol에 다른 역할을 주면 안의 li가 목록 항목이 아니게 된다 */}
+            <div role="log" aria-live="off" aria-label="대화">
+            <ol className="flex flex-col gap-1">
               {messages.map((message, index) => (
                 <Bubble
                   key={message.id}
@@ -229,6 +240,7 @@ export function ChatRoomScreen({ roomId, myId }: { roomId: string; myId: string 
                 />
               ))}
             </ol>
+            </div>
           </>
         )}
         {hasNew && (
@@ -291,12 +303,17 @@ function ProductBar({ product }: { product: ProductSummary }) {
     </>
   );
   const className = 'flex items-center gap-3 border-b border-divider px-4 py-2';
-  return product.deleted ? (
-    <div className={className}>{body}</div>
-  ) : (
-    <Link href={`/products/${product.id}`} className={className}>
-      {body}
-    </Link>
+  // 화면의 모든 내용이 이름 있는 구역 안에 있게 한다 — 구역 단위로 건너뛰는 사용자가 놓치지 않게
+  return (
+    <section aria-label="거래 물건">
+      {product.deleted ? (
+        <div className={className}>{body}</div>
+      ) : (
+        <Link href={`/products/${product.id}`} className={className}>
+          {body}
+        </Link>
+      )}
+    </section>
   );
 }
 
@@ -319,7 +336,8 @@ function Bubble({ message, previous, next, mine, partnerName, read }: BubbleProp
   return (
     <>
       {newDay && (
-        <li role="separator" className="py-3 text-center text-xs text-text-muted">
+        // 구분선 역할을 주지 않는다 — 목록의 자식은 목록 항목이어야 하고, 구분선 역할은 안의 날짜를 읽지 않게 만든다
+        <li className="py-3 text-center text-xs text-text-muted">
           {formatDateLine(message.createdAt)}
         </li>
       )}

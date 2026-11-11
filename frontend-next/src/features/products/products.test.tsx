@@ -93,7 +93,9 @@ describe('ProductCard', () => {
   it('[AC-PL-02, 09] 거래완료는 흐리게 보이지만 누를 수 있고, 사진이 없으면 자리 표시가 나온다', () => {
     render(<ProductCard product={card(1, { status: 'SOLD' })} />);
     const link = screen.getByRole('link');
-    expect(link.className).toContain('opacity-60');
+    // 카드 전체가 아니라 제목 색으로 끝난 거래를 알린다 — 전체를 흐리면 글자 명암비가 기준 아래로 떨어진다
+    expect(link.className).not.toContain('opacity');
+    expect(within(link).getByText('상품 1').className).toContain('text-text-muted');
     expect(within(link).getByText('거래완료')).toBeDefined();
     expect(within(link).getByText('사진 없음')).toBeDefined();
     expect(within(link).queryByText(/채팅/)).toBeNull();

@@ -469,7 +469,7 @@ describe('읽음 · 수신', () => {
     expect(readFallback).toHaveBeenCalledTimes(1);
   });
 
-  it('서버가 보낸 이벤트를 그대로 넘긴다', async () => {
+  it('[AC-CH-34] 서버가 보낸 이벤트를 그대로 넘긴다', async () => {
     const { chat, fake, handlers } = setup();
     chat.connect();
     fake.fire('connect');

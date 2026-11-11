@@ -328,6 +328,26 @@ describe('채팅 목록', () => {
     expect(within(links[2]!).getByText('삭제됨')).toBeTruthy();
   });
 
+  it('[AC-CL-13, 15] 새 메시지로 행이 위로 옮겨져도 포커스는 그 행에 남고, 내가 다른 탭에서 읽으면 배지가 사라진다', async () => {
+    handler = () => ({ status: 200, body: { items: [row('r1'), row('r2', { unreadCount: 2 })], nextCursor: null } });
+    const { client } = mount(<ChatList productId={null} />);
+    const second = (await screen.findAllByRole('link'))[1]!;
+    second.focus();
+
+    act(() => void applyMessageToRooms(client, msg(9, 'u2', { roomId: 'r2' }), { myId: ME, viewingRoomId: null }));
+
+    await waitFor(() => expect(screen.getAllByRole('link')[0]?.getAttribute('href')).toBe('/chats/r2'));
+    const links = screen.getAllByRole('link');
+    // 같은 요소가 자리만 옮겼다 — 새로 그려졌다면 포커스가 body로 떨어진다
+    expect(links[0]).toBe(second);
+    expect(document.activeElement).toBe(second);
+    expect(within(second).getByText(/읽지 않은/)).toBeTruthy();
+
+    act(() => markRoomRead(client, 'r2'));
+    await waitFor(() => expect(within(second).queryByText(/읽지 않은/)).toBeNull());
+    expect(document.activeElement).toBe(second);
+  });
+
   it('[AC-CL-09] 방이 없으면 안내와 [물건 보러 가기]', async () => {
     handler = () => ({ status: 200, body: { items: [], nextCursor: null } });
     mount(<ChatList productId={null} />);
@@ -456,7 +476,12 @@ describe('채팅방', () => {
     client.setQueryData(queryKeys.messages('room1'), pages(messages.slice().sort((a, b) => b.seq - a.seq)));
     return client;
   }
-  const bubbles = () => within(screen.getByRole('log')).getAllByRole('listitem').map((item) => item.textContent);
+  // 말풍선만 센다 — 날짜 줄도 목록 항목이지만 포커스를 받는 것은 말풍선뿐이다
+  const bubbles = () =>
+    within(screen.getByRole('log'))
+      .getAllByRole('listitem')
+      .filter((item) => item.hasAttribute('tabindex'))
+      .map((item) => item.textContent);
 
   it('[AC-CH-10, 15, 21] 오래된 것부터 그리고, 날짜가 바뀌면 구분선, 이어 보낸 메시지는 마지막에만 시각을 보인다', () => {
     const client = seeded([
@@ -468,7 +493,7 @@ describe('채팅방', () => {
     mount(<ChatRoomScreen roomId="room1" myId={ME} />, { client });
 
     expect(screen.getByRole('heading', { level: 1, name: '김당근' })).toBeTruthy();
-    expect(screen.getAllByRole('separator').map((el) => el.textContent)).toEqual(['2026년 11월 9일 (월)', '2026년 11월 10일 (화)']);
+    expect(screen.getAllByText(/^2026년 11월 \d+일/).map((el) => el.textContent)).toEqual(['2026년 11월 9일 (월)', '2026년 11월 10일 (화)']);
     // 읽히는 순서: 보낸 사람, 내용, 시각
     expect(bubbles()).toEqual(['김당근,어제 메시지오후 11:59', '나,하나오후 3:24', '나,둘오후 3:24', '김당근,답장오후 3:24']);
     // 같은 분에 이어 보낸 "하나"의 시각은 화면에는 숨긴다

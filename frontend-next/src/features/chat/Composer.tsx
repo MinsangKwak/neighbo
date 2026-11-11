@@ -55,6 +55,8 @@ export function Composer({ onSend, disabledReason, blocked }: ComposerProps) {
 
   return (
     <form
+      // 이름이 있어야 구역으로 잡힌다
+      aria-label="메시지 보내기"
       className="flex flex-col gap-1 border-t border-divider bg-bg px-3 py-2"
       onSubmit={(event) => {
         event.preventDefault();
