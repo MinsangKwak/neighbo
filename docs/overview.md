@@ -63,7 +63,7 @@
 | **ChatRoomMember** | 방 참여자의 읽음 위치 | `roomId` `userId` `lastReadSeq` | 방 생성 시 두 행 |
 | **Message** | 텍스트 한 줄 | `roomId` `senderId` `seq`(방 안 순서) `content` `tempId` `createdAt` | 전송 → 영구 (삭제 · 수정 없음) |
 
-보조: **Upload** (상품에 연결되기 전 임시 파일, 24시간 후 정리). 1차에 **없는** 엔티티: Notification · Category · Favorite · Report · Review · Location. 없는 이유는 3절 "2차 이후" 표에.
+보조: **Upload** (상품에 연결되기 전 임시 파일, 24시간 후 정리). 2차에서 더한 엔티티: **Favorite** (관심 — `userId` `productId`, [12](features/12-favorite.md)). 지금도 **없는** 엔티티: Notification · Category · Report · Review · Location. 없는 이유는 3절 "2차 이후" 표에.
 
 ### 2.3 핵심 업무 프로세스
 
@@ -150,7 +150,7 @@
 | 이미지 저장 | `ImageStorage` 인터페이스 — 로컬 디스크(개발) · S3 호환(운영) | 업로드 · 리사이즈 · 삭제 세 메서드 뒤에 저장소를 숨김. 운영 저장소가 바뀌어도 호출부 무변경 | **높음** (Cloudflare R2 · Supabase Storage 등) | 구현체 한 파일 |
 | 검증 | Zod 스키마를 `shared-schema/`에서 프론트 · 백엔드 공유 | 같은 규칙을 두 번 쓰지 않음. 서버가 최종 검증자 | 낮음 | 스키마 패키지 |
 | 데이터 조회 (프론트) | TanStack Query | 캐시 · 재조회 · 낙관적 갱신 · 뒤로가기 복원을 한 규칙으로 | 낮음 | 모든 조회 훅 |
-| 테스트 | 백엔드 API 통합 테스트(Vitest + supertest + 진짜 PostgreSQL) · 프론트 컴포넌트(Testing Library) · E2E 핵심 시나리오 2개(Playwright) | 수용 조건과 1:1. 층별 역할은 [테스트 전략](dev.md#테스트-전략--수용-조건-하나에-테스트-하나) | 낮음 | — |
+| 테스트 | 백엔드 API 통합 테스트(Vitest + supertest + 진짜 PostgreSQL) · 프론트 컴포넌트(Testing Library) · E2E 8개(Playwright — 흐름 5 · 배치 3) | 수용 조건과 1:1. 층별 역할은 [테스트 전략](dev.md#테스트-전략--수용-조건-하나에-테스트-하나) | 낮음 | — |
 | 배포 | 프론트 Vercel · 백엔드 Railway | GitHub 연결 자동 배포, Postgres 원클릭, WebSocket · 상시 실행. 환경 매핑은 [브랜치 · 배포 전략](dev.md#브랜치--배포-전략--main은-언제나-배포-가능하게) | 중간 | 환경 변수 · 워크플로 |
 
 ### 의존성 추가 규칙
@@ -188,13 +188,13 @@ neighbo/
 ├─ docs/
 │  ├─ README.md           # 문서 목차
 │  ├─ overview.md         # 개요 (이 문서)
-│  ├─ features/           # 기능 하나 = 한 장 — 요구사항 + 경우의 수 (00 공통 ~ 10 채팅 알림)
+│  ├─ features/           # 기능 하나 = 한 장 — 요구사항 + 경우의 수 (00 공통 ~ 10 채팅 알림, 2차: 11 판매자 프로필 · 12 관심)
 │  ├─ architecture/       # flow.md · frontend.md · backend.md — 역할마다 한 장
 │  ├─ decisions.md        # 결정 기록 17개 + 검토 요청
 │  ├─ troubleshooting.md  # 설계 결함 · 스파이크 문제의 원인과 해결
 │  ├─ tech-notes.md       # 기술 노트 — 동작 원리 · 실험 결과
 │  └─ dev.md              # 커밋 · 브랜치 · 테스트 · AI 작업·검증
-└─ .github/               # 워크플로 — 문서 검사 · CI(lint · typecheck · test · build)
+└─ .github/               # 워크플로 — 문서 검사 · CI(lint · typecheck · test · build · e2e · 이미지 빌드)
 ```
 
 **요구사항은 기능별로, 처리 방식은 역할별로 관리합니다.** 예를 들어 중복 채팅방 생성에 대해 프론트엔드는 버튼 잠금과 응답 처리를, 백엔드는 유니크 제약과 기존 방 반환을 담당합니다. 기능별 요구사항은 `docs/features/`의 기능 문서에, 여러 기능에 걸친 처리 방식은 `docs/architecture/`의 설계 문서에 둡니다. 2026-11-10에 64개였던 문서를 이 구조로 합쳤습니다 — 기능 하나를 보려고 경우의 수 · 요구사항 · 프론트엔드 · 백엔드 네 곳을 오가지 않도록.
