@@ -67,6 +67,8 @@ export const productDetailSchema = z.object({
   images: z.array(productImageSchema),
   seller: userPublicSchema,
   chatRoomCount: z.number().int().min(0),
+  // 관심을 누른 사람 수. 옛 서버의 응답에는 없다 — 배포가 엇갈리는 동안 0으로 읽는다 [AC-FV-05]
+  favoriteCount: z.number().int().min(0).default(0),
   soldAt: z.iso.datetime().nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
@@ -77,6 +79,8 @@ export type ProductDetail = z.infer<typeof productDetailSchema>;
 export const viewerSchema = z.object({
   isSeller: z.boolean(),
   existingChatRoomId: z.string().nullable(),
+  // 내가 관심을 눌렀는지 [AC-FV-05]
+  isFavorite: z.boolean().default(false),
 });
 export type Viewer = z.infer<typeof viewerSchema>;
 
@@ -85,6 +89,10 @@ export type ProductResponse = z.infer<typeof productResponseSchema>;
 
 export const productDetailResponseSchema = z.object({ product: productDetailSchema, viewer: viewerSchema.nullable() });
 export type ProductDetailResponse = z.infer<typeof productDetailResponseSchema>;
+
+// PUT · DELETE /products/{id}/favorite — 바뀐 뒤의 상태 [AC-FV-01, 02]
+export const favoriteResponseSchema = z.object({ isFavorite: z.boolean(), favoriteCount: z.number().int().min(0) });
+export type FavoriteResponse = z.infer<typeof favoriteResponseSchema>;
 
 export const productPageSchema = z.object({ items: z.array(productCardSchema), nextCursor: z.string().nullable() });
 export type ProductPage = z.infer<typeof productPageSchema>;

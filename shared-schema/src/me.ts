@@ -90,4 +90,6 @@ export const myProductsQuerySchema = z.object({
 export type MyProductsQuery = z.infer<typeof myProductsQuerySchema>;
 
 export const purchasesQuerySchema = z.object({ cursor: z.string().min(1).optional(), limit: limitField });
+// GET /me/favorites — 관심을 누른 순서의 역순 [AC-FV-06]
+export const favoritesQuerySchema = purchasesQuerySchema;
 export type PurchasesQuery = z.infer<typeof purchasesQuerySchema>;
