@@ -3,6 +3,8 @@ import { createApp } from '../src/app.js';
 import { createDb } from '../src/db/client.js';
 import { createLogger } from '../src/lib/log.js';
 import { createPasswordHasher } from '../src/lib/password.js';
+import { createChatService } from '../src/modules/chat/service.js';
+import type { Realtime } from '../src/realtime/Realtime.js';
 import { createLocalStorage } from '../src/storage/ImageStorage.js';
 import { TEST_DATABASE_URL, testConfig } from './env.js';
 
@@ -18,15 +20,28 @@ export function createTestApp(options: { pingDb?: () => Promise<void>; env?: Rec
   const lines: Record<string, unknown>[] = [];
   const log = createLogger('info', (line) => lines.push(JSON.parse(line) as Record<string, unknown>));
   const config = testConfig(options.env);
+  // 커밋 뒤에 무엇을 알렸는지 기록한다 — 소켓 없이 서비스의 알림을 확인한다
+  const events: { [K in keyof Realtime]: Parameters<Realtime[K]>[0][] } = {
+    messageCreated: [],
+    roomRead: [],
+    productUpdated: [],
+  };
+  const realtime: Realtime = {
+    messageCreated: (event) => void events.messageCreated.push(event),
+    roomRead: (event) => void events.roomRead.push(event),
+    productUpdated: (event) => void events.productUpdated.push(event),
+  };
+  const chat = createChatService(db, realtime);
   const app = createApp({
     config,
     log,
     db,
     hasher,
     storage,
+    chat,
     pingDb: options.pingDb ?? (() => Promise.resolve()),
   });
-  return { app, lines, config };
+  return { app, lines, config, chat, events };
 }
 
 export async function resetDb() {

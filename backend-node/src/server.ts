@@ -3,6 +3,8 @@ import { ConfigError, loadConfig } from './config.js';
 import { createDb } from './db/client.js';
 import { createLogger } from './lib/log.js';
 import { createPasswordHasher } from './lib/password.js';
+import { createChatService } from './modules/chat/service.js';
+import { silentRealtime } from './realtime/Realtime.js';
 import { createStorage } from './storage/index.js';
 
 function boot() {
@@ -32,6 +34,8 @@ const app = createApp({
   db,
   hasher,
   storage: createStorage(config),
+  // 소켓 서버가 붙기 전까지는 실시간 전달 없이 저장만 한다
+  chat: createChatService(db, silentRealtime),
   pingDb: async () => {
     await db.$queryRaw`SELECT 1`;
   },

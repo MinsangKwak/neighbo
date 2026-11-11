@@ -12,6 +12,8 @@ export interface TokenPayload {
   purpose: TokenPurpose;
   iat: number;
   exp: number;
+  // 소켓 토큰에만 있다 — 이 토큰을 내준 세션이 끝나는 시각(초). 연결이 세션보다 오래 살지 않게 한다 (I-11)
+  sxp?: number;
 }
 
 const HEADER = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
@@ -21,7 +23,7 @@ function sign(data: string, secret: string): Buffer {
 }
 
 export function signToken(
-  claims: { sub: string; ver: number; purpose: TokenPurpose },
+  claims: { sub: string; ver: number; purpose: TokenPurpose; sxp?: number },
   secret: string,
   ttlSeconds: number,
   now: Date = new Date(),
@@ -70,6 +72,7 @@ export function verifyToken(
   if (claims.exp <= Math.floor(now.getTime() / 1000)) return null;
   // 소켓 토큰도 같은 비밀로 서명되므로 용도를 보지 않으면 세션 자리에서 통과한다
   if (claims.purpose !== purpose) return null;
+  if (claims.sxp !== undefined && typeof claims.sxp !== 'number') return null;
 
   return claims as TokenPayload;
 }

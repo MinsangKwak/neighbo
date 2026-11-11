@@ -11,8 +11,11 @@ import { createOriginCheck, originGuard } from './middleware/origin.js';
 import { createMemoryStore, rateLimit } from './middleware/rateLimit.js';
 import { requestId } from './middleware/requestId.js';
 import { securityHeaders } from './middleware/securityHeaders.js';
-import { createAuthRouter } from './modules/auth/route.js';
+import { signToken } from './lib/jwt.js';
+import { createAuthRouter, SOCKET_TOKEN_TTL_SECONDS } from './modules/auth/route.js';
 import { createAuthService } from './modules/auth/service.js';
+import { createChatRouter } from './modules/chat/route.js';
+import type { ChatService } from './modules/chat/service.js';
 import { createMeRouter } from './modules/me/route.js';
 import { createProductRouter } from './modules/products/route.js';
 import { createProductService } from './modules/products/service.js';
@@ -26,12 +29,14 @@ export interface AppDeps {
   db: Db;
   hasher: PasswordHasher;
   storage: ImageStorage;
+  // 소켓 서버와 같은 인스턴스를 쓴다 — 조립은 부르는 쪽(server.ts)이 한다
+  chat: ChatService;
   // DB에 닿는지 확인한다. 실패하면 던진다
   pingDb: () => Promise<void>;
 }
 
 // 미들웨어 조립 순서가 이 파일 한 곳에 보이게 — 싸고 빠른 거절을 먼저
-export function createApp({ config, log, db, hasher, storage, pingDb }: AppDeps): Express {
+export function createApp({ config, log, db, hasher, storage, chat, pingDb }: AppDeps): Express {
   const app = express();
   app.disable('x-powered-by');
   // Railway의 프록시 한 홉만 믿는다 — req.ip의 기준 (T-02)
@@ -60,18 +65,39 @@ export function createApp({ config, log, db, hasher, storage, pingDb }: AppDeps)
   const ipLimit = (name: string) =>
     rateLimit({ store: limitStore, name, limit: 10, windowMs: 60_000, key: clientIp });
 
-  app.use('/auth', mountedAt('/auth'), createAuthRouter({ service: createAuthService(db, hasher), session, ipLimit }));
-  app.use('/me', mountedAt('/me'), createMeRouter({ session }));
+  app.use(
+    '/auth',
+    mountedAt('/auth'),
+    createAuthRouter({
+      service: createAuthService(db, hasher),
+      session,
+      ipLimit,
+      signSocketToken: (user, sessionExp) =>
+        signToken(
+          { sub: user.id, ver: user.tokenVersion, purpose: 'socket', sxp: sessionExp },
+          config.JWT_SECRET,
+          SOCKET_TOKEN_TTL_SECONDS,
+        ),
+    }),
+  );
 
-  // 로그인한 사용자 기준 분당 30 — requireAuth 뒤에 둔다
-  const userLimit = (name: string) =>
-    rateLimit({
-      store: limitStore,
-      name,
-      limit: 30,
-      windowMs: 60_000,
-      key: (_req, res) => String((res.locals.user as { id?: string } | undefined)?.id ?? 'anonymous'),
-    });
+  // 로그인한 사용자 기준 — requireAuth 뒤에 둔다
+  const userKey = (_req: unknown, res: { locals: Record<string, unknown> }) =>
+    String((res.locals.user as { id?: string } | undefined)?.id ?? 'anonymous');
+  // 쓰기는 분당 30
+  const userLimit = (name: string) => rateLimit({ store: limitStore, name, limit: 30, windowMs: 60_000, key: userKey });
+
+  app.use(
+    '/me',
+    mountedAt('/me'),
+    createMeRouter({
+      session,
+      unreadRooms: chat.unreadRooms,
+      unreadLimit: rateLimit({ store: limitStore, name: 'unread', limit: 60, windowMs: 60_000, key: userKey }),
+    }),
+  );
+  app.use('/chat-rooms', mountedAt('/chat-rooms'), createChatRouter({ service: chat, session, writeLimit: userLimit }));
+
   app.use(
     '/products',
     mountedAt('/products'),

@@ -5,7 +5,7 @@ import { toUserPublic } from '../auth/serialize.js';
 const THUMBNAIL_SIZE = 400;
 
 // 썸네일은 긴 변 400px로 줄여 저장한다 — 화면이 자리를 미리 잡을 수 있게 줄인 크기를 돌려준다 [AC-PL-09]
-function toThumbnail(image: ProductImage): Image {
+export function toThumbnail(image: ProductImage): Image {
   const scale = Math.min(1, THUMBNAIL_SIZE / Math.max(image.width, image.height));
   return {
     url: image.thumbnailUrl,

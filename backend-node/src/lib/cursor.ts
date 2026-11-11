@@ -26,3 +26,21 @@ export function decodeCursor(raw: string): Cursor {
   }
   throw new AppError('INVALID_CURSOR');
 }
+
+// 메시지 커서 — 방 안 번호 하나 (결정 0016). 형식은 목록 커서와 같게 불투명한 문자열로
+export function encodeSeqCursor(seq: number): string {
+  return Buffer.from(JSON.stringify([seq])).toString('base64url');
+}
+
+export function decodeSeqCursor(raw: string): number {
+  try {
+    const parsed: unknown = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'));
+    if (Array.isArray(parsed) && parsed.length === 1) {
+      const [seq] = parsed as unknown[];
+      if (typeof seq === 'number' && Number.isInteger(seq) && seq >= 0 && seq <= 2_147_483_647) return seq;
+    }
+  } catch {
+    // 아래에서 같은 오류로 답한다
+  }
+  throw new AppError('INVALID_CURSOR');
+}

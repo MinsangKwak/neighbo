@@ -16,6 +16,13 @@ export interface Session {
   optionalAuth: RequestHandler;
 }
 
+// 지금 요청의 세션이 끝나는 시각(초) — 소켓 토큰에 실어 보낸다
+export function sessionExpiry(res: Response): number {
+  const exp = res.locals.sessionExp as number | undefined;
+  if (exp === undefined) throw new Error('sessionExpiry()는 requireAuth 뒤에서만 쓸 수 있다');
+  return exp;
+}
+
 export function currentUser(res: Response): User {
   const user = res.locals.user as User | undefined;
   // requireAuth 뒤에서만 부른다 — 여기 걸리면 라우트 조립 실수다
@@ -63,7 +70,9 @@ export function createSession(config: Config, db: Db): Session {
     if (user === null || user.deletedAt !== null || user.tokenVersion !== payload.ver) return 'invalid';
 
     const remaining = payload.exp - Math.floor(Date.now() / 1000);
-    if (remaining < SESSION_TTL_SECONDS / 2) setCookie(res, user);
+    const renew = remaining < SESSION_TTL_SECONDS / 2;
+    if (renew) setCookie(res, user);
+    res.locals.sessionExp = renew ? Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS : payload.exp;
     return user;
   }
 
