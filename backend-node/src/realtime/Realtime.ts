@@ -16,6 +16,8 @@ export interface Realtime {
   roomRead(event: { roomId: string; userId: string; lastReadSeq: number; unreadRooms: number }): void;
   // 상품이 바뀌면 그 상품의 모든 방에 알린다 [AC-CH-41]
   productUpdated(event: { roomIds: string[]; product: ProductSummary }): void;
+  // 비밀번호가 바뀌었다 — 그 사용자의 열려 있는 연결은 전부 옛 세션의 것이다 [AC-MP-09]
+  userRevoked(event: { userId: string }): void;
 }
 
 // 소켓 서버가 없는 곳(시드 · 일부 테스트)에서 쓴다
@@ -23,4 +25,5 @@ export const silentRealtime: Realtime = {
   messageCreated() {},
   roomRead() {},
   productUpdated() {},
+  userRevoked() {},
 };

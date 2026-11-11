@@ -154,6 +154,23 @@ describe('연결 — 듣기만 하는 연결', () => {
   });
 });
 
+describe('연결 — 세션 무효화', () => {
+  it('[AC-MP-09] 비밀번호가 바뀌면 그 사용자의 연결을 모두 이유와 함께 끊는다. 다른 사용자의 연결은 그대로다', async () => {
+    const { seller, buyer } = await scene();
+    const first = await rt.connected(seller.token);
+    const second = await rt.connected(seller.token);
+    const other = await rt.connected(buyer.token);
+    const errors = [once(first, 'error'), once(second, 'error')];
+    const reasons = [disconnected(first), disconnected(second)];
+
+    rt.hub.realtime.userRevoked({ userId: seller.id });
+    expect((await Promise.all(errors)).map((error) => error.code)).toEqual(['UNAUTHORIZED', 'UNAUTHORIZED']);
+    expect(await Promise.all(reasons)).toEqual(['io server disconnect', 'io server disconnect']);
+    await settle();
+    expect(other.connected).toBe(true);
+  });
+});
+
 describe('room:join', () => {
   it('[AC-CH-30] 참여자가 아니면 FORBIDDEN — 없는 방과 같은 답이고, 조인하지 않은 방에는 보낼 수 없다', async () => {
     const { buyer, roomId } = await scene();

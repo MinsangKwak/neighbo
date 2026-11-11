@@ -262,6 +262,13 @@ export function createSocketHub({ httpServer, jwtSecret, log, isAllowedOrigin, i
     productUpdated({ roomIds, product }) {
       for (const roomId of roomIds) io.to(chatRoom(roomId)).emit('room:product_updated', { roomId, product });
     },
+    userRevoked({ userId }) {
+      // 이유를 알리고 끊는다 — 클라이언트는 이 이유를 받았을 때만 재로그인으로 보낸다 (I-13)
+      // 비밀번호를 바꾼 탭도 끊기지만, 그 화면은 새 쿠키로 문서를 다시 받아 새 토큰으로 붙는다
+      const room = io.in(userRoom(userId));
+      room.emit('error', { code: 'UNAUTHORIZED', message: SOCKET_ERROR_MESSAGE.UNAUTHORIZED });
+      room.disconnectSockets(true);
+    },
   };
 
   return {

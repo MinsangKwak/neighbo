@@ -17,6 +17,7 @@ import { createAuthService } from './modules/auth/service.js';
 import { createChatRouter } from './modules/chat/route.js';
 import type { ChatService } from './modules/chat/service.js';
 import { createMeRouter } from './modules/me/route.js';
+import { createMeService } from './modules/me/service.js';
 import { createProductRouter } from './modules/products/route.js';
 import { createProductService } from './modules/products/service.js';
 import { createWorkQueue } from './modules/uploads/queue.js';
@@ -93,6 +94,8 @@ export function createApp({ config, log, db, hasher, storage, chat, realtime, pi
     '/me',
     mountedAt('/me'),
     createMeRouter({
+      service: createMeService(db, hasher, storage, realtime),
+      writeLimit: userLimit,
       session,
       unreadRooms: chat.unreadRooms,
       unreadLimit: rateLimit({ store: limitStore, name: 'unread', limit: 60, windowMs: 60_000, key: userKey }),

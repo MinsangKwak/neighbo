@@ -25,11 +25,13 @@ export function createTestApp(options: { pingDb?: () => Promise<void>; env?: Rec
     messageCreated: [],
     roomRead: [],
     productUpdated: [],
+    userRevoked: [],
   };
   const realtime: Realtime = {
     messageCreated: (event) => void events.messageCreated.push(event),
     roomRead: (event) => void events.roomRead.push(event),
     productUpdated: (event) => void events.productUpdated.push(event),
+    userRevoked: (event) => void events.userRevoked.push(event),
   };
   const chat = createChatService(db, realtime);
   const app = createApp({
