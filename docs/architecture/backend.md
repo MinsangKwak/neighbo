@@ -829,7 +829,7 @@ canAssignBuyer(product, buyerId, rooms)   // buyerId가 이 상품 방의 구매
 | 작업 | 주기 | 대상 | 처리 | 근거 |
 | --- | --- | --- | --- | --- |
 | 고아 업로드 정리 | 매일 03:00 KST | `Upload.createdAt < now - 25h` — 업로드는 24시간에 만료되고, 만료 직전에 붙이기 시작한 요청과 겹치지 않게 한 시간을 더 둔다 | 파일 두 벌(아바타는 한 벌) 삭제 → 행 삭제 | AC-PC-19 |
-| 삭제 상품 이미지 정리 | 매일 03:00 KST (위와 같은 실행) | `Product.deletedAt < now - 30d AND imagesPurgedAt IS NULL` | 파일 삭제 → 같은 조건으로 `imagesPurgedAt` 기록 + `ProductImage` 삭제(한 트랜잭션). 그 사이 되살아난 상품은 0행이라 건드리지 않는다 | AC-PX-12 |
+| 삭제 상품 이미지 정리 | 매일 03:00 KST (위와 같은 실행) | `Product.deletedAt < now - 30d AND imagesPurgedAt IS NULL` (시드 상품 제외) | 파일 삭제 → 같은 조건으로 `imagesPurgedAt` 기록 + `ProductImage` 삭제(한 트랜잭션). 시드 상품은 대상에서 뺀다 — 지워진 상품을 되살리는 것은 시드뿐이고, 되살릴 때 올려 둔 파일을 다시 쓰기 때문이다 | AC-PX-12 |
 | 고아 파일 정리 | 주 1회 | 저장소에 있지만 DB(`ProductImage` · `Upload` · `User.avatarUrl`) 어디에도 없는 키 | 7일 넘은 것만 삭제 | 커밋 후 파일 삭제 실패분 ([03 트랜잭션](#03--트랜잭션-경계)) |
 | 데모 초기화 | 매일 04:00 KST | `isDemo` 계정의 상품 · 프로필, 두 데모 계정 사이의 방 | 시드 상태로 되돌림 ([11 구성과 시드](#5-데모-계정의-제한과-초기화)) | AC-LI-19 |
 
