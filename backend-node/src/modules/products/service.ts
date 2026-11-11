@@ -13,7 +13,9 @@ import { uniqueViolationIndex } from '../../db/errors.js';
 import { AppError } from '../../errors/AppError.js';
 import type { Prisma, Upload, User } from '../../generated/prisma/client.js';
 import { decodeCursor, encodeCursor } from '../../lib/cursor.js';
+import type { Realtime } from '../../realtime/Realtime.js';
 import type { ImageStorage } from '../../storage/ImageStorage.js';
+import { toProductSummary } from '../chat/serialize.js';
 import type { DetailRow } from './serialize.js';
 
 // 업로드는 24시간 안에 상품에 연결해야 한다 — 그 뒤는 정리 배치의 몫 [AC-PC-19]
@@ -36,7 +38,22 @@ function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (char) => `\\${char}`);
 }
 
-export function createProductService(db: Db, storage: ImageStorage) {
+export function createProductService(db: Db, storage: ImageStorage, realtime: Realtime) {
+  // 상품이 바뀌면 그 상품의 방을 보고 있는 사람들에게 알린다 — 커밋 뒤에만 부른다 [AC-CH-41]
+  // 알리지 못해도 요청은 성공이다. 화면은 다음 조회에서 맞춰진다
+  async function notifyRooms(productId: string): Promise<void> {
+    try {
+      const product = await db.withDeleted().product.findUnique({
+        where: { id: productId },
+        include: { images: { orderBy: { order: 'asc' }, take: 1 }, chatRooms: { select: { id: true } } },
+      });
+      if (product === null || product.chatRooms.length === 0) return;
+      realtime.productUpdated({ roomIds: product.chatRooms.map((room) => room.id), product: toProductSummary(product) });
+    } catch {
+      // 위 주석과 같다
+    }
+  }
+
   // 상품에 붙일 업로드를 확인하고 넘겨받는다 — 존재 · 만료 · 종류 · 소유자 [AC-PC-18]
   async function claimUploads(tx: Tx, userId: string, uploadIds: string[]): Promise<Upload[]> {
     if (uploadIds.length === 0) return [];
@@ -226,6 +243,7 @@ export function createProductService(db: Db, storage: ImageStorage) {
           // 남은 파일은 정리 배치가 지운다
         });
       }
+      await notifyRooms(id);
       return findDetail(id);
     },
 
@@ -274,6 +292,7 @@ export function createProductService(db: Db, storage: ImageStorage) {
         }));
       }
       if (count === 0) throw await explainMiss(id, user.id);
+      await notifyRooms(id);
       return findDetail(id);
     },
 
@@ -287,6 +306,7 @@ export function createProductService(db: Db, storage: ImageStorage) {
         const reason = await explainMiss(id, user.id);
         throw reason.code === 'INVALID_TRANSITION' ? new AppError('NOT_FOUND') : reason;
       }
+      await notifyRooms(id);
     },
 
     // 거래완료 바텀시트 — 이 상품으로 대화한 사람들, 최근 활동순 [AC-PD-04]

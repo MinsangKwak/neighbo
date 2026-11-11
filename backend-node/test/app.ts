@@ -39,6 +39,7 @@ export function createTestApp(options: { pingDb?: () => Promise<void>; env?: Rec
     hasher,
     storage,
     chat,
+    realtime,
     pingDb: options.pingDb ?? (() => Promise.resolve()),
   });
   return { app, lines, config, chat, events };

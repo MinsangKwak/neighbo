@@ -21,6 +21,7 @@ import { createProductRouter } from './modules/products/route.js';
 import { createProductService } from './modules/products/service.js';
 import { createWorkQueue } from './modules/uploads/queue.js';
 import { createUploadRouter } from './modules/uploads/route.js';
+import type { Realtime } from './realtime/Realtime.js';
 import type { ImageStorage } from './storage/ImageStorage.js';
 
 export interface AppDeps {
@@ -31,12 +32,13 @@ export interface AppDeps {
   storage: ImageStorage;
   // 소켓 서버와 같은 인스턴스를 쓴다 — 조립은 부르는 쪽(server.ts)이 한다
   chat: ChatService;
+  realtime: Realtime;
   // DB에 닿는지 확인한다. 실패하면 던진다
   pingDb: () => Promise<void>;
 }
 
 // 미들웨어 조립 순서가 이 파일 한 곳에 보이게 — 싸고 빠른 거절을 먼저
-export function createApp({ config, log, db, hasher, storage, chat, pingDb }: AppDeps): Express {
+export function createApp({ config, log, db, hasher, storage, chat, realtime, pingDb }: AppDeps): Express {
   const app = express();
   app.disable('x-powered-by');
   // Railway의 프록시 한 홉만 믿는다 — req.ip의 기준 (T-02)
@@ -102,7 +104,7 @@ export function createApp({ config, log, db, hasher, storage, chat, pingDb }: Ap
     '/products',
     mountedAt('/products'),
     createProductRouter({
-      service: createProductService(db, storage),
+      service: createProductService(db, storage, realtime),
       session,
       writeLimit: userLimit('product-create'),
     }),
