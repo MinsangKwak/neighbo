@@ -10,5 +10,9 @@ export const userPublicSchema = z.object({
 export type UserPublic = z.infer<typeof userPublicSchema>;
 
 // 본인에게만 [AC-CM-14]
-export const userSelfSchema = userPublicSchema.extend({ email: z.string() });
+export const userSelfSchema = userPublicSchema.extend({
+  email: z.string(),
+  // 둘러보기 계정 — 화면이 프로필 · 비밀번호 변경을 막고 이유를 적는다 [AC-LI-19]
+  isDemo: z.boolean().default(false),
+});
 export type UserSelf = z.infer<typeof userSelfSchema>;
