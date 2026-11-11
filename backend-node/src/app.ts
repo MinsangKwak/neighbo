@@ -111,6 +111,7 @@ export function createApp({ config, log, db, hasher, storage, chat, realtime, pi
       service: createProductService(db, storage, realtime),
       session,
       writeLimit: userLimit('product-create'),
+      favoriteLimit: userLimit('favorite'),
     }),
   );
 

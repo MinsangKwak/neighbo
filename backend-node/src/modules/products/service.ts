@@ -3,6 +3,7 @@ import {
   STATUS_TRANSITIONS,
   type ChangeStatusInput,
   type CreateProductInput,
+  type FavoriteResponse,
   type ListProductsQuery,
   type ProductStatus,
   type UpdateProductInput,
@@ -30,7 +31,7 @@ const cardInclude = {
 const detailInclude = {
   images: { orderBy: { order: 'asc' } },
   seller: true,
-  _count: { select: { chatRooms: true } },
+  _count: { select: { chatRooms: true, favorites: true } },
 } satisfies Prisma.ProductInclude;
 
 // ILIKE의 와일드카드를 글자 그대로 찾게 한다 [AC-PL-12]
@@ -138,13 +139,35 @@ export function createProductService(db: Db, storage: ImageStorage, realtime: Re
       const product = await findDetail(id);
       if (user === null) return { product, viewer: null };
       const isSeller = product.sellerId === user.id;
-      const room = isSeller
-        ? null
-        : await db.chatRoom.findUnique({
-            where: { productId_buyerId: { productId: id, buyerId: user.id } },
-            select: { id: true },
-          });
-      return { product, viewer: { isSeller, existingChatRoomId: room?.id ?? null } };
+      // 자기 물건에는 채팅도 관심도 없다
+      const [room, favorite] = isSeller
+        ? [null, null]
+        : await Promise.all([
+            db.chatRoom.findUnique({
+              where: { productId_buyerId: { productId: id, buyerId: user.id } },
+              select: { id: true },
+            }),
+            db.favorite.findUnique({
+              where: { userId_productId: { userId: user.id, productId: id } },
+              select: { userId: true },
+            }),
+          ]);
+      return { product, viewer: { isSeller, existingChatRoomId: room?.id ?? null, isFavorite: favorite !== null } };
+    },
+
+    // 관심을 켠다 — 몇 번을 눌러도 한 줄이다. 삭제된 물건과 자기 물건에는 켤 수 없다 [AC-FV-01, 03, 04]
+    async favorite(user: User, id: string): Promise<FavoriteResponse> {
+      const product = await db.product.findFirst({ where: { id }, select: { sellerId: true } });
+      if (product === null) throw new AppError('NOT_FOUND');
+      if (product.sellerId === user.id) throw new AppError('FORBIDDEN');
+      await db.favorite.createMany({ data: [{ userId: user.id, productId: id }], skipDuplicates: true });
+      return { isFavorite: true, favoriteCount: await db.favorite.count({ where: { productId: id } }) };
+    },
+
+    // 관심을 끈다 — 없던 것을 꺼도, 물건이 그 사이 삭제됐어도 성공이다 [AC-FV-02]
+    async unfavorite(user: User, id: string): Promise<FavoriteResponse> {
+      await db.favorite.deleteMany({ where: { userId: user.id, productId: id } });
+      return { isFavorite: false, favoriteCount: await db.favorite.count({ where: { productId: id } }) };
     },
 
     // T2 — 같은 멱등 키의 두 번째 요청은 기존 상품을 돌려준다 [AC-PC-08, 09]

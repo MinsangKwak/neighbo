@@ -44,6 +44,7 @@ model User {
   roomsBought ChatRoom[]       @relation("RoomBuyer")
   memberships ChatRoomMember[]
   messages    Message[]
+  favorites   Favorite[]
 }
 
 model Product {
@@ -66,6 +67,7 @@ model Product {
   buyer     User?          @relation("ProductBuyer", fields: [buyerId], references: [id])
   images    ProductImage[]
   chatRooms ChatRoom[]
+  favorites Favorite[]
 
   @@unique([sellerId, idempotencyKey])
   @@index([deletedAt, createdAt(sort: Desc), id(sort: Desc)]) // 홈 목록 · 커서
@@ -103,6 +105,20 @@ model Upload {
   uploader User @relation(fields: [uploaderId], references: [id])
 
   @@index([createdAt]) // 24시간 지난 고아 정리 배치
+}
+
+// 관심(찜) — 한 사람이 한 상품에 한 번 (docs/features/12-favorite.md)
+model Favorite {
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([userId, productId])
+  @@index([userId, createdAt(sort: Desc), productId(sort: Desc)]) // 관심 목록 · 커서
+  @@index([productId]) // 상품의 관심 수
 }
 
 model ChatRoom {

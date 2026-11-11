@@ -29,7 +29,7 @@ export function toProductCard(product: CardRow): ProductCard {
   };
 }
 
-export type DetailRow = CardRow & { seller: User };
+export type DetailRow = CardRow & { seller: User; _count: { chatRooms: number; favorites: number } };
 
 export function toProductDetail(product: DetailRow): ProductDetail {
   return {
@@ -47,6 +47,7 @@ export function toProductDetail(product: DetailRow): ProductDetail {
     })),
     seller: toUserPublic(product.seller),
     chatRoomCount: product._count.chatRooms,
+    favoriteCount: product._count.favorites,
     soldAt: product.soldAt?.toISOString() ?? null,
     createdAt: product.createdAt.toISOString(),
     updatedAt: product.updatedAt.toISOString(),

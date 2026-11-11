@@ -5,6 +5,7 @@ import {
   listProductsQuerySchema,
   updateProductSchema,
   type ChatPartnersResponse,
+  type FavoriteResponse,
   type ProductDetailResponse,
   type ProductPage,
   type ProductResponse,
@@ -21,9 +22,11 @@ interface ProductRouteDeps {
   session: Session;
   // 사용자 분당 30 [AC-CM-32]
   writeLimit: RequestHandler;
+  // 관심 켜기 · 끄기 — 사용자 분당 30
+  favoriteLimit: RequestHandler;
 }
 
-export function createProductRouter({ service, session, writeLimit }: ProductRouteDeps): Router {
+export function createProductRouter({ service, session, writeLimit, favoriteLimit }: ProductRouteDeps): Router {
   const router = Router();
 
   router.get('/', async (req, res) => {
@@ -70,6 +73,17 @@ export function createProductRouter({ service, session, writeLimit }: ProductRou
   router.delete('/:id', session.requireAuth, async (req, res) => {
     await service.remove(currentUser(res), String(req.params.id));
     res.status(204).end();
+  });
+
+  // 켜기와 끄기를 나눠 둔다 — 같은 요청이 두 번 가도 결과가 같다 [AC-FV-01, 02]
+  router.put('/:id/favorite', session.requireAuth, favoriteLimit, async (req, res) => {
+    const body: FavoriteResponse = await service.favorite(currentUser(res), String(req.params.id));
+    res.json(body);
+  });
+
+  router.delete('/:id/favorite', session.requireAuth, favoriteLimit, async (req, res) => {
+    const body: FavoriteResponse = await service.unfavorite(currentUser(res), String(req.params.id));
+    res.json(body);
   });
 
   router.get('/:id/chat-partners', session.requireAuth, async (req, res) => {

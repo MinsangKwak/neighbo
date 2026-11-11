@@ -188,3 +188,19 @@ describe('스케줄러', () => {
     expect(await runLocked(db, silent, failing)).toBe(false);
   });
 });
+
+describe('데모 초기화와 관심', () => {
+  it('AC-FV-09 데모 계정이 눌러 둔 관심을 지우고, 일반 사용자의 관심은 둔다', async () => {
+    const real = await realUser('관심이');
+    await db.favorite.createMany({
+      data: [
+        { userId: 'demo_buyer', productId: 'demo_p1' },
+        { userId: real.id, productId: 'demo_p1' },
+      ],
+    });
+
+    await resetDemo(db, storage, { sample: false });
+
+    expect((await db.favorite.findMany()).map((row) => row.userId)).toEqual([real.id]);
+  });
+});

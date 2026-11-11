@@ -142,6 +142,31 @@ export function createMeService(db: Db, hasher: PasswordHasher, storage: ImageSt
       };
     },
 
+    // 관심 목록 — 누른 순서의 역순. 삭제된 물건은 빠진다 [AC-FV-06, 07]
+    async favorites(userId: string, query: PurchasesQuery) {
+      const cursor = query.cursor === undefined ? null : decodeCursor(query.cursor);
+      const rows = await db.favorite.findMany({
+        where: {
+          userId,
+          // 관계를 건너 읽는 조회에는 삭제 조건이 자동으로 붙지 않는다
+          product: { deletedAt: null },
+          ...(cursor === null
+            ? {}
+            : { OR: [{ createdAt: { lt: cursor.at } }, { createdAt: cursor.at, productId: { lt: cursor.id } }] }),
+        },
+        orderBy: [{ createdAt: 'desc' }, { productId: 'desc' }],
+        take: query.limit + 1,
+        include: { product: { include: { ...cover, _count: { select: { chatRooms: true } } } } },
+      });
+      const items = rows.slice(0, query.limit);
+      const last = items.at(-1);
+      return {
+        items: items.map((row) => row.product),
+        nextCursor:
+          rows.length > query.limit && last !== undefined ? encodeCursor({ at: last.createdAt, id: last.productId }) : null,
+      };
+    },
+
     // 구매 내역 — 거래 사실은 상대가 글을 지워도 남는다 [AC-MP-04]
     async purchases(userId: string, query: PurchasesQuery) {
       const cursor = query.cursor === undefined ? null : decodeCursor(query.cursor);

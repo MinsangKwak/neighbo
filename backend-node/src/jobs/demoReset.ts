@@ -48,6 +48,9 @@ export async function resetDemo(
   const images = await drawSeedImages(12);
   await seedDemoProducts(db, storage, images, now);
 
+  // 공용 계정이 눌러 둔 관심도 다음 사람에게 넘기지 않는다 [AC-FV-09]
+  await db.favorite.deleteMany({ where: { userId: { in: demoIds } } });
+
   // ③ 두 데모 계정 사이의 방은 메시지째 지운다
   const between = await db.chatRoom.findMany({
     where: { sellerId: { in: demoIds }, buyerId: { in: demoIds } },

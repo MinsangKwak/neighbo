@@ -1,12 +1,14 @@
 import { Router, type RequestHandler } from 'express';
 import {
   changePasswordSchema,
+  favoritesQuerySchema,
   myProductsQuerySchema,
   purchasesQuerySchema,
   updateMeSchema,
   type AuthResponse,
   type MeResponse,
   type MyProductPage,
+  type ProductPage,
   type PurchasePage,
   type UnreadResponse,
 } from '@neighbo/shared-schema';
@@ -61,6 +63,12 @@ export function createMeRouter({ service, session, unreadRooms, unreadLimit, wri
       })),
       nextCursor: page.nextCursor,
     };
+    res.json(body);
+  });
+
+  router.get('/favorites', auth, async (req, res) => {
+    const page = await service.favorites(currentUser(res).id, parseOrThrow(favoritesQuerySchema, req.query));
+    const body: ProductPage = { items: page.items.map(toProductCard), nextCursor: page.nextCursor };
     res.json(body);
   });
 

@@ -272,11 +272,11 @@ describe('GET /products/:id', () => {
     expect(anonymous.headers['cache-control']).toBe('no-store');
 
     const asSeller = await request(app).get(`/products/${id}`).set('Cookie', seller.cookie);
-    expect(asSeller.body.viewer).toEqual({ isSeller: true, existingChatRoomId: null });
+    expect(asSeller.body.viewer).toEqual({ isSeller: true, existingChatRoomId: null, isFavorite: false });
     expect(asSeller.body.product.chatRoomCount).toBe(1);
 
     const asBuyer = await request(app).get(`/products/${id}`).set('Cookie', buyer.cookie);
-    expect(asBuyer.body.viewer).toEqual({ isSeller: false, existingChatRoomId: room.id });
+    expect(asBuyer.body.viewer).toEqual({ isSeller: false, existingChatRoomId: room.id, isFavorite: false });
   });
 
   it('만료 · 변조된 쿠키로 열어도 401이 아니라 비로그인으로 보여준다', async () => {
