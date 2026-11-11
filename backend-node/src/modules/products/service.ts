@@ -9,18 +9,17 @@ import {
   type UpdateProductInput,
   type Viewer,
 } from '@neighbo/shared-schema';
+import { UPLOAD_TTL_MS } from '../uploads/ttl.js';
 import type { Db, Tx } from '../../db/client.js';
 import { uniqueViolationIndex } from '../../db/errors.js';
 import { AppError } from '../../errors/AppError.js';
 import type { Prisma, Upload, User } from '../../generated/prisma/client.js';
-import { decodeCursor, encodeCursor } from '../../lib/cursor.js';
+import { decodeCursor, takePage } from '../../lib/cursor.js';
 import type { Realtime } from '../../realtime/Realtime.js';
 import type { ImageStorage } from '../../storage/ImageStorage.js';
 import { toProductSummary } from '../chat/serialize.js';
 import type { DetailRow } from './serialize.js';
 
-// 업로드는 24시간 안에 상품에 연결해야 한다 — 그 뒤는 정리 배치의 몫 [AC-PC-19]
-const UPLOAD_TTL_MS = 24 * 60 * 60 * 1000;
 
 const cardInclude = {
   // 대표 사진만
@@ -126,12 +125,7 @@ export function createProductService(db: Db, storage: ImageStorage, realtime: Re
         take: query.limit + 1,
         include: cardInclude,
       });
-      const items = rows.slice(0, query.limit);
-      const last = items.at(-1);
-      return {
-        items,
-        nextCursor: rows.length > query.limit && last !== undefined ? encodeCursor({ at: last.createdAt, id: last.id }) : null,
-      };
+      return takePage(rows, query.limit, (last) => ({ at: last.createdAt, id: last.id }));
     },
 
     // 상세 + 보는 사람 기준 정보 [AC-PD-11, 12, 22]

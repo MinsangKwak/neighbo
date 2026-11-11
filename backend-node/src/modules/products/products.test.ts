@@ -2,21 +2,12 @@ import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { productDetailResponseSchema, productPageSchema } from '@neighbo/shared-schema';
-import { createTestApp, db, post, resetDb, sessionCookie, ORIGIN } from '../../../test/app.js';
+import { createTestApp, db, ORIGIN, post, resetDb, signup } from '../../../test/app.js';
 
 beforeEach(resetDb);
 
 type App = ReturnType<typeof createTestApp>['app'];
 
-async function signup(app: App, name: string) {
-  const res = await post(app, '/auth/signup').send({
-    email: `${name}@example.com`,
-    password: 'correct horse',
-    passwordConfirm: 'correct horse',
-    nickname: name,
-  });
-  return { id: res.body.user.id as string, cookie: sessionCookie(res) };
-}
 
 function create(app: App, cookie: string, body: Record<string, unknown> = {}) {
   return post(app, '/products')

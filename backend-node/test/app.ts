@@ -58,6 +58,19 @@ export function post(app: Parameters<typeof request>[0], path: string) {
   return request(app).post(path).set('Origin', ORIGIN);
 }
 
+export const TEST_PASSWORD = 'correct horse';
+
+// 가입하고 그 사람의 id와 세션 쿠키를 돌려준다 — 거의 모든 통합 테스트의 첫 줄이다
+export async function signup(app: Parameters<typeof request>[0], name: string) {
+  const res = await post(app, '/auth/signup').send({
+    email: `${name}@example.com`,
+    password: TEST_PASSWORD,
+    passwordConfirm: TEST_PASSWORD,
+    nickname: name,
+  });
+  return { id: res.body.user.id as string, cookie: sessionCookie(res), res };
+}
+
 export function sessionCookie(res: { headers: Record<string, unknown> }): string {
   const cookies = (res.headers['set-cookie'] ?? []) as string[];
   const cookie = cookies.find((c) => c.startsWith('nb_session='));

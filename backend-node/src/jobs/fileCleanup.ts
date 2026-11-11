@@ -1,5 +1,6 @@
 import type { Db } from '../db/client.js';
 import { thumbnailKey } from '../modules/products/service.js';
+import { UPLOAD_TTL_MS } from '../modules/uploads/ttl.js';
 import { DEMO_PRODUCTS } from '../seed/demo.js';
 import { SAMPLE_PRODUCTS } from '../seed/sample.js';
 import type { ImageStorage } from '../storage/ImageStorage.js';
@@ -8,9 +9,8 @@ import type { ImageStorage } from '../storage/ImageStorage.js';
 // 근거: docs/architecture/backend.md 07절 4. 배치 작업 [AC-PC-19] [AC-PX-12]
 
 const HOUR = 60 * 60 * 1000;
-// 업로드는 24시간이 지나면 상품에 붙일 수 없다 (products · me 서비스의 UPLOAD_TTL_MS)
-// 만료 직전에 붙이기 시작한 요청과 겹치지 않게 한 시간을 더 기다린다
-export const ORPHAN_UPLOAD_AFTER_MS = 25 * HOUR;
+// 만료된 업로드는 더 붙일 수 없다. 만료 직전에 붙이기 시작한 요청과 겹치지 않게 한 시간을 더 기다린다
+export const ORPHAN_UPLOAD_AFTER_MS = UPLOAD_TTL_MS + HOUR;
 export const DELETED_PRODUCT_AFTER_MS = 30 * 24 * HOUR;
 // 큰 삭제가 DB를 오래 잡지 않게 나눠 읽는다
 const BATCH = 100;

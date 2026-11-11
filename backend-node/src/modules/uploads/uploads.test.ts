@@ -2,7 +2,7 @@ import request from 'supertest';
 import sharp from 'sharp';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { uploadResponseSchema } from '@neighbo/shared-schema';
-import { createTestApp, db, ORIGIN, post, resetDb, sessionCookie } from '../../../test/app.js';
+import { createTestApp, db, ORIGIN, post, resetDb, signup } from '../../../test/app.js';
 import { AppError } from '../../errors/AppError.js';
 import { detectImageType } from './image.js';
 import { createWorkQueue } from './queue.js';
@@ -11,15 +11,6 @@ beforeEach(resetDb);
 
 type App = ReturnType<typeof createTestApp>['app'];
 
-async function signup(app: App, name: string) {
-  const res = await post(app, '/auth/signup').send({
-    email: `${name}@example.com`,
-    password: 'correct horse',
-    passwordConfirm: 'correct horse',
-    nickname: name,
-  });
-  return { id: res.body.user.id as string, cookie: sessionCookie(res) };
-}
 
 const solid = (width: number, height: number) =>
   sharp({ create: { width, height, channels: 3, background: { r: 200, g: 80, b: 40 } } });

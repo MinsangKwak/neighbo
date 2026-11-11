@@ -7,7 +7,7 @@ import {
   messagePageSchema,
   socketTokenResponseSchema,
 } from '@neighbo/shared-schema';
-import { createTestApp, db, post, resetDb, sessionCookie, ORIGIN } from '../../../test/app.js';
+import { createTestApp, db, ORIGIN, post, resetDb, signup } from '../../../test/app.js';
 import { baseEnv } from '../../../test/env.js';
 import { verifyToken } from '../../lib/jwt.js';
 import { ProductDeletedError } from './service.js';
@@ -17,15 +17,6 @@ beforeEach(resetDb);
 type Ctx = ReturnType<typeof createTestApp>;
 type App = Ctx['app'];
 
-async function signup(app: App, name: string) {
-  const res = await post(app, '/auth/signup').send({
-    email: `${name}@example.com`,
-    password: 'correct horse',
-    passwordConfirm: 'correct horse',
-    nickname: name,
-  });
-  return { id: res.body.user.id as string, cookie: sessionCookie(res) };
-}
 
 async function createProduct(app: App, cookie: string, title = '원목 의자') {
   const res = await post(app, '/products')

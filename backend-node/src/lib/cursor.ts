@@ -10,6 +10,19 @@ export function encodeCursor(cursor: Cursor): string {
   return Buffer.from(JSON.stringify([cursor.at.toISOString(), cursor.id])).toString('base64url');
 }
 
+// 하나 더 읽어 온 행에서 한 쪽을 잘라 내고, 더 있으면 마지막 행으로 다음 커서를 만든다
+// 목록 조회는 모두 limit + 1개를 읽어 이 함수에 넘긴다 [AC-CM-12]
+export function takePage<Row>(
+  rows: Row[],
+  limit: number,
+  cursorOf: (last: Row) => Cursor | null,
+): { items: Row[]; nextCursor: string | null } {
+  const items = rows.slice(0, limit);
+  const last = items.at(-1);
+  const cursor = rows.length > limit && last !== undefined ? cursorOf(last) : null;
+  return { items, nextCursor: cursor === null ? null : encodeCursor(cursor) };
+}
+
 // 조작된 커서는 400 INVALID_CURSOR
 export function decodeCursor(raw: string): Cursor {
   try {

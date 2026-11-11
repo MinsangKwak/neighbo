@@ -6,17 +6,17 @@ import {
   type PurchasesQuery,
   type UpdateMeInput,
 } from '@neighbo/shared-schema';
+import { countSelling } from '../products/counts.js';
+import { UPLOAD_TTL_MS } from '../uploads/ttl.js';
 import type { Db } from '../../db/client.js';
 import { uniqueViolationIndex } from '../../db/errors.js';
 import { AppError } from '../../errors/AppError.js';
 import type { Prisma, User } from '../../generated/prisma/client.js';
-import { decodeCursor, encodeCursor } from '../../lib/cursor.js';
+import { decodeCursor, takePage } from '../../lib/cursor.js';
 import { isCommonPassword, type PasswordHasher } from '../../lib/password.js';
 import type { Realtime } from '../../realtime/Realtime.js';
 import type { ImageStorage } from '../../storage/ImageStorage.js';
 
-// 업로드는 24시간 안에 연결해야 한다 — 상품 사진과 같은 규칙
-const UPLOAD_TTL_MS = 24 * 60 * 60 * 1000;
 
 const cover = { images: { orderBy: { order: 'asc' }, take: 1 } } satisfies Prisma.ProductInclude;
 
@@ -36,11 +36,10 @@ export function createMeService(db: Db, hasher: PasswordHasher, storage: ImageSt
     // 탭에 보일 개수 — 삭제된 상품은 판매 쪽에서 빠지고 구매 내역에는 남는다 [AC-MP-03, 04, 11]
     async counts(userId: string): Promise<MeCounts> {
       const [selling, purchased] = await Promise.all([
-        db.product.groupBy({ by: ['status'], where: { sellerId: userId, deletedAt: null }, _count: { _all: true } }),
+        countSelling(db, userId),
         db.withDeleted().product.count({ where: { buyerId: userId, status: 'SOLD' } }),
       ]);
-      const of = (status: string) => selling.find((row) => row.status === status)?._count._all ?? 0;
-      return { onSale: of('ON_SALE'), reserved: of('RESERVED'), sold: of('SOLD'), purchased };
+      return { ...selling, purchased };
     },
 
     // T10 · T11 — 닉네임과 아바타만 바꾼다 [AC-MP-06, 08, 12]
@@ -134,12 +133,7 @@ export function createMeService(db: Db, hasher: PasswordHasher, storage: ImageSt
         take: query.limit + 1,
         include: { ...cover, buyer: true, _count: { select: { chatRooms: true } } },
       });
-      const items = rows.slice(0, query.limit);
-      const last = items.at(-1);
-      return {
-        items,
-        nextCursor: rows.length > query.limit && last !== undefined ? encodeCursor({ at: last.createdAt, id: last.id }) : null,
-      };
+      return takePage(rows, query.limit, (last) => ({ at: last.createdAt, id: last.id }));
     },
 
     // 관심 목록 — 누른 순서의 역순. 삭제된 물건은 빠진다 [AC-FV-06, 07]
@@ -158,13 +152,8 @@ export function createMeService(db: Db, hasher: PasswordHasher, storage: ImageSt
         take: query.limit + 1,
         include: { product: { include: { ...cover, _count: { select: { chatRooms: true } } } } },
       });
-      const items = rows.slice(0, query.limit);
-      const last = items.at(-1);
-      return {
-        items: items.map((row) => row.product),
-        nextCursor:
-          rows.length > query.limit && last !== undefined ? encodeCursor({ at: last.createdAt, id: last.productId }) : null,
-      };
+      const page = takePage(rows, query.limit, (last) => ({ at: last.createdAt, id: last.productId }));
+      return { items: page.items.map((row) => row.product), nextCursor: page.nextCursor };
     },
 
     // 구매 내역 — 거래 사실은 상대가 글을 지워도 남는다 [AC-MP-04]
@@ -182,15 +171,7 @@ export function createMeService(db: Db, hasher: PasswordHasher, storage: ImageSt
         take: query.limit + 1,
         include: { ...cover, seller: true },
       });
-      const items = rows.slice(0, query.limit);
-      const last = items.at(-1);
-      return {
-        items,
-        nextCursor:
-          rows.length > query.limit && last !== undefined && last.soldAt !== null
-            ? encodeCursor({ at: last.soldAt, id: last.id })
-            : null,
-      };
+      return takePage(rows, query.limit, (last) => (last.soldAt === null ? null : { at: last.soldAt, id: last.id }));
     },
   };
 }
