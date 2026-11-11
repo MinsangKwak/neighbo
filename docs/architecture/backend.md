@@ -828,8 +828,8 @@ canAssignBuyer(product, buyerId, rooms)   // buyerId가 이 상품 방의 구매
 
 | 작업 | 주기 | 대상 | 처리 | 근거 |
 | --- | --- | --- | --- | --- |
-| 고아 업로드 정리 | 하루 1회 (새벽) | `Upload.createdAt < now - 24h` | 파일 두 벌 삭제 → 행 삭제 | AC-PC-19 |
-| 삭제 상품 이미지 정리 | 하루 1회 | `Product.deletedAt < now - 30d AND imagesPurgedAt IS NULL` | 파일 삭제 → `ProductImage` 삭제 → `imagesPurgedAt` 기록 | AC-PX-12 |
+| 고아 업로드 정리 | 매일 03:00 KST | `Upload.createdAt < now - 25h` — 업로드는 24시간에 만료되고, 만료 직전에 붙이기 시작한 요청과 겹치지 않게 한 시간을 더 둔다 | 파일 두 벌(아바타는 한 벌) 삭제 → 행 삭제 | AC-PC-19 |
+| 삭제 상품 이미지 정리 | 매일 03:00 KST (위와 같은 실행) | `Product.deletedAt < now - 30d AND imagesPurgedAt IS NULL` | 파일 삭제 → 같은 조건으로 `imagesPurgedAt` 기록 + `ProductImage` 삭제(한 트랜잭션). 그 사이 되살아난 상품은 0행이라 건드리지 않는다 | AC-PX-12 |
 | 고아 파일 정리 | 주 1회 | 저장소에 있지만 DB(`ProductImage` · `Upload` · `User.avatarUrl`) 어디에도 없는 키 | 7일 넘은 것만 삭제 | 커밋 후 파일 삭제 실패분 ([03 트랜잭션](#03--트랜잭션-경계)) |
 | 데모 초기화 | 매일 04:00 KST | `isDemo` 계정의 상품 · 프로필, 두 데모 계정 사이의 방 | 시드 상태로 되돌림 ([11 구성과 시드](#5-데모-계정의-제한과-초기화)) | AC-LI-19 |
 
@@ -841,7 +841,7 @@ canAssignBuyer(product, buyerId, rooms)   // buyerId가 이 상품 방의 구매
 | 파일 먼저 지우고 행을 지움 | 행을 먼저 지우면 파일 키를 잃어 영영 못 지운다. 파일 삭제 실패 시 행이 남아 다음 실행에서 재시도 |
 | 결과를 로그 한 줄로 (`job`, `deleted`, `failed`, `ms`) | [08 관찰 가능성](#08--관찰-가능성) |
 
-지금 구현된 배치는 **데모 초기화** 하나입니다(`jobs/scheduler.ts` · `jobs/demoReset.ts`). 파일 정리 세 가지는 아직 없습니다 — 로컬 저장소는 재배포에 비워지고, 외부 저장소로 옮긴 뒤에 고아 파일이 쌓이기 시작합니다.
+구현된 배치는 **데모 초기화**(`jobs/demoReset.ts`)와 **파일 정리**(`jobs/fileCleanup.ts` — 고아 업로드 · 삭제 상품 이미지)입니다. 파일 삭제가 실패한 건은 행을 남기고 로그의 `failed`에 세어 다음 날 다시 시도합니다. **고아 파일 정리(주 1회)는 아직 없습니다** — 저장소의 키 목록을 읽는 기능이 `ImageStorage`에 없어서, 커밋 후 파일 삭제가 실패한 파일은 지금은 남습니다.
 
 ### 5. 그 밖의 경계
 
