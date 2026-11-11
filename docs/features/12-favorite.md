@@ -1,6 +1,6 @@
 # 12 · 관심(찜)
 
-[문서 목차](../README.md) · 앞: [11 · 판매자 프로필](11-seller-profile.md) · 설계: [프론트엔드](../architecture/frontend.md) · [백엔드](../architecture/backend.md)
+[문서 목차](../README.md) · 앞: [11 · 판매자 프로필](11-seller-profile.md) · 다음: [13 · 동네](13-neighborhood.md) · 설계: [프론트엔드](../architecture/frontend.md) · [백엔드](../architecture/backend.md)
 
 **관심은 다시 보고 싶은 물건에 표시를 남기고 한곳에 모아 보는 기능입니다.** 2차 범위이며, 표 하나(`Favorite`) · API 셋 · 상세의 버튼 하나 · 관심 목록 화면 하나로 이루어집니다.
 

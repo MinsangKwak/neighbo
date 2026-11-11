@@ -551,6 +551,7 @@ API 명세(예정)에서 요청 · 응답 모양을 확정하며, 여기서는 �
 | 채팅 | `POST /chat-rooms` · `GET /chat-rooms` · `GET /chat-rooms/:id` · `GET /chat-rooms/:id/messages` · `POST /chat-rooms/:id/read` |
 | 내 정보 | `GET /me` · `PATCH /me` · `PATCH /me/password` · `GET /me/products` · `GET /me/purchases` · `GET /me/unread` |
 | 관심 (2차) | `PUT /products/:id/favorite` · `DELETE /products/:id/favorite` · `GET /me/favorites` ([12 관심](../features/12-favorite.md)). 표 `Favorite(userId, productId, createdAt)` — 기본 키 `(userId, productId)`, 인덱스 `(userId, createdAt DESC, productId DESC)` · `(productId)`, 두 외래 키 모두 `ON DELETE CASCADE` |
+| 동네 (2차) | `PATCH /me { neighborhood }` · `GET /products?neighborhood=` ([13 동네](../features/13-neighborhood.md)). 칸 `User.neighborhood` · `Product.neighborhood`(둘 다 nullable 문자열, 값은 공유 스키마의 `NEIGHBORHOODS`), 인덱스 `Product(neighborhood, deletedAt, createdAt DESC, id DESC)`. 동네를 바꾸면 같은 트랜잭션에서 거래완료가 아닌 내 물건이 따라간다 |
 | 사용자 (2차) | `GET /users/:id` — 누구나. `{ user: UserPublic, counts: { onSale, reserved, sold } }`, 없으면 `404` ([11 판매자 프로필](../features/11-seller-profile.md)) |
 
 ### 매트릭스
