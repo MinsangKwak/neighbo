@@ -225,7 +225,7 @@ GitHub → Settings → Branches에서 `main`과 `dev`에 같은 규칙을 겁�
 
 - 환경 변수는 각 플랫폼의 환경 변수 화면에서 관리하고, 저장소에는 `.env.example`만 둡니다. 전체 목록과 검증 규칙은 [백엔드 11 구성과 시드](architecture/backend.md#11--구성과-시드).
 - DB 마이그레이션은 배포 파이프라인에서 `prisma migrate deploy`로 자동 적용합니다. 수동 적용은 하지 않습니다.
-- 샘플 데이터는 Staging에만 넣습니다. Production은 데모 계정 둘과 데모 상품 6개만 두고 시작합니다 ([시드 데이터](architecture/backend.md#4-시드-데이터)).
+- 샘플 데이터는 `SEED_SAMPLE=1`인 환경에만 넣습니다. Production은 데모 계정 둘과 데모 상품 6개가 기본이고, Staging이 생기기 전에는 양이 많을 때의 화면을 보려고 한시로 켭니다 ([시드 데이터](architecture/backend.md#4-시드-데이터)).
 
 ### 문서 단계에서의 적용
 
