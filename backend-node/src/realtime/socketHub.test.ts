@@ -134,6 +134,26 @@ describe('연결', () => {
   });
 });
 
+describe('연결 — 듣기만 하는 연결', () => {
+  it('[AC-CH-31] 아무것도 보내지 않아도 세션이 끝나는 순간 서버가 끊는다 — 그 뒤의 메시지를 받지 못한다', async () => {
+    const { seller, buyer, roomId } = await scene();
+    const sender = await rt.connected(buyer.token);
+    await join(sender, roomId);
+    // 세션이 1초 뒤에 끝나는 연결. 방에 조인만 하고 듣는다
+    const listener = await rt.connected(socketToken(seller.id, { sxp: Math.floor(Date.now() / 1000) + 2 }));
+    await join(listener, roomId);
+    const received = record(listener, 'message:new');
+    const error = once(listener, 'error', 4000);
+    const reason = disconnected(listener);
+
+    expect((await error).code).toBe('UNAUTHORIZED');
+    expect(await reason).toBe('io server disconnect');
+    expect((await send(sender, roomId, '세션이 끝난 뒤')).ok).toBe(true);
+    await settle();
+    expect(received).toEqual([]);
+  });
+});
+
 describe('room:join', () => {
   it('[AC-CH-30] 참여자가 아니면 FORBIDDEN — 없는 방과 같은 답이고, 조인하지 않은 방에는 보낼 수 없다', async () => {
     const { buyer, roomId } = await scene();

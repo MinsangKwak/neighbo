@@ -44,6 +44,9 @@ export const SOCKET_LIMITS = {
   sendPerSecond: 5,
 } as const;
 
+// setTimeout이 받는 가장 긴 시간(약 24.8일). 세션은 7일이라 닿지 않지만 넘치면 즉시 실행되므로 막아 둔다
+const MAX_TIMER_MS = 2_147_483_647;
+
 const userRoom = (userId: string) => `user:${userId}`;
 const chatRoom = (roomId: string) => `room:${roomId}`;
 
@@ -159,7 +162,11 @@ export function createSocketHub({ httpServer, jwtSecret, log, isAllowedOrigin, i
       void socket.join(userRoom(userId));
       trimConnections(userId);
       log.info('socket', { event: 'connected', connId: socket.id, userId, transport: socket.conn.transport.name });
+      // 아무것도 보내지 않고 받기만 하는 연결도 세션이 끝나는 순간 끊는다
+      // 이벤트를 받을 때만 검사하면, 듣고만 있는 연결은 만료 뒤에도 남의 메시지를 계속 받는다
+      const expiry = setTimeout(() => alive(socket), Math.min(MAX_TIMER_MS, Math.max(0, socket.data.sessionExp * 1000 - now())));
       socket.on('disconnect', (reason) => {
+        clearTimeout(expiry);
         log.info('socket', { event: 'disconnected', connId: socket.id, userId, reason });
       });
 
