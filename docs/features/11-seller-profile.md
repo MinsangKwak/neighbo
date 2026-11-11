@@ -1,6 +1,6 @@
 # 11 · 판매자 프로필
 
-[문서 목차](../README.md) · 앞: [10 · 채팅 알림](10-notification.md) · 설계: [프론트엔드](../architecture/frontend.md) · [백엔드](../architecture/backend.md)
+[문서 목차](../README.md) · 앞: [10 · 채팅 알림](10-notification.md) · 다음: [12 · 관심(찜)](12-favorite.md) · 설계: [프론트엔드](../architecture/frontend.md) · [백엔드](../architecture/backend.md)
 
 **판매자 프로필은 한 사람이 올린 물건을 모아 보는 공개 화면입니다.** 1차 범위(열 가지 기능)에서 빼 두었던 것을 2차로 더했고, 새 화면 하나 · 조회 API 하나 · 기존 목록 API의 조건 하나로 이루어집니다.
 

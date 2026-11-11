@@ -550,6 +550,7 @@ API 명세(예정)에서 요청 · 응답 모양을 확정하며, 여기서는 �
 | 업로드 | `POST /uploads` |
 | 채팅 | `POST /chat-rooms` · `GET /chat-rooms` · `GET /chat-rooms/:id` · `GET /chat-rooms/:id/messages` · `POST /chat-rooms/:id/read` |
 | 내 정보 | `GET /me` · `PATCH /me` · `PATCH /me/password` · `GET /me/products` · `GET /me/purchases` · `GET /me/unread` |
+| 관심 (2차) | `PUT /products/:id/favorite` · `DELETE /products/:id/favorite` · `GET /me/favorites` ([12 관심](../features/12-favorite.md)). 표 `Favorite(userId, productId, createdAt)` — 기본 키 `(userId, productId)`, 인덱스 `(userId, createdAt DESC, productId DESC)` · `(productId)`, 두 외래 키 모두 `ON DELETE CASCADE` |
 | 사용자 (2차) | `GET /users/:id` — 누구나. `{ user: UserPublic, counts: { onSale, reserved, sold } }`, 없으면 `404` ([11 판매자 프로필](../features/11-seller-profile.md)) |
 
 ### 매트릭스
@@ -1761,7 +1762,7 @@ HTTP 25개 (운영 2개 제외) + 소켓 이벤트 9개 (클라이언트 → 서
 | 비밀번호 변경 · 닉네임 · 아바타 변경 | `403 DEMO_RESTRICTED` — 서비스 계층에서 `user.isDemo` 확인. 화면은 버튼을 비활성으로 두고 이유를 적는다 |
 | 상품 등록 · 수정 · 삭제 · 상태 변경 · 채팅 | 허용 — 데모의 목적 |
 | 안내 | 로그인 화면: "둘러보기 계정은 여러 사람이 함께 써요. 개인정보를 적지 마세요. 매일 새벽에 초기화돼요" |
-| 초기화 배치 (매일 04:00 KST) | ① 데모 계정이 올린 상품 중 시드가 아닌 것을 soft delete ② 시드 상품 6개를 처음 상태로 되돌림 ③ 두 데모 계정 사이의 방은 메시지째 삭제 ④ 데모 계정의 닉네임 · 아바타를 시드 값으로, 일반 사용자와의 방은 모두 읽음으로(앞사람의 안 읽은 표시가 다음 사람에게 넘어가지 않게) ⑤ 샘플 데이터가 켜져 있으면 샘플 방을 지우고 처음 상태로 다시 만든다. 새 방은 **새 ID**로 만든다 — 같은 ID를 다시 쓰면 방을 열어 둔 화면이 옛 메시지 번호와 새 번호를 섞어 새 메시지를 조용히 버린다. 옛 방을 열어 둔 화면은 ③의 방처럼 "없는 방"이 된다 |
+| 초기화 배치 (매일 04:00 KST) | ① 데모 계정이 올린 상품 중 시드가 아닌 것을 soft delete ② 시드 상품 6개를 처음 상태로 되돌림 ③ 두 데모 계정 사이의 방은 메시지째 삭제 ④ 데모 계정의 닉네임 · 아바타를 시드 값으로, 눌러 둔 관심은 지우고, 일반 사용자와의 방은 모두 읽음으로(앞사람의 안 읽은 표시가 다음 사람에게 넘어가지 않게) ⑤ 샘플 데이터가 켜져 있으면 샘플 방을 지우고 처음 상태로 다시 만든다. 새 방은 **새 ID**로 만든다 — 같은 ID를 다시 쓰면 방을 열어 둔 화면이 옛 메시지 번호와 새 번호를 섞어 새 메시지를 조용히 버린다. 옛 방을 열어 둔 화면은 ③의 방처럼 "없는 방"이 된다 |
 | 일반 사용자와 데모 계정 사이의 방 | 남긴다 — 일반 사용자의 기록이다. 상품이 초기화로 삭제되면 열람만 가능 |
 
 ③은 "메시지는 지우지 않는다"는 원칙의 유일한 예외입니다. 공용 계정에 앞사람의 대화가 남아 다음 사람에게 보이는 것을 막기 위해서이며, 대상은 양쪽이 모두 데모 계정인 방으로 한정합니다.

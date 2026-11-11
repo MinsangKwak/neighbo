@@ -27,6 +27,7 @@
 | [09 마이페이지](features/09-mypage.md) | AC-MP |
 | [10 채팅 알림](features/10-notification.md) | AC-NT |
 | [11 판매자 프로필](features/11-seller-profile.md) (2차) | AC-UP |
+| [12 관심(찜)](features/12-favorite.md) (2차) | AC-FV |
 
 ## 설계 — 역할마다 한 장
 
