@@ -1,8 +1,5 @@
-import path from 'node:path';
 import { expect, test } from '@playwright/test';
-import { createProduct, newAccount, newUser, signUp } from './helpers';
-
-const fixture = (name: string) => path.join(__dirname, 'fixtures', name);
+import { createProduct, fixture, newAccount, newUser, signUp } from './helpers';
 
 test('관심을 누르면 관심 목록에 모이고, 끄면 빠진다. 판매자는 개수만 본다', async ({ browser }) => {
   const seller = newAccount('seller');
@@ -21,12 +18,13 @@ test('관심을 누르면 관심 목록에 모이고, 끄면 빠진다. 판매�
     await expect(guest.page).toHaveURL(/\/login\?next=/);
   });
 
-  await test.step('구매자: 처음에는 관심 목록이 비어 있다', async () => {
+  await test.step('구매자: 처음에는 관심 목록이 비어 있다 [AC-FV-10]', async () => {
     await signUp(b.page, buyer);
     await b.page.goto('/me');
     await b.page.getByRole('link', { name: '관심 목록' }).click();
     await expect(b.page).toHaveURL('/me/favorites');
     await expect(b.page.getByText('관심 목록이 비어 있어요')).toBeVisible();
+    await expect(b.page.getByRole('link', { name: '물건 보러 가기' })).toHaveAttribute('href', '/');
   });
 
   await test.step('구매자: 켜면 눌린 상태가 되고 새로 열어도 남는다', async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatCount, formatPrice, formatRelativeTime } from './format';
+import { formatCount, formatJoinedMonth, formatPrice, formatRelativeTime } from './format';
 
 describe('표시 형식', () => {
   it('[AC-CM-51] 금액은 천 단위 콤마 + 원, 0원은 나눔', () => {
@@ -24,5 +24,13 @@ describe('표시 형식', () => {
     expect(formatCount(0)).toBeNull();
     expect(formatCount(7)).toBe('7');
     expect(formatCount(100)).toBe('99+');
+  });
+});
+
+describe('formatJoinedMonth', () => {
+  it('[AC-MP-01] 가입한 달을 "YYYY년 M월부터"로 — 서버와 브라우저가 같게 UTC로 센다', () => {
+    expect(formatJoinedMonth('2026-11-10T00:00:00.000Z')).toBe('2026년 11월부터');
+    // 한국 시각으로는 2월 1일이지만 UTC로는 1월이다
+    expect(formatJoinedMonth('2026-01-31T16:00:00.000Z')).toBe('2026년 1월부터');
   });
 });

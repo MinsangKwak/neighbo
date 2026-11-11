@@ -1,8 +1,5 @@
-import path from 'node:path';
 import { expect, test } from '@playwright/test';
-import { createProduct, logIn, newAccount, newUser, sendMessage, signUp } from './helpers';
-
-const fixture = (name: string) => path.join(__dirname, 'fixtures', name);
+import { createProduct, fixture, logIn, newAccount, newUser, sendMessage, signUp } from './helpers';
 
 // 개요 2.1의 두 시나리오 — 이 두 줄이 끝까지 끊기지 않으면 1차 범위가 동작하는 것이다
 test('판매자와 구매자가 가입부터 거래완료까지 끊기지 않고 간다', async ({ browser }) => {

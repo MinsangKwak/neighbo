@@ -1,6 +1,7 @@
 'use client';
 
 import { useId, useState, type InputHTMLAttributes, type ReactNode, type Ref } from 'react';
+import { usePasteClip } from '@/lib/form/usePasteClip';
 
 export type FieldKind = 'email' | 'newPassword' | 'currentPassword' | 'nickname' | 'text';
 
@@ -48,11 +49,26 @@ export interface FieldProps {
   // 오류 아래에 덧붙는 행동 (예: [로그인하기])
   errorAction?: ReactNode;
   inputRef?: Ref<HTMLInputElement>;
+  // 붙여넣은 값이 이 글자 수를 넘으면 잘라 넣고 알린다 [AC-CM-64]
+  maxGraphemes?: number;
 }
 
 // 레이블 · 입력 · 안내 · 오류를 한 묶음으로 — aria 연결을 매번 손으로 잇지 않게
-export function Field({ kind, name, label, value, onChange, onBlur, hint, error, errorAction, inputRef }: FieldProps) {
+export function Field({
+  kind,
+  name,
+  label,
+  value,
+  onChange,
+  onBlur,
+  hint,
+  error,
+  errorAction,
+  inputRef,
+  maxGraphemes,
+}: FieldProps) {
   const id = useId();
+  const paste = usePasteClip(maxGraphemes);
   const [revealed, setRevealed] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
   const isPassword = kind === 'newPassword' || kind === 'currentPassword';
@@ -82,7 +98,8 @@ export function Field({ kind, name, label, value, onChange, onBlur, hint, error,
           required
           aria-invalid={hasError || undefined}
           aria-describedby={describedBy === '' ? undefined : describedBy}
-          onChange={(event) => onChange(event.target.value)}
+          onPaste={paste.onPaste}
+          onChange={(event) => onChange(paste.clip(event.target.value))}
           onBlur={() => {
             setCapsLock(false);
             onBlur?.();

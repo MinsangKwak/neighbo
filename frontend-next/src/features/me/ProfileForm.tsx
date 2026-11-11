@@ -1,16 +1,17 @@
 'use client';
 
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { z } from 'zod';
-import { nicknameField, normalizeNickname, type UserSelf } from '@neighbo/shared-schema';
+import { NICKNAME_MAX, nicknameField, normalizeNickname, type UserSelf } from '@neighbo/shared-schema';
+import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { prepareAvatar, uploadImage } from '@/features/products/imageUpload';
 import { describeApiError } from '@/lib/api/ApiError';
 import { useForm } from '@/lib/form/useForm';
+import { useLeaveGuard } from '@/lib/form/useLeaveGuard';
 import { updateMe } from './api';
 
 // 가입과 같은 닉네임 규칙 [AC-MP-06]
@@ -37,12 +38,16 @@ export function ProfileForm({ user }: { user: UserSelf }) {
         ...(nickname === user.nickname ? {} : { nickname }),
         ...(avatar.kind === 'new' ? { avatarUploadId: avatar.uploadId } : avatar.kind === 'reset' ? { avatarUploadId: null } : {}),
       });
+      leave.allow();
       toast('프로필을 저장했어요');
       router.replace('/me');
       // 헤더 · 목록 등 서버가 그린 닉네임을 새로 받는다 [AC-MP-07]
       router.refresh();
     },
   });
+
+  // 닉네임이나 사진을 고친 채 탭을 닫거나 새로고침하면 브라우저가 확인한다 [AC-MP-10]
+  const leave = useLeaveGuard(form.values.nickname !== user.nickname || avatar.kind !== 'keep');
 
   const pick = async (file: File | undefined) => {
     if (file === undefined) return;
@@ -79,15 +84,7 @@ export function ProfileForm({ user }: { user: UserSelf }) {
       </div>
 
       <div className="flex items-center gap-4">
-        <span className="relative block size-16 shrink-0 overflow-hidden rounded-full bg-surface">
-          {shownAvatar === null ? (
-            <span aria-hidden="true" className="flex size-full items-center justify-center text-xl text-text-muted">
-              ☺
-            </span>
-          ) : (
-            <Image src={shownAvatar} alt="" width={64} height={64} unoptimized className="size-full object-cover" />
-          )}
-        </span>
+        <Avatar url={shownAvatar} large />
         <div className="flex flex-wrap gap-2">
           <input
             ref={picker}
@@ -113,9 +110,15 @@ export function ProfileForm({ user }: { user: UserSelf }) {
         </div>
       </div>
 
-      <Field kind="nickname" label="닉네임" hint="2~12자 · 한글, 영문, 숫자, 공백, _ . -" {...form.field('nickname')} />
+      <Field
+        kind="nickname"
+        label="닉네임"
+        hint="2~12자 · 한글, 영문, 숫자, 공백, _ . -"
+        maxGraphemes={NICKNAME_MAX}
+        {...form.field('nickname')}
+      />
 
-      <Button type="submit" block loading={form.submitting} aria-disabled={uploading || undefined}>
+      <Button type="submit" block loading={form.submitting} aria-disabled={uploading || form.coolingDown || undefined}>
         저장
       </Button>
     </form>

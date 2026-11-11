@@ -4,6 +4,7 @@ import { useCallback, useRef, useState, type FormEvent } from 'react';
 import type { z } from 'zod';
 import { toFieldErrors } from '@neighbo/shared-schema';
 import { ApiError, describeApiError } from '@/lib/api/ApiError';
+import { useCooldown } from './useCooldown';
 
 type Values = Record<string, string>;
 type Errors<V extends Values> = Partial<Record<keyof V, string>>;
@@ -29,6 +30,8 @@ export function useForm<V extends Values, Output>(options: UseFormOptions<V, Out
   const [submitting, setSubmitting] = useState(false);
   const inputs = useRef(new Map<keyof V, HTMLInputElement>());
   const submittingRef = useRef(false);
+  // 요청이 너무 많다는 응답을 받으면 서버가 말한 시간만큼 제출을 잠근다 [AC-CM-26]
+  const cooldown = useCooldown();
 
   const validate = useCallback(
     (candidate: V): Errors<V> => {
@@ -85,7 +88,7 @@ export function useForm<V extends Values, Output>(options: UseFormOptions<V, Out
 
   const submitValues = async (current: V) => {
     // 두 번 제출 방지
-    if (submittingRef.current) return;
+    if (submittingRef.current || cooldown.active) return;
     setFormError(null);
 
     const result = schema.safeParse(current);
@@ -109,6 +112,7 @@ export function useForm<V extends Values, Output>(options: UseFormOptions<V, Out
         setErrors(found);
         focusFirst(found);
       } else {
+        cooldown.startFrom(err);
         setFormError(describeApiError(err));
       }
     } finally {
@@ -151,6 +155,8 @@ export function useForm<V extends Values, Output>(options: UseFormOptions<V, Out
     formError,
     setFormError,
     submitting,
+    // 잠시 제출할 수 없다 — 버튼에 aria-disabled로 건다
+    coolingDown: cooldown.active,
     field,
     blur,
     setValue,

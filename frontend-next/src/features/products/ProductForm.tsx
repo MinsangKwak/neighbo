@@ -2,7 +2,7 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { useId, useRef, useState, type FormEvent } from 'react';
 import {
   createProductSchema,
   countGraphemes,
@@ -17,6 +17,9 @@ import {
   type Upload,
 } from '@neighbo/shared-schema';
 import { Button } from '@/components/Button';
+import { useCooldown } from '@/lib/form/useCooldown';
+import { useLeaveGuard } from '@/lib/form/useLeaveGuard';
+import { usePasteClip } from '@/lib/form/usePasteClip';
 import { Dialog } from '@/components/Dialog';
 import { ImagePicker, type PickedImage } from '@/components/ImagePicker';
 import { useToast } from '@/components/Toast';
@@ -79,17 +82,12 @@ export function ProductForm({
   const titleRef = useRef<HTMLInputElement>(null);
   const priceRef = useRef<HTMLInputElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
-  const done = useRef(false);
 
   // 작성 중에 탭을 닫거나 새로고침하면 브라우저가 확인한다 [AC-PC-04]
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (event: BeforeUnloadEvent) => {
-      if (!done.current) event.preventDefault();
-    };
-    window.addEventListener('beforeunload', warn);
-    return () => window.removeEventListener('beforeunload', warn);
-  }, [dirty]);
+  const leave = useLeaveGuard(dirty);
+  const cooldown = useCooldown();
+  const titlePaste = usePasteClip(TITLE_MAX);
+  const descriptionPaste = usePasteClip(DESCRIPTION_MAX);
 
   const uploading = images.filter((image) => image.status === 'uploading').length;
   // 올리지 못한 사진을 둔 채 등록하면 그 사진이 말없이 빠진다 — 다시 시도하거나 지울 때까지 막는다
@@ -127,7 +125,7 @@ export function ProductForm({
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (submitting || blocked) return;
+    if (submitting || blocked || cooldown.active) return;
     setFormError(null);
     const found = validate();
     setErrors(found);
@@ -154,7 +152,7 @@ export function ProductForm({
           })
         : await apiFetch<ProductResponse>('/products', { method: 'POST', body: input });
 
-      done.current = true;
+      leave.allow();
       await queryClient.invalidateQueries({ queryKey: queryKeys.allProducts() });
       toast(isEdit ? '수정했어요' : '물건을 올렸어요');
       // replace: 뒤로가기로 폼에 돌아오지 않게 [AC-PC-01, 33]
@@ -164,7 +162,7 @@ export function ProductForm({
       setSubmitting(false);
       if (err instanceof ApiError && err.code === 'NOT_FOUND') {
         // 수정하는 사이 삭제됐다 [AC-PC-35]
-        done.current = true;
+        leave.allow();
         toast('삭제된 물건이에요', 'error');
         router.replace('/');
         return;
@@ -175,6 +173,7 @@ export function ProductForm({
         return;
       }
       // 입력은 그대로 두고 알린다 [AC-CM-22]
+      cooldown.startFrom(err);
       setFormError(describeApiError(err));
     }
   };
@@ -221,9 +220,10 @@ export function ProductForm({
             maxLength={TITLE_MAX * 2}
             aria-invalid={errors.title !== undefined || undefined}
             aria-describedby={describedBy('title', `${ids.title}-count`)}
+            onPaste={titlePaste.onPaste}
             onChange={(event) => {
               // 줄바꿈은 공백으로 [AC-PC-05]
-              setTitle(event.target.value.replace(/[\r\n]+/g, ' '));
+              setTitle(titlePaste.clip(event.target.value.replace(/[\r\n]+/g, ' ')));
               touch('title');
             }}
             onBlur={() => {
@@ -309,8 +309,9 @@ export function ProductForm({
             rows={5}
             aria-invalid={errors.description !== undefined || undefined}
             aria-describedby={describedBy('description', `${ids.description}-count`)}
+            onPaste={descriptionPaste.onPaste}
             onChange={(event) => {
-              setDescription(event.target.value);
+              setDescription(descriptionPaste.clip(event.target.value));
               touch('description');
             }}
             onBlur={() => {
@@ -358,7 +359,7 @@ export function ProductForm({
             취소
           </Button>
           </span>
-          <Button type="submit" block loading={submitting} aria-disabled={blocked || undefined}>
+          <Button type="submit" block loading={submitting} aria-disabled={blocked || cooldown.active || undefined}>
             {isEdit ? '저장하기' : '등록하기'}
           </Button>
         </div>
@@ -373,7 +374,7 @@ export function ProductForm({
             variant="danger"
             block
             onClick={() => {
-              done.current = true;
+              leave.allow();
               router.back();
             }}
           >

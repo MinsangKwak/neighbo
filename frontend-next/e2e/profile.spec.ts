@@ -1,8 +1,5 @@
-import path from 'node:path';
 import { expect, test } from '@playwright/test';
-import { createProduct, newAccount, newUser, signUp } from './helpers';
-
-const fixture = (name: string) => path.join(__dirname, 'fixtures', name);
+import { createProduct, fixture, newAccount, newUser, signUp } from './helpers';
 
 test('상세의 판매자를 누르면 그 사람이 올린 물건만 보이고, 로그인 없이도 열린다', async ({ browser }) => {
   const seller = newAccount('seller');
@@ -18,7 +15,7 @@ test('상세의 판매자를 누르면 그 사람이 올린 물건만 보이고,
   const theirs = `남의 물건 ${other.nickname}`;
   await createProduct(o.page, { title: theirs, price: '9000', description: '', photos: [fixture('photo-portrait.jpg')] });
 
-  await test.step('손님: 상세 → 판매자 → 프로필', async () => {
+  await test.step('손님: 상세 → 판매자 → 프로필 [AC-UP-04]', async () => {
     await guest.page.goto(`/products/${productId}`);
     await guest.page.getByRole('link', { name: new RegExp(`판매자\\s*${seller.nickname}`) }).click();
     await expect(guest.page).toHaveURL(/\/users\/c[a-z0-9]+$/);
@@ -30,7 +27,7 @@ test('상세의 판매자를 누르면 그 사람이 올린 물건만 보이고,
     await expect(guest.page.getByText(seller.email)).toHaveCount(0);
   });
 
-  await test.step('판매자: 거래완료로 바꾸면 개수가 옮겨 가고, 숨기면 빈 안내가 나온다', async () => {
+  await test.step('판매자: 거래완료로 바꾸면 개수가 옮겨 가고, 숨기면 빈 안내가 나온다 [AC-UP-08]', async () => {
     await s.page.goto(`/products/${productId}`);
     await s.page.getByLabel('거래 상태').selectOption({ label: '거래완료' });
     await s.page.getByRole('button', { name: '선택 안 함' }).click();
@@ -45,7 +42,7 @@ test('상세의 판매자를 누르면 그 사람이 올린 물건만 보이고,
     await expect(guest.page.getByText('거래 중인 물건이 없어요')).toBeVisible();
   });
 
-  await test.step('본인이 보면 [마이로 가기]가 있다', async () => {
+  await test.step('본인이 보면 [마이로 가기]가 있다 [AC-UP-07]', async () => {
     await s.page.getByRole('link', { name: new RegExp(`판매자\\s*${seller.nickname}`) }).click();
     await s.page.getByRole('link', { name: '마이로 가기' }).click();
     await expect(s.page).toHaveURL('/me');

@@ -293,7 +293,7 @@ function mount(ui: ReactNode, options: { client?: QueryClient; connection?: Retu
 }
 
 describe('채팅 목록', () => {
-  it('[AC-CL-02, 03, 04, 08] 행에 상대 · 역할 · 마지막 메시지 · 읽지 않은 수 · 상품 상태가 보인다', async () => {
+  it('[AC-CL-02, 03, 04, 08, AC-PX-07] 행에 상대 · 역할 · 마지막 메시지 · 읽지 않은 수 · 상품 상태가 보인다', async () => {
     handler = () => ({
       status: 200,
       body: {
@@ -351,7 +351,7 @@ describe('채팅 목록', () => {
     expect(hrefs.filter((href) => href?.startsWith('/chats/'))).toEqual(['/chats/r1', '/chats/r2', '/chats/r3']);
   });
 
-  it('[AC-CM-21] 첫 조회가 실패하면 그 자리에 [다시 시도]', async () => {
+  it('[AC-CM-20, 21] 첫 조회가 실패하면 그 자리에 [다시 시도]', async () => {
     handler = () => ({ status: 500, body: { error: { code: 'INTERNAL', message: '일시적인 문제가 생겼어요', fields: null } } });
     mount(<ChatList productId={null} />);
     expect(await screen.findByRole('button', { name: '다시 시도' })).toBeTruthy();
@@ -566,7 +566,7 @@ describe('채팅방', () => {
     expect(connection.waiting.filter((entry) => entry.event === 'message:send')).toEqual([]);
   });
 
-  it('[AC-CH-17, 18] 삭제된 상품이면 요약 바가 링크가 아니고 입력창이 잠긴다. 살아 있으면 상세로 가는 링크다', async () => {
+  it('[AC-CH-17, 18, AC-PX-08] 삭제된 상품이면 요약 바가 링크가 아니고 입력창이 잠긴다. 살아 있으면 상세로 가는 링크다', async () => {
     const client = seeded([msg(1, 'u2')]);
     mount(<ChatRoomScreen roomId="room1" myId={ME} />, { client });
     expect(screen.getByRole('link', { name: /원목 의자/ }).getAttribute('href')).toBe('/products/p1');

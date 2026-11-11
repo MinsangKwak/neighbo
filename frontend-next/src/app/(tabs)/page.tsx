@@ -1,6 +1,7 @@
 import { HydrationBoundary } from '@tanstack/react-query';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { linkButtonClass } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
 import { getSessionUser } from '@/features/auth/session';
 import { HideSoldToggle, ProductList, SearchForm } from '@/features/products';
@@ -8,7 +9,6 @@ import { prefetchProductList } from '@/features/products/server';
 
 export const metadata: Metadata = { title: '홈' };
 
-const linkButton = 'inline-flex min-h-touch items-center rounded-lg bg-primary px-5 font-semibold text-on-primary';
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ hideSold?: string }> }) {
   const filters = { q: null, hideSold: (await searchParams).hideSold === '1' };
@@ -38,7 +38,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 title="아직 올라온 물건이 없어요"
                 action={
                   user === null ? undefined : (
-                    <Link href="/products/new" className={linkButton}>
+                    <Link href="/products/new" className={linkButtonClass}>
                       첫 물건 올리기
                     </Link>
                   )

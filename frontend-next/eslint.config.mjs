@@ -19,6 +19,16 @@ const config = [
           selector: "JSXAttribute[name.name='className'] Literal[value=/\\[[^\\]]+\\]/]",
           message: 'Tailwind 임의 값 대신 디자인 토큰을 쓴다.',
         },
+        // 사용자 입력은 React가 이스케이프하게 둔다 [AC-CM-30]
+        {
+          selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+          message: 'dangerouslySetInnerHTML을 쓰지 않는다.',
+        },
+        // 이동은 <a>, 동작은 <button> — 누를 수 없는 요소에 클릭을 달면 키보드로 닿지 않는다 [AC-CM-47]
+        {
+          selector: "JSXOpeningElement[name.name=/^(div|span|li|p|section|img)$/] > JSXAttribute[name.name='onClick']",
+          message: '클릭은 <button>이나 <a>에 단다.',
+        },
         // 타임아웃 없는 emit은 끊긴 동안 버퍼에 남았다가 재연결 뒤 몰래 전송된다 [AC-CH-37]
         {
           selector: "CallExpression[callee.property.name='emit']",
@@ -36,6 +46,16 @@ const config = [
         {
           selector: "JSXAttribute[name.name='className'] Literal[value=/\\[[^\\]]+\\]/]",
           message: 'Tailwind 임의 값 대신 디자인 토큰을 쓴다.',
+        },
+        // 사용자 입력은 React가 이스케이프하게 둔다 [AC-CM-30]
+        {
+          selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+          message: 'dangerouslySetInnerHTML을 쓰지 않는다.',
+        },
+        // 이동은 <a>, 동작은 <button> — 누를 수 없는 요소에 클릭을 달면 키보드로 닿지 않는다 [AC-CM-47]
+        {
+          selector: "JSXOpeningElement[name.name=/^(div|span|li|p|section|img)$/] > JSXAttribute[name.name='onClick']",
+          message: '클릭은 <button>이나 <a>에 단다.',
         },
       ],
     },

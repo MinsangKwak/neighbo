@@ -4,6 +4,7 @@ import { ToastProvider } from '@/components/Toast';
 import { AuthSync, Flash, SessionProvider } from '@/features/auth';
 import { getSessionUser } from '@/features/auth/session';
 import { ChatSocketProvider } from '@/features/chat';
+import { RouteFocus } from '@/lib/a11y/RouteFocus';
 import { getSocketUrl } from '@/lib/config';
 import { QueryProvider } from '@/lib/query/QueryProvider';
 import '@/styles/globals.css';
@@ -30,6 +31,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             {/* 본문 폭 640px 단일 열 — PC에서도 같은 구성 (결정 0014) */}
             <div className="mx-auto flex min-h-dvh w-full max-w-app flex-col bg-bg">
               <AuthSync />
+              <RouteFocus />
               {children}
             </div>
             <Flash />

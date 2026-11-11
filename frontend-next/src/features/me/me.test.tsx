@@ -123,7 +123,7 @@ describe('마이페이지 탭', () => {
     expect(within(links[1]!).queryByText(/님과 거래/)).toBeNull();
   });
 
-  it('[AC-MP-04] 구매 내역은 거래 시점 가격으로 보이고, 삭제된 상품은 "삭제됨"이며 누를 수 없다', async () => {
+  it('[AC-MP-04, AC-PX-10] 구매 내역은 거래 시점 가격으로 보이고, 삭제된 상품은 "삭제됨"이며 누를 수 없다', async () => {
     handler = () => ({ status: 200, body: { items: [purchase('1'), purchase('2', { deleted: true })], nextCursor: null } });
     wrap(<MyTabs tab="PURCHASED" counts={counts} />);
     expect(await screen.findByText('구매 1')).toBeTruthy();

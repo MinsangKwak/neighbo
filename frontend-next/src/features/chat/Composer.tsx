@@ -3,6 +3,7 @@
 import { useRef, useState, type KeyboardEvent } from 'react';
 import {
   checkMessage,
+  clipGraphemes,
   countGraphemes,
   MESSAGE_COUNTER_FROM,
   MESSAGE_MAX,
@@ -16,19 +17,6 @@ interface ComposerProps {
   disabledReason: string | null;
   // 전송 한도에 걸려 잠시 보낼 수 없다 — 쓰던 글은 그대로 둔다 [AC-CH-33]
   blocked: boolean;
-}
-
-// 사용자가 느끼는 글자 단위로 자른다
-function clip(value: string, max: number): string {
-  const segmenter = new Intl.Segmenter('ko', { granularity: 'grapheme' });
-  let result = '';
-  let count = 0;
-  for (const { segment } of segmenter.segment(value)) {
-    if (count === max) break;
-    result += segment;
-    count += 1;
-  }
-  return result;
 }
 
 // 마우스 · 키보드 환경에서만 Enter로 보낸다. 터치 키보드의 Enter는 줄바꿈이다 [AC-CH-12]
@@ -96,7 +84,7 @@ export function Composer({ onSend, disabledReason, blocked }: ComposerProps) {
             const next = event.target.value;
             if (countGraphemes(next) > MESSAGE_MAX) {
               // 넘치는 붙여넣기는 잘라 넣고 알린다 [CH-IN-06]
-              setValue(clip(next, MESSAGE_MAX));
+              setValue(clipGraphemes(next, MESSAGE_MAX));
               toast('1,000자까지 보낼 수 있어요');
               return;
             }

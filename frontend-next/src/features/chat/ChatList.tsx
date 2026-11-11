@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useSyncExternalStore } from 'react';
 import { PRODUCT_STATUS_LABEL, type ChatRoomItem } from '@neighbo/shared-schema';
-import { Button } from '@/components/Button';
+import { Button, linkButtonClass } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { describeApiError } from '@/lib/api/ApiError';
@@ -15,7 +15,6 @@ import { fetchChatRoomPage } from './api';
 import { Avatar } from '@/components/Avatar';
 import { uniqueRooms } from './cache';
 
-const linkButton = 'inline-flex min-h-touch items-center rounded-lg bg-primary px-5 font-semibold text-on-primary';
 const noop = () => () => undefined;
 
 export function ChatList({ productId }: { productId: string | null }) {
@@ -55,7 +54,7 @@ export function ChatList({ productId }: { productId: string | null }) {
           title="아직 채팅이 없어요"
           description="마음에 드는 물건에 채팅을 걸어 보세요"
           action={
-            <Link href="/" className={linkButton}>
+            <Link href="/" className={linkButtonClass}>
               물건 보러 가기
             </Link>
           }

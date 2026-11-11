@@ -104,6 +104,14 @@ describe('ProductList', () => {
   const filters = { q: null, hideSold: false };
   const empty = <p>아직 올라온 물건이 없어요</p>;
 
+  it('[AC-PL-06] 카드는 폭에 관계없이 2열로 놓인다', async () => {
+    handler = () => ({ status: 200, body: { items: [card(1), card(2), card(3)], nextCursor: null } });
+    wrap(<ProductList filters={filters} empty={empty} />);
+    const list = (await screen.findByRole('link', { name: /상품 1/ })).closest('ul')!;
+    // 화면 폭에 따라 바뀌는 열 수(sm: · md:)를 두지 않는다
+    expect(list.className.split(' ').filter((name) => name.includes('grid-cols'))).toEqual(['grid-cols-2']);
+  });
+
   it('[AC-PL-03] [더 보기]를 누르면 다음 장을 붙이고 새 첫 카드로 포커스하며 개수를 알린다. 다음이 없으면 버튼이 없다', async () => {
     handler = (url) =>
       url.includes('cursor=c1')

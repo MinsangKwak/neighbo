@@ -8,6 +8,7 @@ import { makeQueryClient } from '@/lib/query/QueryProvider';
 import { queryKeys } from '@/lib/query/queryKeys';
 import { sessionChange } from '@/features/auth/sessionChange';
 import { lastSeq } from './cache';
+import { ConnectionBar } from './ConnectionBar';
 import { ChatSocketProvider, useChatSocket } from './ChatSocketProvider';
 
 // 진짜 프로바이더에 가짜 연결을 꽂는다 — 소켓 이벤트가 캐시에 어떻게 닿는지 본다
@@ -278,5 +279,51 @@ describe('ChatSocketProvider', () => {
     await fire('__kick');
     sessionChange.end();
     expect(assign).not.toHaveBeenCalled();
+  });
+
+  it('[AC-NT-04] 처음 붙었을 때와 화면으로 돌아왔을 때 배지 숫자를 다시 묻는다', async () => {
+    const client = mount();
+    client.setQueryData(queryKeys.unread(), { rooms: 0 });
+    const unreadFetches = () => vi.mocked(fetch).mock.calls.filter((call) => String(call[0]) === '/api/me/unread').length;
+    const before = unreadFetches();
+
+    // 화면이 숫자를 읽은 뒤 · 소켓이 붙기 전에 온 메시지를 놓치지 않게
+    await fire('__open');
+    await act(async () => wire.joins.shift()!.resolve({ ok: true, missed: [], hasMore: false }));
+    await waitFor(() => expect(client.getQueryState(queryKeys.unread())?.isInvalidated || unreadFetches() > before).toBe(true));
+
+    // 다른 탭을 보다 돌아왔을 때
+    client.setQueryData(queryKeys.unread(), { rooms: 0 });
+    act(() => void document.dispatchEvent(new Event('visibilitychange')));
+    await waitFor(() => expect(client.getQueryState(queryKeys.unread())?.isInvalidated || unreadFetches() > before + 1).toBe(true));
+  });
+
+  it('[AC-CH-39] 끊긴 지 5초가 넘어야 "연결이 끊겼어요"를 role="status"로 알리고, 다시 붙으면 지운다', async () => {
+    const client = makeQueryClient();
+    render(
+      <SessionProvider user={me}>
+        <QueryClientProvider client={client}>
+          <ChatSocketProvider socketUrl="http://localhost:4000">
+            <ConnectionBar />
+          </ChatSocketProvider>
+        </QueryClientProvider>
+      </SessionProvider>,
+    );
+    await fire('__open');
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    try {
+      await fire('__drop');
+      const bar = document.querySelector('[role="status"].empty\\:hidden') ?? document.querySelector('[role="status"]');
+      // 짧은 끊김에는 아무것도 띄우지 않는다
+      await act(async () => void (await vi.advanceTimersByTimeAsync(4_900)));
+      expect(bar?.textContent).toBe('');
+      await act(async () => void (await vi.advanceTimersByTimeAsync(200)));
+      expect(bar?.textContent).toBe('실시간 연결이 끊겼어요. 다시 연결 중…');
+
+      await fire('__open');
+      expect(bar?.textContent).toBe('');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

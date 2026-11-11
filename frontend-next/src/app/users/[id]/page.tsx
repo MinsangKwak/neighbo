@@ -10,6 +10,7 @@ import { getSessionUser } from '@/features/auth/session';
 import { HideSoldToggle, ProductList } from '@/features/products';
 import { prefetchProductList } from '@/features/products/server';
 import { getUserProfile } from '@/features/users/server';
+import { formatJoinedMonth } from '@/lib/format';
 
 interface UserPageProps {
   params: Promise<{ id: string }>;
@@ -32,7 +33,6 @@ export default async function UserPage({ params, searchParams }: UserPageProps) 
   const filters = { q: null, hideSold: (await searchParams).hideSold === '1', sellerId: id };
   const [viewer, state] = await Promise.all([getSessionUser(), prefetchProductList(filters)]);
   const { user, counts } = profile;
-  const joined = new Date(user.createdAt);
   const total = counts.onSale + counts.reserved + counts.sold;
 
   return (
@@ -43,10 +43,7 @@ export default async function UserPage({ params, searchParams }: UserPageProps) 
           <Avatar url={user.avatarUrl} large />
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-xl font-semibold">{user.nickname}</h2>
-            {/* 가입한 달. 서버의 시간대(UTC)로 센다 */}
-            <p className="text-sm text-text-muted">
-              {joined.getUTCFullYear()}년 {joined.getUTCMonth() + 1}월부터
-            </p>
+            <p className="text-sm text-text-muted">{formatJoinedMonth(user.createdAt)}</p>
           </div>
           {/* 내 프로필이면 고치는 곳으로 가는 길을 둔다 [AC-UP-07] */}
           {viewer?.id === user.id && (

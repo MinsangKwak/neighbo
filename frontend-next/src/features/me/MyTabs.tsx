@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, type KeyboardEvent } from 'react';
 import type { MeCounts, MyProductCard, PurchaseCard } from '@neighbo/shared-schema';
-import { Button } from '@/components/Button';
+import { Button, linkButtonClass } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { RelativeTime } from '@/components/RelativeTime';
@@ -24,7 +24,6 @@ const EMPTY: Record<MyTab, string> = {
   SOLD: '거래를 완료한 물건이 없어요',
   PURCHASED: '아직 구매한 물건이 없어요',
 };
-const linkButton = 'inline-flex min-h-touch items-center rounded-lg bg-primary px-5 font-semibold text-on-primary';
 
 const countOf = (counts: MeCounts, tab: MyTab) =>
   ({ ON_SALE: counts.onSale, RESERVED: counts.reserved, SOLD: counts.sold, PURCHASED: counts.purchased })[tab];
@@ -123,7 +122,7 @@ function MyList({ tab }: { tab: MyTab }) {
         title={EMPTY[tab]}
         action={
           tab === 'ON_SALE' ? (
-            <Link href="/products/new" className={linkButton}>
+            <Link href="/products/new" className={linkButtonClass}>
               물건 올리기
             </Link>
           ) : undefined

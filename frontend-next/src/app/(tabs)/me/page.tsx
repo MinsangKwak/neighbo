@@ -1,12 +1,13 @@
 import { HydrationBoundary } from '@tanstack/react-query';
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { Avatar } from '@/components/Avatar';
 import { LogoutButton, loginHref } from '@/features/auth';
 import { MyTabs } from '@/features/me';
 import { isMyTab } from '@/features/me/api';
 import { getMe, prefetchMyList } from '@/features/me/server';
+import { formatJoinedMonth } from '@/lib/format';
 
 export const metadata: Metadata = { title: '마이' };
 
@@ -23,7 +24,6 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
   if (me === null) redirect(loginHref(tab === 'ON_SALE' ? '/me' : `/me?status=${tab}`));
   const state = await prefetchMyList(tab);
   const { user, counts } = me;
-  const joined = new Date(user.createdAt);
 
   return (
     <>
@@ -32,20 +32,11 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
       </header>
       <main className="flex flex-1 flex-col">
         <section aria-label="내 정보" className="flex items-center gap-4 px-4 py-5">
-          <span aria-hidden="true" className="relative block size-16 shrink-0 overflow-hidden rounded-full bg-surface">
-            {user.avatarUrl === null ? (
-              <span className="flex size-full items-center justify-center text-xl text-text-muted">☺</span>
-            ) : (
-              <Image src={user.avatarUrl} alt="" width={64} height={64} unoptimized className="size-full object-cover" />
-            )}
-          </span>
+          <Avatar url={user.avatarUrl} large />
           <div className="min-w-0 flex-1">
             <p className="text-xl font-semibold">{user.nickname}</p>
             <p className="truncate text-sm text-text-muted">{user.email}</p>
-            {/* 가입한 달. 서버의 시간대(UTC)로 센다 */}
-            <p className="text-sm text-text-muted">
-              {joined.getUTCFullYear()}년 {joined.getUTCMonth() + 1}월부터
-            </p>
+            <p className="text-sm text-text-muted">{formatJoinedMonth(user.createdAt)}</p>
           </div>
         </section>
         <div className="flex gap-2 px-4 pb-4">

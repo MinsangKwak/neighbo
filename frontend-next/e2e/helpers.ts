@@ -1,4 +1,8 @@
+import path from 'node:path';
 import { expect, type Browser, type Page } from '@playwright/test';
+
+// 테스트에 쓰는 사진 파일
+export const fixture = (name: string) => path.join(__dirname, 'fixtures', name);
 
 export interface Account {
   email: string;
@@ -18,7 +22,10 @@ export function newAccount(role: string): Account {
 }
 
 export async function newUser(browser: Browser) {
-  const context = await browser.newContext();
+  // 사람마다 다른 주소에서 온 것으로 둔다 — 인증 경로는 주소당 분당 10회로 제한한다 [AC-CM-32]
+  // 한 번의 실행이 만드는 계정이 그보다 많아, 같은 주소로 두면 뒤쪽 테스트의 가입이 막힌다
+  const address = `10.${Math.floor(Math.random() * 250) + 1}.${Math.floor(Math.random() * 250) + 1}.${Math.floor(Math.random() * 250) + 1}`;
+  const context = await browser.newContext({ extraHTTPHeaders: { 'X-Forwarded-For': address } });
   const page = await context.newPage();
   // 서버가 그린 화면은 스크립트가 붙기 전에 눌러도 반응이 없다 — 문서를 새로 열 때마다 준비 표시를 기다린다
   // (CI의 첫 테스트가 이 틈에 걸려 실패했다. 사람은 이만큼 빨리 누르지 못한다)

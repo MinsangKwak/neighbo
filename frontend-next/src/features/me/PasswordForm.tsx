@@ -48,7 +48,7 @@ export function PasswordForm({ isDemo }: { isDemo: boolean }) {
       <Field kind="currentPassword" label="현재 비밀번호" {...form.field('currentPassword')} />
       <Field kind="newPassword" label="새 비밀번호" hint="8~64자" {...form.field('newPassword')} />
       <Field kind="newPassword" label="새 비밀번호 확인" {...form.field('newPasswordConfirm')} />
-      <Button type="submit" block loading={form.submitting}>
+      <Button type="submit" block loading={form.submitting} aria-disabled={form.coolingDown || undefined}>
         비밀번호 바꾸기
       </Button>
     </form>

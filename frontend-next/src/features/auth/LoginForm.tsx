@@ -59,7 +59,7 @@ export function LoginForm({ next, demoPassword }: LoginFormProps) {
       <Field kind="email" label="이메일" {...form.field('email')} />
       <Field kind="currentPassword" label="비밀번호" {...form.field('password')} />
 
-      <Button type="submit" block loading={form.submitting}>
+      <Button type="submit" block loading={form.submitting} aria-disabled={form.coolingDown || undefined}>
         로그인
       </Button>
       <p className="text-center text-sm">

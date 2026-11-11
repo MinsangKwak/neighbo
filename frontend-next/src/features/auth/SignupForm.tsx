@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef } from 'react';
 import {
+  NICKNAME_MAX,
   normalizeEmail,
   normalizeNickname,
   signupSchema,
@@ -99,13 +100,14 @@ export function SignupForm({ next }: { next: string }) {
       <Field kind="newPassword" label="비밀번호 확인" {...form.field('passwordConfirm')} />
       <Field
         kind="nickname"
+        maxGraphemes={NICKNAME_MAX}
         label="닉네임"
         hint="2~12자. 한글, 영문, 숫자, 공백, _ . - 를 쓸 수 있어요"
         {...form.field('nickname')}
         onBlur={() => void checkAvailability('nickname')}
       />
 
-      <Button type="submit" block loading={form.submitting}>
+      <Button type="submit" block loading={form.submitting} aria-disabled={form.coolingDown || undefined}>
         가입하기
       </Button>
       {/* 약관 체크박스 대신 한 줄 안내 [AC-SU-19] */}

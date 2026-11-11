@@ -43,6 +43,12 @@ describe('가입 폼', () => {
       </ToastProvider>,
     );
 
+  it('[AC-SU-19] 약관 체크박스는 없고 버튼 아래 안내 한 줄만 있다', () => {
+    renderForm();
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(screen.getByText('가입하면 서비스 이용 안내에 동의한 것으로 봅니다.')).toBeTruthy();
+  });
+
   it('[AC-SU-06a, 11, 12] 칸마다 알맞은 입력 속성이 있고 규칙 안내가 처음부터 연결돼 있다', () => {
     renderForm();
     const email = screen.getByLabelText('이메일');
@@ -147,6 +153,21 @@ describe('가입 폼', () => {
       passwordConfirm: 'correct horse',
       nickname: '김당근',
     });
+  });
+
+  it('[AC-SU-21] 끊겨서 실패한 뒤 다시 보냈는데 이미 가입돼 있으면 로그인하라고 안내를 바꾼다', async () => {
+    renderForm();
+    fillValid();
+    // 첫 요청은 서버에 닿았지만 응답을 받지 못했다
+    vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new TypeError('Failed to fetch'))));
+    fireEvent.click(screen.getByRole('button', { name: '가입하기' }));
+    expect(await screen.findByText('인터넷 연결을 확인하고 다시 시도해 주세요')).toBeDefined();
+
+    const taken = { error: { code: 'EMAIL_TAKEN', message: '이미 가입된 이메일이에요', fields: { email: '이미 가입된 이메일이에요' } } };
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(Response.json(taken, { status: 409 }))));
+    fireEvent.click(screen.getByRole('button', { name: '가입하기' }));
+    expect(await screen.findByText(/이미 가입됐어요\. 로그인해 주세요/)).toBeDefined();
+    expect(screen.queryByText('이미 가입된 이메일이에요')).toBeNull();
   });
 
   it('[AC-SU-18] 서버가 돌려준 fields를 그대로 칸에 보여주고 그 칸으로 포커스한다', async () => {

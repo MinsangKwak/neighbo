@@ -1,6 +1,12 @@
 // 표시 규칙은 이 파일의 함수 하나씩으로 — 화면마다 다르게 보이지 않게
 
 // 천 단위 콤마 + "원", 0원은 "나눔" [AC-CM-51]
+// "2026년 11월부터" — 가입한 달. 서버와 브라우저가 같은 글자를 내도록 UTC로 센다
+export function formatJoinedMonth(iso: string): string {
+  const joined = new Date(iso);
+  return `${joined.getUTCFullYear()}년 ${joined.getUTCMonth() + 1}월부터`;
+}
+
 export function formatPrice(price: number): string {
   return price === 0 ? '나눔' : `${price.toLocaleString('ko-KR')}원`;
 }
