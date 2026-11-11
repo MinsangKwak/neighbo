@@ -61,7 +61,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 const ME = 'me';
 const PARTNER = { id: 'u2', nickname: '김당근', avatarUrl: null, createdAt: '2026-11-01T00:00:00.000Z' };
-const me: UserSelf = { id: ME, nickname: '나', avatarUrl: null, createdAt: '2026-11-01T00:00:00.000Z', email: 'me@example.com' };
+const me: UserSelf = { id: ME, nickname: '나', avatarUrl: null, createdAt: '2026-11-01T00:00:00.000Z', email: 'me@example.com', isDemo: false };
 const product = { id: 'p1', title: '원목 의자', price: 15000, status: 'ON_SALE' as const, thumbnail: null, deleted: false };
 
 // 로컬 시각 기준으로 만든다 — 표시 함수는 브라우저의 시간대를 따른다

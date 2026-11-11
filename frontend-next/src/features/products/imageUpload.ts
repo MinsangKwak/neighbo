@@ -69,3 +69,25 @@ export function uploadImage(blob: Blob, kind: 'PRODUCT' | 'AVATAR', onProgress: 
     xhr.send(form);
   });
 }
+
+const AVATAR_SIDE = 512;
+
+// 프로필 사진 — 가운데를 정사각으로 잘라 512px JPEG로 [AC-MP-08]
+export async function prepareAvatar(file: File): Promise<Blob> {
+  if (file.type === 'image/gif') throw new UnreadableImageError();
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  } catch {
+    throw new UnreadableImageError();
+  }
+  const side = Math.min(bitmap.width, bitmap.height);
+  const canvas = document.createElement('canvas');
+  canvas.width = AVATAR_SIDE;
+  canvas.height = AVATAR_SIDE;
+  const context = canvas.getContext('2d');
+  if (context === null) throw new UnreadableImageError();
+  context.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, AVATAR_SIDE, AVATAR_SIDE);
+  bitmap.close();
+  return toJpeg(canvas, 0.85);
+}

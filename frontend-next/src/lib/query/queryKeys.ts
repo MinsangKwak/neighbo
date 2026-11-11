@@ -9,6 +9,9 @@ export const queryKeys = {
   allProducts: () => ['products'] as const,
   product: (id: string) => ['product', id] as const,
   chatPartners: (id: string) => ['product', id, 'chatPartners'] as const,
+  // 마이페이지의 탭별 목록 — status는 ON_SALE · RESERVED · SOLD · PURCHASED
+  myList: (status: string) => ['me', 'list', status] as const,
+  allMyLists: () => ['me', 'list'] as const,
   // 읽지 않은 메시지가 있는 방의 수 — 탭 배지
   unread: () => ['me', 'unread'] as const,
   // productId가 있으면 그 상품의 방만

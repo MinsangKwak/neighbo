@@ -9,6 +9,9 @@ import { useSessionUser } from '@/features/auth/SessionProvider';
 import { queryKeys } from '@/lib/query/queryKeys';
 import { createChatSocket, type ChatSocket, type SocketLike, type SocketSnapshot } from '@/lib/socket/chatSocket';
 import { fetchSocketToken, postRead } from './api';
+import { MessageToastList } from './MessageToastList';
+import { createMessageToasts, shouldToast } from './messageToasts';
+import { UnreadTitle } from './UnreadTitle';
 import {
   addMessages,
   applyMessageToRooms,
@@ -41,6 +44,7 @@ export function ChatSocketProvider({ socketUrl, children }: { socketUrl: string 
   const value = useMemo(() => {
     // 처리기가 항상 지금의 값을 보게 한다 — 연결 관리자는 한 번만 만들고, 바뀌는 값은 여기에 적어 둔다
     const live = { userId: null as string | null, viewingRoomId: null as string | null };
+    const toasts = createMessageToasts();
     let buffered: Message[] = [];
     let timer: ReturnType<typeof setTimeout> | null = null;
     const flushRooms = () => {
@@ -116,6 +120,10 @@ export function ChatSocketProvider({ socketUrl, children }: { socketUrl: string 
         },
         onUnread(event) {
           setUnread(client, event.total);
+          // 배지는 언제나 맞추고, 토스트는 보고 있지 않은 방의 새 메시지일 때만 [AC-NT-05, 14]
+          const visible = document.visibilityState === 'visible';
+          const context = { pathname: window.location.pathname, viewingRoomId: live.viewingRoomId, visible };
+          if (event.latest !== null && shouldToast(event.latest.roomId, context)) toasts.push(event.latest);
         },
         onProductUpdated(event) {
           applyProduct(client, event.roomId, event.product);
@@ -140,8 +148,11 @@ export function ChatSocketProvider({ socketUrl, children }: { socketUrl: string 
 
     return {
       socket,
+      toasts,
       setViewingRoom(roomId: string | null) {
         live.viewingRoomId = roomId;
+        // 그 방에 들어왔으면 그 방의 토스트는 할 일을 다 했다
+        if (roomId !== null) toasts.dismiss(roomId);
       },
       setUser(id: string | null) {
         live.userId = id;
@@ -154,7 +165,10 @@ export function ChatSocketProvider({ socketUrl, children }: { socketUrl: string 
     value.setUser(userId);
     if (userId === null || socketUrl === null) return;
     value.socket.connect();
-    return () => value.socket.disconnect();
+    return () => {
+      value.socket.disconnect();
+      value.toasts.clear();
+    };
   }, [socketUrl, userId, value]);
 
   const status = useSyncExternalStore(
@@ -180,7 +194,17 @@ export function ChatSocketProvider({ socketUrl, children }: { socketUrl: string 
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [client, userId]);
 
-  return <ChatSocketContext.Provider value={value}>{children}</ChatSocketContext.Provider>;
+  return (
+    <ChatSocketContext.Provider value={value}>
+      {children}
+      {userId !== null && (
+        <>
+          <MessageToastList store={value.toasts} />
+          <UnreadTitle />
+        </>
+      )}
+    </ChatSocketContext.Provider>
+  );
 }
 
 export function useChatSocket(): ChatSocketContextValue {

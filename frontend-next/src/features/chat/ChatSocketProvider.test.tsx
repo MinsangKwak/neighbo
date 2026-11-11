@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { act, render } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Message, UserSelf } from '@neighbo/shared-schema';
@@ -43,7 +43,11 @@ vi.mock('socket.io-client', () => ({
   },
 }));
 
-const me: UserSelf = { id: 'me', nickname: '나', avatarUrl: null, createdAt: '2026-11-01T00:00:00.000Z', email: 'me@example.com' };
+const router = { push: vi.fn() };
+let pathname = '/';
+vi.mock('next/navigation', () => ({ useRouter: () => router, usePathname: () => pathname }));
+
+const me: UserSelf = { id: 'me', nickname: '나', avatarUrl: null, createdAt: '2026-11-01T00:00:00.000Z', email: 'me@example.com', isDemo: false };
 const msg = (roomId: string, seq: number, senderId = 'u2'): Message => ({
   id: `${roomId}-${seq}`,
   roomId,
@@ -60,12 +64,15 @@ const cached = (roomId: string, ...seqs: number[]) => ({
 
 // 채팅방 화면처럼 방 하나를 열어 둔다
 function OpenRoom({ roomId }: { roomId: string }) {
-  const { socket } = useChatSocket();
-  const client = socket;
+  const { socket, setViewingRoom } = useChatSocket();
   useEffect(() => {
-    client.join(roomId, () => 5);
-    return () => client.leave(roomId);
-  }, [client, roomId]);
+    setViewingRoom(roomId);
+    socket.join(roomId, () => 5);
+    return () => {
+      setViewingRoom(null);
+      socket.leave(roomId);
+    };
+  }, [roomId, setViewingRoom, socket]);
   return null;
 }
 
@@ -75,6 +82,10 @@ const fire = (event: string, payload?: unknown) => act(async () => {
 });
 
 beforeEach(() => {
+  router.push.mockClear();
+  pathname = '/';
+  window.history.replaceState(null, '', '/');
+  document.title = '홈 · neighbo';
   wire.listeners.clear();
   wire.joins.length = 0;
   vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(Response.json({ token: 't', expiresAt: '2026-11-11T00:00:00.000Z', rooms: 0 }))));
@@ -142,12 +153,15 @@ describe('ChatSocketProvider', () => {
     client.setQueryData(queryKeys.chatRooms(null), { pages: [{ items: [], nextCursor: null }], pageParams: [null] });
     await fire('__open');
     await act(async () => wire.joins.shift()!.resolve({ ok: true, missed: [], hasMore: false }));
-    expect(client.getQueryState(queryKeys.unread())?.isInvalidated).toBe(false);
+    const unreadFetches = () =>
+      vi.mocked(fetch).mock.calls.filter((call) => String(call[0]) === '/api/me/unread').length;
+    const before = unreadFetches();
 
     await fire('__drop');
     await fire('__open');
     await act(async () => wire.joins.shift()!.resolve({ ok: true, missed: [], hasMore: false }));
-    expect(client.getQueryState(queryKeys.unread())?.isInvalidated).toBe(true);
+    // 배지는 화면에 떠 있어 곧바로 다시 받는다
+    await waitFor(() => expect(unreadFetches()).toBe(before + 1));
     expect(client.getQueryState(queryKeys.chatRooms(null))?.isInvalidated).toBe(true);
     expect(client.getQueryData(queryKeys.messages('closed'))).toBeUndefined();
     // 열려 있는 방은 조인 응답의 누락분으로 이어 붙인다
@@ -177,5 +191,65 @@ describe('ChatSocketProvider', () => {
 
     await fire('notification:unread', { total: 7, latest: null });
     expect(client.getQueryData(queryKeys.unread())).toEqual({ rooms: 7 });
+  });
+
+  const latest = (roomId: string, extra: Record<string, unknown> = {}) => ({
+    total: 2,
+    latest: {
+      roomId,
+      partner: { id: 'u2', nickname: '김당근', avatarUrl: null, createdAt: '2026-11-01T00:00:00.000Z' },
+      preview: '아직 있나요?',
+      count: 1,
+      createdAt: '2026-11-10T06:00:00.000Z',
+      ...extra,
+    },
+  });
+
+  it('[AC-NT-05, 06] 다른 화면에서 새 메시지가 오면 토스트가 뜨고, 누르면 그 방으로 간다. 이어 오면 하나로 합친다', async () => {
+    mount();
+    await fire('__open');
+    await fire('notification:unread', latest('room9'));
+    const toast = screen.getByRole('button', { name: /김당근/ });
+    expect(toast.textContent).toContain('아직 있나요?');
+    // 포커스를 가져가지 않는다 [AC-NT-11]
+    expect(document.activeElement).toBe(document.body);
+
+    await fire('notification:unread', latest('room9', { count: 3 }));
+    expect(screen.getAllByRole('button', { name: /김당근/ })).toHaveLength(1);
+    expect(screen.getByRole('button', { name: /김당근/ }).textContent).toContain('메시지 3개');
+
+    fireEvent.click(screen.getByRole('button', { name: /김당근/ }));
+    expect(router.push).toHaveBeenCalledWith('/chats/room9');
+    expect(screen.queryByRole('button', { name: /김당근/ })).toBeNull();
+  });
+
+  it('[AC-NT-05, 14] 채팅 목록 · 그 방을 보는 중 · 탭이 숨겨진 동안에는 토스트 없이 배지만 바뀐다', async () => {
+    const client = mount();
+    await fire('__open');
+    // 열려 있는 방(open)의 메시지
+    await fire('notification:unread', latest('open'));
+    expect(screen.queryByRole('button', { name: /김당근/ })).toBeNull();
+
+    window.history.replaceState(null, '', '/chats');
+    await fire('notification:unread', latest('room9'));
+    expect(screen.queryByRole('button', { name: /김당근/ })).toBeNull();
+
+    window.history.replaceState(null, '', '/');
+    const hidden = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    await fire('notification:unread', { ...latest('room9'), total: 5 });
+    hidden.mockRestore();
+    expect(screen.queryByRole('button', { name: /김당근/ })).toBeNull();
+    expect(client.getQueryData(queryKeys.unread())).toEqual({ rooms: 5 });
+  });
+
+  it('[AC-NT-08] 읽지 않은 방이 있으면 탭 제목 앞에 수가 붙고, 없어지면 사라진다', async () => {
+    const client = mount();
+    await fire('__open');
+    await fire('notification:unread', { total: 3, latest: null });
+    await waitFor(() => expect(document.title).toBe('(3) 홈 · neighbo'));
+    await fire('notification:unread', { total: 120, latest: null });
+    await waitFor(() => expect(document.title).toBe('(99+) 홈 · neighbo'));
+    act(() => void client.setQueryData(queryKeys.unread(), { rooms: 0 }));
+    await waitFor(() => expect(document.title).toBe('홈 · neighbo'));
   });
 });
