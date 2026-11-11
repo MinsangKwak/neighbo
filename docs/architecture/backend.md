@@ -755,6 +755,7 @@ canAssignBuyer(product, buyerId, rooms)   // buyerId가 이 상품 방의 구매
 | `PRODUCT_DELETED` | 삭제된 상품 방에 전송 | 말풍선 실패 + 입력창 비활성 | AC-PX-08 |
 | `INVALID_PAYLOAD` | Zod 검증 실패 | 말풍선 실패 (버그 신호 — 로그) | AC-CH-32 |
 | `RATE_LIMITED` | 전송 버킷이 빔 (`retryAfterMs` 함께) | 대기 메시지는 그대로 두고 `retryAfterMs` 뒤 재전송. 직접 입력은 그동안 [전송] 비활성 | AC-CH-33 |
+| `INTERNAL` | 예상하지 못한 서버 오류 — ack는 반드시 돌려준다 [AC-CH-37] | 말풍선 실패. 같은 `tempId`로 다시 보내면 된다 | AC-CM-13 |
 
 ### 코드를 나누고 합친 판단
 
@@ -928,7 +929,7 @@ stdout에 한 줄 JSON. Railway가 수집한다. 별도 로깅 라이브러리 �
 
 | 순서 | 처리 | 실패 시 |
 | --- | --- | --- |
-| 1 | 핸드셰이크 `auth.token` 검증 — 서명 · 만료(60초) · `purpose: socket` · `sxp` 있음 | `connect_error UNAUTHORIZED` [AC-CH-31] |
+| 1 | 핸드셰이크 `auth.token` 검증 — 서명 · 만료(60초) · `purpose: socket` · `sxp` 있음 · 사용자 조회(`tokenVersion` 일치). 그 앞에서 `Origin`이 허용 목록 밖이면 연결 자체를 받지 않는다 | `connect_error UNAUTHORIZED` [AC-CH-31] |
 | 2 | 사용자 연결 수 확인 — 5개 넘으면 가장 오래된 연결 끊음 | — [AC-CH-33] |
 | 3 | `socket.data = { userId, sessionExp }` — `sessionExp`는 토큰의 `sxp`(토큰을 내준 세션의 만료 시각). 토큰 자체의 `exp`는 60초라 연결 중 검사에 쓸 수 없다 ([I-11](../troubleshooting.md#i-11)) | — |
 | 4 | `user:{userId}` 룸 조인 — 알림 · 읽음 동기화 대상 | — |
@@ -963,15 +964,17 @@ stdout에 한 줄 JSON. Railway가 수집한다. 별도 로깅 라이브러리 �
 
 | 이벤트 | 대상 | 언제 | 페이로드 |
 | --- | --- | --- | --- |
-| `message:new` | `room:{id}` (보낸 소켓 제외) + 보낸 사람의 다른 세션(`user:{senderId}`) | T7 커밋 후 | `{ message }` |
+| `message:new` | `room:{id}` + 두 사람의 모든 세션(`user:{senderId}` · `user:{receiverId}`), 보낸 소켓 제외. 겹치는 연결에는 한 번만 | T7 커밋 후 | `{ message }` |
 | `room:read` | `room:{id}` + `user:{readerId}` | T8 후 | `{ roomId, userId, lastReadSeq }` — 상대는 "읽음" 표시, 내 다른 탭은 배지 [AC-CH-02, 40] |
 | `notification:unread` | `user:{receiverId}` | T7 · T8 후 | `{ total, latest? }` — 토스트용 최신 메시지 요약 [AC-NT-01, 05] |
 | `room:product_updated` | 그 상품의 모든 `room:{id}` | 상태 변경 · 삭제 · 수정 커밋 후 | `{ roomId, product: { status, price, title, deletedAt } }` [AC-CH-41] |
 | `error` | 해당 소켓 | ack 없는 이벤트의 실패 | `{ code, message }` |
 
-#### `message:new`를 보낸 사람의 다른 세션에도 보내는 이유
+#### `message:new`를 방 밖의 세션에도 보내는 이유
 
 같은 사용자가 휴대폰과 PC에 같은 방을 열어 두면, PC에서 보낸 메시지가 휴대폰에도 보여야 한다 [CH-CC-04]. 보낸 소켓 자체는 ack로 이미 확정했으므로 제외한다 — 같은 말풍선이 두 번 생기지 않게.
+
+받는 사람의 `user:{receiverId}`에도 보낸다. 처음 안은 `room:{id}`와 보낸 사람의 세션뿐이었는데, 그러면 **채팅 목록을 보고 있는(방에 조인하지 않은) 받는 사람**은 행을 맨 위로 올릴 `message:new`를 받지 못한다 [AC-CL-05]. 한 번의 브로드캐스트에 룸 여러 개를 주면 Socket.IO가 겹치는 연결을 한 번으로 합친다.
 
 ### 4. 순서 보장
 
@@ -1018,7 +1021,8 @@ interface Realtime {
 | 동시 저장 순서 | 같은 방에 저장 두 개를 동시에 시작하고 먼저 시작한 쪽을 상품 잠금으로 늦게 커밋시킨 뒤, 먼저 커밋된 쪽의 `seq`로 `after` 조회 → 늦게 커밋된 메시지가 **포함**되는지 (결정 0016의 회귀 테스트) |
 | 읽음 상한 | `room:read { seq: 999 }` → `lastReadSeq`가 방의 `lastSeq`에서 멈춤 |
 | 토큰 만료 중 이벤트 → `UNAUTHORIZED` + 끊김 이유 `io server disconnect` | 만료 1초 토큰 |
-| 서버 재시작 후 복구 | 스파이크 ⑤의 크래시 흉내(TCP 직접 끊기)를 테스트 헬퍼로 |
+| 서버 재시작 후 복구 | 서버를 닫고 새 인스턴스를 띄운 뒤, 조인 전 전송이 `FORBIDDEN`이고 `after` 조인으로 누락분이 오는지 |
+| HTTP와 한 포트 | 소켓 경로의 요청에 앱이 끼어들지 않는지 — 폴링 핸드셰이크 응답이 한 번만 나가는지 ([I-12](../troubleshooting.md#i-12)) |
 
 ## 10 · API 명세
 
@@ -1607,7 +1611,7 @@ Page<Message>
 'room:product_updated'  (p: { roomId: Id; product: ProductSummary })
 'error'                 (p: { code: SocketErrorCode; message: string })
 
-type SocketErrorCode = 'UNAUTHORIZED' | 'FORBIDDEN' | 'PRODUCT_DELETED' | 'INVALID_PAYLOAD' | 'RATE_LIMITED';
+type SocketErrorCode = 'UNAUTHORIZED' | 'FORBIDDEN' | 'PRODUCT_DELETED' | 'INVALID_PAYLOAD' | 'RATE_LIMITED' | 'INTERNAL';
 ```
 
 `notification:unread.latest.count`는 같은 방 5초 안 메시지를 합친 수 — 프론트 토스트 합치기 [AC-NT-06]에 쓴다. 서버가 합치지 않고 매 메시지 `count: 1`을 보내도 프론트가 합칠 수 있지만, 서버가 이미 아는 값을 내려 주면 탭 여러 개가 같은 숫자를 보인다.
