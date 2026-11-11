@@ -77,6 +77,9 @@ export function createSocketHub({ httpServer, jwtSecret, log, isAllowedOrigin, i
 
   const bucket = createTokenBucket(SOCKET_LIMITS.sendBurst, SOCKET_LIMITS.sendPerSecond);
 
+  // 사용자별 무효화 횟수 — 핸드셰이크가 사용자를 확인하는 사이에 비밀번호가 바뀌면 숫자가 달라진다
+  const revocations = new Map<string, number>();
+
   // ── 연결 ───────────────────────────────────────────
   io.use((socket, next) => {
     const refuse = () => {
@@ -89,9 +92,11 @@ export function createSocketHub({ httpServer, jwtSecret, log, isAllowedOrigin, i
       refuse();
       return;
     }
+    const revokedBefore = revocations.get(payload.sub) ?? 0;
     isCurrentUser(payload.sub, payload.ver).then(
       (ok) => {
-        if (!ok) {
+        // 확인하는 동안 무효화됐다면 방금 읽은 답은 옛것이다. 이 연결은 아직 사용자 룸에 없어 끊기지도 않는다
+        if (!ok || (revocations.get(payload.sub) ?? 0) !== revokedBefore) {
           refuse();
           return;
         }
@@ -265,6 +270,7 @@ export function createSocketHub({ httpServer, jwtSecret, log, isAllowedOrigin, i
     userRevoked({ userId }) {
       // 이유를 알리고 끊는다 — 클라이언트는 이 이유를 받았을 때만 재로그인으로 보낸다 (I-13)
       // 비밀번호를 바꾼 탭도 끊기지만, 그 화면은 새 쿠키로 문서를 다시 받아 새 토큰으로 붙는다
+      revocations.set(userId, (revocations.get(userId) ?? 0) + 1);
       const room = io.in(userRoom(userId));
       room.emit('error', { code: 'UNAUTHORIZED', message: SOCKET_ERROR_MESSAGE.UNAUTHORIZED });
       room.disconnectSockets(true);

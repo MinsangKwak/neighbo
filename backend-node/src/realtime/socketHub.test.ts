@@ -169,6 +169,22 @@ describe('연결 — 세션 무효화', () => {
     await settle();
     expect(other.connected).toBe(true);
   });
+
+  it('사용자를 확인하는 사이에 비밀번호가 바뀐 핸드셰이크는 받아 주지 않는다', async () => {
+    // 확인 쿼리가 "유효함"을 읽은 뒤, 답이 돌아오기 전에 무효화가 일어나는 순서를 만든다
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    const slow = await start({ isCurrentUser: () => held.then(() => true) });
+    const user = await makeUser('user');
+    const pending = refused(slow.client(user.token));
+    await settle();
+    slow.hub.realtime.userRevoked({ userId: user.id });
+    release();
+    expect(await pending).toBe('UNAUTHORIZED');
+
+    // 무효화 뒤에 시작한 핸드셰이크는 새 답을 읽으므로 평소대로 판단한다
+    expect((await slow.connected(user.token)).connected).toBe(true);
+  });
 });
 
 describe('room:join', () => {

@@ -17,7 +17,9 @@ export type Client = Socket<ServerToClientEvents, ClientToServerEvents>;
 const hasher = await createPasswordHasher(10);
 
 // 진짜 HTTP 서버 + 진짜 Socket.IO — 운영(server.ts)과 같은 순서로 조립한다
-export async function startRealtime(options: { now?: () => number } = {}) {
+export async function startRealtime(
+  options: { now?: () => number; isCurrentUser?: (userId: string, tokenVersion: number) => Promise<boolean> } = {},
+) {
   const config = testConfig();
   const lines: Record<string, unknown>[] = [];
   const log = createLogger('info', (line) => lines.push(JSON.parse(line) as Record<string, unknown>));
@@ -29,10 +31,12 @@ export async function startRealtime(options: { now?: () => number } = {}) {
     jwtSecret: config.JWT_SECRET,
     log,
     isAllowedOrigin: createOriginCheck(config.ALLOWED_ORIGIN, config.ALLOWED_ORIGIN_PATTERN),
-    isCurrentUser: async (userId, tokenVersion) => {
-      const user = await db.user.findUnique({ where: { id: userId } });
-      return user !== null && user.tokenVersion === tokenVersion;
-    },
+    isCurrentUser:
+      options.isCurrentUser ??
+      (async (userId, tokenVersion) => {
+        const user = await db.user.findUnique({ where: { id: userId } });
+        return user !== null && user.tokenVersion === tokenVersion;
+      }),
     ...(options.now === undefined ? {} : { now: options.now }),
   });
   const chat = createChatService(db, hub.realtime);
