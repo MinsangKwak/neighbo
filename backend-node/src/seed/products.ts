@@ -60,7 +60,8 @@ export async function upsertSeedProduct(
     const id = `${spec.id}_img${order}`;
     const key = `products/seed-${spec.id}-${order}.webp`;
     const existing = kept.get(id);
-    if (existing !== undefined && existing.storageKey === key) {
+    // 같은 저장 위치에 올린 것만 다시 쓴다 — 로컬에서 외부로, 또는 다른 버킷으로 옮겼으면 주소가 달라 새로 올린다
+    if (existing !== undefined && existing.storageKey === key && existing.url === storage.url(key)) {
       rows.push({ ...existing, order });
       continue;
     }

@@ -98,10 +98,21 @@ describe('데모 초기화', () => {
     const result = await resetDemo(db, storage, { sample: true });
 
     expect(result.sampleRoomsRestored).toBe(SAMPLE_ROOMS.length);
+    expect(await db.chatRoom.count()).toBe(SAMPLE_ROOMS.length);
     expect(await db.message.count()).toBe(300);
     expect(await db.message.count({ where: { content: '앞사람의 대화' } })).toBe(0);
-    const member = await db.chatRoomMember.findFirstOrThrow({ where: { roomId: room.id, userId: 'demo_buyer' } });
+    // 같은 상품 × 구매자의 방이 새 ID로 다시 생긴다 — 옛 방을 열어 둔 화면이 번호를 섞지 않게
+    expect(await db.chatRoom.findUnique({ where: { id: room.id } })).toBeNull();
+    const fresh = await db.chatRoom.findFirstOrThrow({ where: { productId: room.productId, buyerId: room.buyerId } });
+    expect(fresh.id).not.toBe(room.id);
+    expect(fresh.lastSeq).toBe(room.count);
+    const member = await db.chatRoomMember.findFirstOrThrow({ where: { roomId: fresh.id, userId: 'demo_buyer' } });
     expect(member.lastReadSeq).toBeLessThan(room.count);
+
+    // 한 번 더 돌려도 방 수는 그대로다
+    await resetDemo(db, storage, { sample: true }, new Date(Date.now() + 86_400_000));
+    expect(await db.chatRoom.count()).toBe(SAMPLE_ROOMS.length);
+    expect(await db.message.count()).toBe(300);
   });
 
   it('데모 계정이 없으면 아무것도 하지 않는다', async () => {

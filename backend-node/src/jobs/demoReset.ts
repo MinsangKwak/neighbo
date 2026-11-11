@@ -59,12 +59,16 @@ export async function resetDemo(
   );
 
   // 샘플 방은 한쪽이 데모 계정이라 앞사람의 대화가 쌓인다 — 지우고 처음 상태로 다시 만든다
+  // 새 방은 새 ID로 만든다. 같은 ID를 다시 쓰면 방을 열어 둔 화면이 옛 메시지 번호와 새 번호를 섞어, 새 메시지를 조용히 버린다
+  // 옛 방을 열어 둔 화면은 ③의 방과 똑같이 "없는 방"이 된다
+  const samplePairs = SAMPLE_ROOMS.map((room) => ({ productId: room.productId, buyerId: room.buyerId }));
   if (options.sample) {
+    const stale = await db.withDeleted().chatRoom.findMany({ where: { OR: samplePairs }, select: { id: true } });
     await deleteRooms(
       db,
-      SAMPLE_ROOMS.map((room) => room.id),
+      stale.map((room) => room.id),
     );
-    const sample = await seedSample(db, storage, images, now);
+    const sample = await seedSample(db, storage, images, now, `_${now.getTime().toString(36)}`);
     result.sampleRoomsRestored = sample.rooms;
   }
 
@@ -77,7 +81,9 @@ export async function resetDemo(
   }
   // 일반 사용자와의 방은 남는다. 앞사람이 안 읽은 표시가 다음 사람에게 넘어가지 않게 모두 읽음으로 둔다
   // (샘플 방은 방금 다시 만들어 시드의 읽지 않은 수를 그대로 갖는다)
-  const sampleRoomIds = SAMPLE_ROOMS.map((room) => room.id);
+  const sampleRoomIds = (await db.withDeleted().chatRoom.findMany({ where: { OR: samplePairs }, select: { id: true } })).map(
+    (room) => room.id,
+  );
   await db.$executeRaw`
     UPDATE "ChatRoomMember" AS m
     SET "lastReadSeq" = r."lastSeq"

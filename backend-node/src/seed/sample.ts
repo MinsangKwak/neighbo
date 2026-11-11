@@ -232,7 +232,14 @@ export interface SampleReport {
 }
 
 // 두 데모 계정과 데모 상품이 있을 때만 부른다
-export async function seedSample(db: Db, storage: ImageStorage, images: SeedImage[], now = new Date()): Promise<SampleReport> {
+// roomIdSuffix: 초기화가 방을 다시 만들 때 붙인다. 같은 ID를 다시 쓰면 열어 둔 화면의 캐시가 옛 번호와 새 번호를 섞는다
+export async function seedSample(
+  db: Db,
+  storage: ImageStorage,
+  images: SeedImage[],
+  now = new Date(),
+  roomIdSuffix = '',
+): Promise<SampleReport> {
   const report: SampleReport = { skipped: false, users: 0, products: 0, rooms: 0, messages: 0 };
   const ids = SAMPLE_USERS.map((user) => user.id);
   const taken = await db.user.findFirst({
@@ -271,9 +278,11 @@ export async function seedSample(db: Db, storage: ImageStorage, images: SeedImag
     report.products += 1;
   }
 
-  for (const [roomIndex, room] of SAMPLE_ROOMS.entries()) {
+  for (const [roomIndex, spec] of SAMPLE_ROOMS.entries()) {
+    const room = { ...spec, id: `${spec.id}${roomIdSuffix}` };
     // 방은 처음 한 번만 만든다 — 그 뒤에 오간 대화와 읽음 위치를 덮어쓰지 않는다
     const existing = await db.chatRoom.findFirst({
+      // 상품 × 구매자당 방은 하나다 — ID가 달라도 그 짝의 방이 있으면 만들지 않는다
       where: { OR: [{ id: room.id }, { productId: room.productId, buyerId: room.buyerId }] },
       select: { id: true },
     });

@@ -129,6 +129,26 @@ describe('외부 저장소에서의 시드', () => {
     expect(puts.slice(first)).toEqual(['products/seed-demo_p3-0.webp', 'products/seed-demo_p3-0.thumb.webp']);
     expect((await db.productImage.findFirstOrThrow({ where: { productId: 'demo_p1' } })).url).toContain('https://img.example.com/');
   });
+
+  it('로컬에서 외부 저장소로 옮기면 사진을 새 위치에 올리고 주소를 바꾼다', async () => {
+    await seedDemoProducts(db, storage, images);
+    expect((await db.productImage.findFirstOrThrow({ where: { productId: 'demo_p1' } })).url).toContain('/files/');
+    const puts: string[] = [];
+    const external = {
+      put: (key: string) => {
+        puts.push(key);
+        return Promise.resolve();
+      },
+      remove: () => Promise.resolve(),
+      url: (key: string) => `https://img.example.com/${key}`,
+      localDirectory: null,
+    };
+    await seedDemoProducts(db, external, images);
+    expect(puts).toHaveLength(20);
+    const rows = await db.productImage.findMany({ where: { productId: { startsWith: 'demo_' } } });
+    expect(rows.every((row) => row.url.startsWith('https://img.example.com/'))).toBe(true);
+    expect(rows.every((row) => row.thumbnailUrl.startsWith('https://img.example.com/'))).toBe(true);
+  });
 });
 
 describe('샘플 데이터 시드', () => {
