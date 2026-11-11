@@ -49,6 +49,8 @@
 | AC-PD-23 | 페이지 `<title>`은 "{상품 제목} · neighbo"이고 `h1`은 상품 제목이며, 뒤로가기 버튼은 히스토리가 없으면 홈으로 간다 | `<title>` · `h1` · 히스토리 없으면 홈 | — | PD-A11Y-07, PD-UI-04 |
 | AC-PD-24 | 사진은 `width · height`로 비율을 확보해 로드 중 레이아웃이 밀리지 않는다 | `width · height`로 자리 확보 [F01](../architecture/frontend.md#01--렌더링-전략) | `ProductImage.width · height` 저장 [B02](../architecture/backend.md#02--데이터-모델) | PD-NW-04 |
 
+2차에서 더한 것: 사진을 누르면 화면 가득 크게 본다(네이티브 `<dialog>` — Esc로 닫고, 닫으면 누른 사진으로 포커스가 돌아온다. 이전 · 다음 버튼으로 넘긴다). 판매자 영역은 [프로필](11-seller-profile.md)로, 하단의 ♡는 [관심](12-favorite.md)으로 이어진다.
+
 범위 밖: 상태 변경 알림, 예약자 지정, 상태 이력 [PD-OK-09, PD-TR-07~09, PD-DT-04].
 
 ---
