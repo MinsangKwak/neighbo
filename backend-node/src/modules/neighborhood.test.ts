@@ -116,6 +116,27 @@ describe('상품의 동네', () => {
     expect(byId).toEqual({ [onSale]: '은평구', [reserved]: '은평구', [sold]: '마포구', [others]: null });
   });
 
+  it('AC-NB-04 거래완료를 되돌려 다시 팔면 판매자의 지금 동네로 맞춰진다', async () => {
+    const { app } = createTestApp();
+    const kim = await signup(app, 'kim');
+    await patchMe(app, kim.cookie, { neighborhood: '마포구' });
+    const id = await create(app, kim.cookie, '다시 파는 의자');
+    const status = (to: string) =>
+      request(app).patch(`/products/${id}/status`).set('Origin', ORIGIN).set('Cookie', kim.cookie).send({ status: to });
+
+    expect((await status('SOLD')).status).toBe(200);
+    await patchMe(app, kim.cookie, { neighborhood: '은평구' });
+    expect((await db.product.findUniqueOrThrow({ where: { id } })).neighborhood).toBe('마포구');
+
+    const reopened = await status('ON_SALE');
+    expect(reopened.status).toBe(200);
+    expect(reopened.body.product.neighborhood).toBe('은평구');
+    // 예약 ⇄ 판매중 사이의 변경은 동네를 건드리지 않는다
+    await db.product.update({ where: { id }, data: { neighborhood: '종로구' } });
+    await status('RESERVED');
+    expect((await db.product.findUniqueOrThrow({ where: { id } })).neighborhood).toBe('종로구');
+  });
+
   it('AC-NB-05 ?neighborhood= 는 그 동네의 물건만 돌려주고, 검색 · 판매완료 숨기기와 함께 쓸 수 있다', async () => {
     const { app } = createTestApp();
     const kim = await signup(app, 'kim');

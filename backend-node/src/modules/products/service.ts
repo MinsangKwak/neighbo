@@ -309,7 +309,14 @@ export function createProductService(db: Db, storage: ImageStorage, realtime: Re
         // 거래완료에서 되돌리면 구매자 정보가 지워진다 [AC-PD-06]
         ({ count } = await db.product.updateMany({
           where: { id, sellerId: user.id, status: from },
-          data: { status: to, buyerId: null, soldAt: null, soldPrice: null },
+          data: {
+            status: to,
+            buyerId: null,
+            soldAt: null,
+            soldPrice: null,
+            // 거래완료였던 동안 판매자가 이사했을 수 있다 — 다시 팔 때는 지금 동네로 맞춘다 [AC-NB-04]
+            ...(from === 'SOLD' ? { neighborhood: user.neighborhood } : {}),
+          },
         }));
       }
       if (count === 0) throw await explainMiss(id, user.id);
