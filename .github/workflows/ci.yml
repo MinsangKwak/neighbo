@@ -37,6 +37,48 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  # 실제 브라우저로 두 서버를 띄워 가입부터 거래완료까지 돌린다 (docs/dev.md 테스트 전략)
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: neighbo
+          POSTGRES_PASSWORD: neighbo
+          POSTGRES_DB: neighbo_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U neighbo -d neighbo_e2e"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://neighbo:neighbo@127.0.0.1:5432/neighbo_e2e
+      E2E_DATABASE_URL: postgresql://neighbo:neighbo@127.0.0.1:5432/neighbo_e2e
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run db:generate -w backend-node
+      - run: npm run db:deploy -w backend-node
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend-next
+      - run: npm run e2e -w frontend-next
+      # 실패하면 화면 기록(trace)과 스크린샷을 내려받아 볼 수 있게 한다
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-report
+          path: |
+            frontend-next/playwright-report
+            frontend-next/test-results
+          retention-days: 7
+
   # Railway가 쓰는 Dockerfile이 실제로 빌드되고, 마이그레이션 후 서버가 뜨는지 확인한다
   image:
     runs-on: ubuntu-latest
