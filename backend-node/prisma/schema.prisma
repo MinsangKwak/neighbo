@@ -30,6 +30,7 @@ model User {
   nickname      String // 표시용 — 입력한 대소문자 그대로
   nicknameLower String    @unique // 중복 판단용
   avatarUrl     String?
+  neighborhood  String? // 목록에서 고른 동네 이름. 정하지 않았으면 null
   tokenVersion  Int       @default(0) // 비밀번호 변경 시 +1 → 기존 토큰 무효
   isDemo        Boolean   @default(false) // 공용 데모 계정 — 비밀번호 · 프로필 변경 불가, 매일 초기화
   lastLoginAt   DateTime?
@@ -62,6 +63,7 @@ model Product {
   updatedAt      DateTime      @updatedAt
   deletedAt      DateTime?
   imagesPurgedAt DateTime? // 삭제 30일 후 파일 정리 완료 시각
+  neighborhood   String? // 올릴 때 판매자의 동네 — 판매자가 동네를 바꿔도 따라가지 않는다
 
   seller    User           @relation("ProductSeller", fields: [sellerId], references: [id])
   buyer     User?          @relation("ProductBuyer", fields: [buyerId], references: [id])
@@ -73,6 +75,7 @@ model Product {
   @@index([deletedAt, createdAt(sort: Desc), id(sort: Desc)]) // 홈 목록 · 커서
   @@index([sellerId, status, createdAt(sort: Desc)]) // 마이페이지 판매 탭
   @@index([buyerId, soldAt(sort: Desc)]) // 구매 내역
+  @@index([neighborhood, deletedAt, createdAt(sort: Desc), id(sort: Desc)]) // 내 동네 목록 · 커서
 }
 
 model ProductImage {

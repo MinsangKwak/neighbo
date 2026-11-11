@@ -25,6 +25,7 @@ export function toProductCard(product: CardRow): ProductCard {
     status: product.status,
     thumbnail: cover === undefined ? null : toThumbnail(cover),
     chatRoomCount: product._count.chatRooms,
+    neighborhood: product.neighborhood,
     createdAt: product.createdAt.toISOString(),
   };
 }
@@ -48,6 +49,7 @@ export function toProductDetail(product: DetailRow): ProductDetail {
     seller: toUserPublic(product.seller),
     chatRoomCount: product._count.chatRooms,
     favoriteCount: product._count.favorites,
+    neighborhood: product.neighborhood,
     soldAt: product.soldAt?.toISOString() ?? null,
     createdAt: product.createdAt.toISOString(),
     updatedAt: product.updatedAt.toISOString(),

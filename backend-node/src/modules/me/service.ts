@@ -36,10 +36,10 @@ export function createMeService(db: Db, hasher: PasswordHasher, storage: ImageSt
       return { ...selling, purchased };
     },
 
-    // T10 · T11 — 닉네임과 아바타만 바꾼다 [AC-MP-06, 08, 12]
+    // T10 · T11 — 닉네임 · 아바타 · 동네만 바꾼다 [AC-MP-06, 08, 12] [AC-NB-02]
     async update(user: User, input: UpdateMeInput): Promise<User> {
       assertNotDemo(user);
-      if (input.nickname === undefined && input.avatarUploadId === undefined) return user;
+      if (input.nickname === undefined && input.avatarUploadId === undefined && input.neighborhood === undefined) return user;
 
       let updated: User;
       try {
@@ -61,6 +61,13 @@ export function createMeService(db: Db, hasher: PasswordHasher, storage: ImageSt
             if (count !== 1) throw new AppError('VALIDATION_FAILED', { avatarUploadId: '사진을 다시 올려 주세요' });
             avatarUrl = upload.url;
           }
+          // 물건은 판매자와 함께 옮겨 간다 — 끝난 거래는 그때의 동네로 남는다 [AC-NB-04]
+          if (input.neighborhood !== undefined && input.neighborhood !== user.neighborhood) {
+            await tx.product.updateMany({
+              where: { sellerId: user.id, status: { not: 'SOLD' } },
+              data: { neighborhood: input.neighborhood },
+            });
+          }
           return tx.user.update({
             where: { id: user.id },
             data: {
@@ -69,6 +76,7 @@ export function createMeService(db: Db, hasher: PasswordHasher, storage: ImageSt
                 ? {}
                 : { nickname: input.nickname, nicknameLower: nicknameKey(input.nickname) }),
               ...(avatarUrl === undefined ? {} : { avatarUrl }),
+              ...(input.neighborhood === undefined ? {} : { neighborhood: input.neighborhood }),
             },
           });
         });

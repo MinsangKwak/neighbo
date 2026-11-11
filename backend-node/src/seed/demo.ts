@@ -8,8 +8,9 @@ import { upsertSeedProduct, type SeedProduct } from './products.js';
 // 데모 계정 — 고정 ID로 upsert해서 몇 번을 돌려도 같은 결과가 된다
 // 근거: docs/architecture/backend.md 11절 4. 시드 데이터 [AC-LI-19]
 export const DEMO_ACCOUNTS = [
-  { id: 'demo_seller', email: 'demo@neighbo.app', nickname: '데모판매자' },
-  { id: 'demo_buyer', email: 'demo2@neighbo.app', nickname: '데모구매자' },
+  { id: 'demo_seller', email: 'demo@neighbo.app', nickname: '데모판매자', neighborhood: '마포구' },
+  // 구매자는 옆 동네 — "내 동네만"을 켜면 데모 상품이 빠지는 것을 볼 수 있다
+  { id: 'demo_buyer', email: 'demo2@neighbo.app', nickname: '데모구매자', neighborhood: '서대문구' },
 ] as const;
 
 export interface SeedReport {
@@ -48,6 +49,7 @@ export async function seedDemoAccounts(db: Db, hasher: PasswordHasher, rawPasswo
       nicknameLower,
       passwordHash,
       isDemo: true,
+      neighborhood: account.neighborhood,
       deletedAt: null,
     };
     // tokenVersion은 건드리지 않는다 — 시드가 접속 중인 사람을 로그아웃시키지 않게
@@ -63,6 +65,7 @@ export const DEMO_PRODUCTS: SeedProduct[] = [
   {
     id: 'demo_p1',
     sellerId: 'demo_seller',
+    neighborhood: '마포구',
     title: '원목 2인용 식탁 세트',
     price: 85000,
     description: '2년 쓴 원목 식탁이에요. 의자 두 개 포함입니다.\n상판에 잔흠집이 조금 있어요. 직접 가져가셔야 해요.',
@@ -73,6 +76,7 @@ export const DEMO_PRODUCTS: SeedProduct[] = [
   {
     id: 'demo_p2',
     sellerId: 'demo_seller',
+    neighborhood: '마포구',
     title: '접이식 자전거 20인치',
     price: 120000,
     description: '출퇴근용으로 탔어요. 브레이크와 타이어는 지난달에 갈았습니다.',
@@ -83,6 +87,7 @@ export const DEMO_PRODUCTS: SeedProduct[] = [
   {
     id: 'demo_p3',
     sellerId: 'demo_seller',
+    neighborhood: '마포구',
     title: '블루투스 스피커',
     price: 30000,
     description: '충전 케이블 같이 드려요. 소리 잘 나옵니다.',
@@ -93,6 +98,7 @@ export const DEMO_PRODUCTS: SeedProduct[] = [
   {
     id: 'demo_p4',
     sellerId: 'demo_seller',
+    neighborhood: '마포구',
     title: '캠핑 의자 2개',
     price: 25000,
     description: '두 번 썼어요. 수납 가방 포함입니다.',
@@ -103,6 +109,7 @@ export const DEMO_PRODUCTS: SeedProduct[] = [
   {
     id: 'demo_p5',
     sellerId: 'demo_seller',
+    neighborhood: '마포구',
     title: '전기 주전자 1.7L',
     price: 12000,
     description: '이사하면서 정리합니다. 물때 없이 깨끗해요.',
@@ -114,6 +121,7 @@ export const DEMO_PRODUCTS: SeedProduct[] = [
   {
     id: 'demo_p6',
     sellerId: 'demo_seller',
+    neighborhood: '마포구',
     title: '화분 받침 나눔해요',
     price: 0,
     description: '크기별로 다섯 개 있어요. 필요하신 분 가져가세요.',

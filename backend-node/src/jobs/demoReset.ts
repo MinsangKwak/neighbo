@@ -79,7 +79,12 @@ export async function resetDemo(
   for (const account of DEMO_ACCOUNTS) {
     await db.user.update({
       where: { id: account.id },
-      data: { nickname: account.nickname, nicknameLower: account.nickname.toLowerCase(), avatarUrl: null },
+      data: {
+        nickname: account.nickname,
+        nicknameLower: account.nickname.toLowerCase(),
+        avatarUrl: null,
+        neighborhood: account.neighborhood,
+      },
     });
   }
   // 일반 사용자와의 방은 남는다. 앞사람이 안 읽은 표시가 다음 사람에게 넘어가지 않게 모두 읽음으로 둔다

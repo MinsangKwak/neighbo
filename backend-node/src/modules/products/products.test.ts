@@ -205,7 +205,7 @@ describe('GET /products', () => {
       thumbnail: { url: upload.thumbnailUrl, width: 400, height: 300 },
       chatRoomCount: 1,
     });
-    expect(Object.keys(items[1] ?? {}).sort()).toEqual(['chatRoomCount', 'createdAt', 'id', 'price', 'status', 'thumbnail', 'title']);
+    expect(Object.keys(items[1] ?? {}).sort()).toEqual(['chatRoomCount', 'createdAt', 'id', 'neighborhood', 'price', 'status', 'thumbnail', 'title']);
   });
 
   it('[AC-PL-12] 제목을 대소문자 구분 없이 찾고, % · _는 글자 그대로 찾는다', async () => {

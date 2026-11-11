@@ -7,6 +7,7 @@ export function toUserPublic(user: User): UserPublic {
     id: user.id,
     nickname: user.nickname,
     avatarUrl: user.avatarUrl,
+    neighborhood: user.neighborhood,
     createdAt: user.createdAt.toISOString(),
   };
 }

@@ -16,6 +16,8 @@ export interface SeedProduct {
   // 처음 만들 때의 등록 시각 — 지금으로부터 몇 시간 전인지
   hoursAgo: number;
   photos: number;
+  // 판매자의 동네
+  neighborhood?: string;
 }
 
 const HOUR = 60 * 60 * 1000;
@@ -40,6 +42,7 @@ export async function upsertSeedProduct(
       : { buyerId: null, soldAt: null, soldPrice: null };
   const data = {
     sellerId: spec.sellerId,
+    neighborhood: spec.neighborhood ?? null,
     title: spec.title,
     price: spec.price,
     description: spec.description,

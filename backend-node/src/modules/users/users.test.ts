@@ -39,7 +39,7 @@ describe('GET /users/{id}', () => {
     const res = await request(app).get(`/users/${seller.id}`);
 
     expect(JSON.stringify(res.body)).not.toContain('example.com');
-    expect(Object.keys(res.body.user as object).sort()).toEqual(['avatarUrl', 'createdAt', 'id', 'nickname']);
+    expect(Object.keys(res.body.user as object).sort()).toEqual(['avatarUrl', 'createdAt', 'id', 'neighborhood', 'nickname']);
     expect(Object.keys(res.body.counts as object).sort()).toEqual(['onSale', 'reserved', 'sold']);
   });
 

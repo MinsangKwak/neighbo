@@ -112,6 +112,7 @@ export function createProductService(db: Db, storage: ImageStorage, realtime: Re
       const where: Prisma.ProductWhereInput = {
         ...(query.hideSold ? { status: { not: 'SOLD' } } : {}),
         ...(query.sellerId === undefined ? {} : { sellerId: query.sellerId }),
+        ...(query.neighborhood === undefined ? {} : { neighborhood: query.neighborhood }),
         ...(query.q === undefined ? {} : { title: { contains: escapeLike(query.q), mode: 'insensitive' } }),
         // (createdAt, id)가 커서보다 뒤인 행 — 같은 시각이면 id로 가른다
         ...(cursor === null
@@ -179,6 +180,8 @@ export function createProductService(db: Db, storage: ImageStorage, realtime: Re
           const product = await tx.product.create({
             data: {
               sellerId: user.id,
+              // 올리는 순간의 판매자 동네를 적어 둔다 — 목록을 동네로 거를 때 사용자 표를 거치지 않는다 [AC-NB-03]
+              neighborhood: user.neighborhood,
               title: input.title,
               price: input.price,
               description: input.description,

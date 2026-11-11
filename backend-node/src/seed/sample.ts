@@ -17,12 +17,16 @@ const NICKNAMES = ['초록지붕', '망원동토끼', '책읽는고양이', '주
 // 로그인할 수 없는 계정이다 — 해시 자리에 bcrypt가 만들 수 없는 값을 둔다
 const NO_LOGIN = '!seed-no-login';
 
+const SAMPLE_NEIGHBORHOODS = ['마포구', '서대문구', '은평구', '용산구', '종로구'] as const;
+
 export const SAMPLE_USERS = NICKNAMES.map((nickname, i) => ({
   id: `sample_u${pad(i + 1)}`,
   email: `sample${pad(i + 1)}@neighbo.app`,
   nickname,
   // 아바타가 있는 사람과 없는 사람을 섞는다
   avatar: i % 2 === 0,
+  // 다섯 동네에 두 명씩 — "내 동네만"으로 걸러지는 것을 볼 수 있게
+  neighborhood: SAMPLE_NEIGHBORHOODS[i % SAMPLE_NEIGHBORHOODS.length] ?? '마포구',
 }));
 
 const ITEMS: [title: string, price: number, description: string][] = [
@@ -63,10 +67,12 @@ const HOUR = 60 * 60 * 1000;
 
 function sampleProduct(i: number): SeedProduct {
   const [title, price, description] = ITEMS[i % ITEMS.length] ?? ['물건', 1000, ''];
-  const seller = SAMPLE_USERS[i % SAMPLE_USERS.length]?.id ?? 'sample_u01';
+  const owner = SAMPLE_USERS[i % SAMPLE_USERS.length];
+  const seller = owner?.id ?? 'sample_u01';
   const spec: SeedProduct = {
     id: `sample_p${pad(i + 1)}`,
     sellerId: seller,
+    neighborhood: owner?.neighborhood ?? '마포구',
     title: i < ITEMS.length ? title : `${PREFIXES[i % PREFIXES.length]} ${title}`,
     price: i % 10 === 9 ? 0 : price,
     description: i % 5 === 2 ? `${description}\n\n직거래만 해요.\n평일 저녁, 주말 오후에 시간 됩니다.` : description,
@@ -267,6 +273,7 @@ export async function seedSample(
       nicknameLower: user.nickname.toLowerCase(),
       passwordHash: NO_LOGIN,
       avatarUrl,
+      neighborhood: user.neighborhood,
       deletedAt: null,
     };
     await db.user.upsert({ where: { id: user.id }, create: { id: user.id, ...data }, update: data });
