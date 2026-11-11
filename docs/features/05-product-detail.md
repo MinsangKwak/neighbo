@@ -41,7 +41,7 @@
 | AC-PD-15 | 두 번 클릭 · 두 탭 동시 요청에도 `(productId, buyerId)` 유니크로 방은 하나만 생긴다 | 첫 클릭에 버튼 잠금 | 유니크 위반 → 기존 방 `200` [B05](../architecture/backend.md#05--멱등성) | PD-CC-01, 02 |
 | AC-PD-16 | 비로그인으로 [채팅하기]를 누르면 로그인 후 상세로 돌아오며 버튼을 다시 눌러야 한다 | 로그인 후 `next`로 복귀, 자동 생성 안 함 | `optionalAuth` 상세 · 생성은 `requireAuth` | PD-OK-02 |
 | AC-PD-17 | 캐러셀은 `aria-roledescription="carousel"`, 슬라이드마다 "5장 중 N번째", 이전 · 다음 버튼 키보드 조작, 자동 재생 없음이며 탭하면 전체 화면 뷰어가 열린다 | 캐러셀 · 전체 화면 뷰어(`<dialog>`) [F06](../architecture/frontend.md#06--포커스와-라이브-리전) | 사진 `order` 순 응답 | PD-OK-06, PD-A11Y-01 |
-| AC-PD-18 | 예약중은 배지만 붙고 [채팅하기]가 활성이며, 거래완료는 배지 + 오버레이에 [채팅하기]가 `aria-disabled`이고 누르면 "거래가 완료된 물건이에요"를 알린다 | 배지 · 오버레이 · `aria-disabled` + 이유 [F06](../architecture/frontend.md#06--포커스와-라이브-리전) | 거래완료 시 새 방 `409` [B04](../architecture/backend.md#04--권한-매트릭스) | PD-ST-02, 03, PD-A11Y-05 |
+| AC-PD-18 | 예약중은 배지만 붙고 [채팅하기]가 활성이며, 거래완료는 배지 + 오버레이에 채팅 버튼이 `aria-disabled`이고 이름이 [거래완료]로 바뀌며(흐린 [채팅하기]만으로는 이유를 알 수 없다), 누르면 "거래가 완료된 물건이에요"를 알린다 | 배지 · 오버레이 · `aria-disabled` + 이유 [F06](../architecture/frontend.md#06--포커스와-라이브-리전) | 거래완료 시 새 방 `409` [B04](../architecture/backend.md#04--권한-매트릭스) | PD-ST-02, 03, PD-A11Y-05 |
 | AC-PD-19 | 삭제된 상품은 판매자 본인에게도 404다 | 404 화면 | 자동 주입으로 판매자에게도 없음 [B01](../architecture/backend.md#01--요청-계층) | PD-ST-04 |
 | AC-PD-20 | [채팅하기]를 누른 사이 거래완료되면 `409 PRODUCT_SOLD`, 삭제되면 `404`이며 각각 토스트 후 재조회 · 홈 이동이다 | `PRODUCT_SOLD`는 재조회, `NOT_FOUND`는 홈 [F04](../architecture/frontend.md#04--에러-경계) | T6 안 `FOR SHARE` 확인 [B03](../architecture/backend.md#03--트랜잭션-경계) | PD-ST-07, PD-CC-05 |
 | AC-PD-21 | 공유 버튼은 `navigator.share` 또는 URL 복사이며 OG 메타에 제목 · 대표 사진 · 가격이 있다 | `navigator.share` · 복사 · `generateMetadata` [F01](../architecture/frontend.md#01--렌더링-전략) | 대표 사진 썸네일 URL | PD-OK-10, PD-DT-05 |

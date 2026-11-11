@@ -34,7 +34,7 @@
 | AC-LI-17 | 토큰 페이로드는 `sub · ver · purpose · iat · exp`만이다(`purpose`는 세션 토큰과 소켓 토큰을 구분한다). 소켓 토큰에는 그 토큰을 내준 세션의 만료 시각 `sxp`가 하나 더 있다 ([I-11](../troubleshooting.md#i-11)) | — | 페이로드 `sub · ver · purpose · iat · exp` (+ 소켓 토큰 `sxp`) [B01](../architecture/backend.md#01--요청-계층) | LI-TK-03 |
 | AC-LI-18 | 프론트는 `/api/*`를 Next.js Route Handler로 백엔드에 프록시해 브라우저는 같은 오리진하고만 통신한다 | `/api/[...path]` Route Handler 프록시 · 요청 ID 생성 [F01](../architecture/frontend.md#01--렌더링-전략) | 프록시를 유일한 HTTP 출처로 CORS 없음 [B08](../architecture/backend.md#08--관찰-가능성) | LI-TK-02 |
 | AC-LI-18a | 소켓은 프록시하지 않고 백엔드에 직접 연결하며, 인증은 같은 오리진의 `/api/auth/socket-token`이 발급한 60초짜리 소켓 전용 토큰을 `auth`로 넘긴다. 재연결마다 새 토큰을 받는다 | 연결마다 `/api/auth/socket-token` → `auth` [F07](../architecture/frontend.md#07--소켓-클라이언트) | 60초 `purpose: socket` 토큰 발급 · 핸드셰이크 검증 [B09](../architecture/backend.md#09--소켓-서버) | LI-TK-07, 결정 0004 |
-| AC-LI-19 | 로그인 폼 아래에 데모 계정 두 개(판매자 · 구매자 역할) 안내와 계정별 [채워 넣기] 버튼, "여러 사람이 함께 쓰는 계정이에요. 개인정보를 적지 마세요. 매일 새벽에 초기화돼요" 문구가 있다. 데모 계정은 비밀번호 · 닉네임 · 아바타를 바꿀 수 없고(`403 DEMO_RESTRICTED`) 매일 04:00에 시드 상태로 돌아간다 | 안내 + [채워 넣기] · 마이페이지의 변경 버튼 비활성 + 이유 | 데모 계정 시드 (Staging · Production) · `isDemo` 확인 · 초기화 배치 [B11](../architecture/backend.md#5-데모-계정의-제한과-초기화) | LI-UI-04, 트러블슈팅 T-11 |
+| AC-LI-19 | 로그인 폼 아래에 데모 계정 두 개(판매자 · 구매자 역할) 안내와 [판매자로 둘러보기] · [구매자로 둘러보기] 버튼(한 번 눌러 그 계정으로 로그인 — 칸에도 값이 채워져 실패했을 때 무엇을 보냈는지 보인다), "여러 사람이 함께 쓰는 계정이에요. 개인정보를 적지 마세요. 매일 새벽에 초기화돼요" 문구가 있다. 데모 계정은 비밀번호 · 닉네임 · 아바타를 바꿀 수 없고(`403 DEMO_RESTRICTED`) 매일 04:00에 시드 상태로 돌아간다 | 안내 + [○○로 둘러보기] · 마이페이지의 변경 버튼 비활성 + 이유 | 데모 계정 시드 (Staging · Production) · `isDemo` 확인 · 초기화 배치 [B11](../architecture/backend.md#5-데모-계정의-제한과-초기화) | LI-UI-04, 트러블슈팅 T-11 |
 | AC-LI-20 | 로그인 시 `User.lastLoginAt`을 갱신한다 | — | 로그인 시 `lastLoginAt` 갱신 | LI-DT-01 |
 
 범위 밖: 비밀번호 찾기 링크, 소셜 로그인, 다른 기기 모두 로그아웃, 로그인 이력 [LI-UI-02, 03, LI-LO-07, LI-DT-02].
@@ -128,7 +128,7 @@
 | LI-UI-01 | 가입 링크 | "계정이 없나요? [회원가입]" | — |
 | LI-UI-02 | 비밀번호 찾기 링크 | 두지 않음 (→ SU-DT-06) | ⛔ |
 | LI-UI-03 | 소셜 로그인 버튼 | 두지 않음 | ⛔ |
-| LI-UI-04 | 데모 계정 안내 | 로그인 폼 아래 "둘러보기용 계정" 두 개 — `demo@neighbo.app`(판매자 역할) · `demo2@neighbo.app`(구매자 역할), 계정마다 [채워 넣기]. 공용 계정 안내 문구. Staging · Production 모두 노출. 변경 제한 · 초기화는 AC-LI-19 | — |
+| LI-UI-04 | 데모 계정 안내 | 로그인 폼 아래 "가입 없이 둘러보기" — [판매자로 둘러보기] · [구매자로 둘러보기], 화면 폭을 채우는 버튼 두 개와 그 아래 작은 글씨의 이메일(`demo@neighbo.app` · `demo2@neighbo.app`). 공용 계정 안내 문구. Staging · Production 모두 노출. 변경 제한 · 초기화는 AC-LI-19 | — |
 | LI-UI-05 | 비로그인으로 볼 수 있는 화면 | 중고 목록 · 검색 · 거래 상세는 비로그인 열람 가능. 그 외는 로그인 필요 → [결정 0011](../decisions.md#0011--목록--상세는-비로그인으로-볼-수-있다) | — |
 
 ### 데이터
