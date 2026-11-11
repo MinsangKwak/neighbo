@@ -15,3 +15,5 @@ jobs:
           python-version: '3.12'
       # 깨진 상대 링크 · 없는 앵커 · 열 수가 어긋난 표가 있으면 실패한다
       - run: python3 scripts/check-docs.py
+      # 번호를 단 테스트가 없는 수용 조건을 보여 준다 (실패로 끝나지 않는다)
+      - run: python3 scripts/check-ac.py
