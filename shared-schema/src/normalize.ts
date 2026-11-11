@@ -28,6 +28,19 @@ export function countGraphemes(input: string): number {
   return count;
 }
 
+// 사용자가 느끼는 글자 단위로 앞에서부터 max개만 남긴다 — 넘치는 붙여넣기를 자를 때 [AC-CM-64]
+export function clipGraphemes(input: string, max: number): string {
+  const segmenter = new Intl.Segmenter('ko', { granularity: 'grapheme' });
+  let result = '';
+  let count = 0;
+  for (const { segment } of segmenter.segment(input)) {
+    if (count === max) break;
+    result += segment;
+    count += 1;
+  }
+  return result;
+}
+
 // UTF-8로 옮겼을 때의 바이트 수 — 브라우저 · Node 어느 쪽 타입에도 기대지 않게 직접 센다
 export function utf8ByteLength(input: string): number {
   let bytes = 0;
