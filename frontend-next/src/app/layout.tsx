@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { ToastProvider } from '@/components/Toast';
 import { AuthSync, Flash, SessionProvider } from '@/features/auth';
 import { getSessionUser } from '@/features/auth/session';
+import { ChatSocketProvider } from '@/features/chat';
+import { getSocketUrl } from '@/lib/config';
 import { QueryProvider } from '@/lib/query/QueryProvider';
 import '@/styles/globals.css';
 
@@ -23,12 +25,15 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <SessionProvider user={user}>
           <QueryProvider>
           <ToastProvider>
+          {/* 주소가 없으면 연결하지 않는다 — 화면은 HTTP만으로도 그려진다 */}
+          <ChatSocketProvider socketUrl={getSocketUrl()}>
             {/* 본문 폭 640px 단일 열 — PC에서도 같은 구성 (결정 0014) */}
             <div className="mx-auto flex min-h-dvh w-full max-w-app flex-col bg-bg">
               <AuthSync />
               {children}
             </div>
             <Flash />
+          </ChatSocketProvider>
           </ToastProvider>
           </QueryProvider>
         </SessionProvider>

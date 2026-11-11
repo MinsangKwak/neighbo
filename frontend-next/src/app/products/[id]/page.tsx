@@ -4,6 +4,8 @@ import { cache } from 'react';
 import { AppHeader } from '@/components/AppHeader';
 import { RelativeTime } from '@/components/RelativeTime';
 import { StatusBadge } from '@/components/StatusBadge';
+import Link from 'next/link';
+import { ChatButton } from '@/features/chat';
 import { Carousel, SellerControls, ShareButton } from '@/features/products';
 import { getProduct } from '@/features/products/server';
 import { formatPrice } from '@/lib/format';
@@ -65,9 +67,20 @@ export default async function ProductPage({ params }: ProductPageProps) {
       <footer className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-divider bg-bg px-4 py-3">
         <p className="text-lg font-semibold">{formatPrice(product.price)}</p>
         {isSeller ? (
-          <p className="text-sm text-text-muted">대화 중인 채팅 {product.chatRoomCount}</p>
+          // 이 상품의 방만 모아 본다 [AC-CL-07]
+          <Link
+            href={`/chats?productId=${product.id}`}
+            className="inline-flex min-h-touch items-center text-sm font-semibold underline"
+          >
+            대화 중인 채팅 {product.chatRoomCount}
+          </Link>
         ) : (
-          <p className="text-sm text-text-muted">채팅은 다음 단계에서 열려요</p>
+          <ChatButton
+            productId={product.id}
+            loggedIn={viewer !== null}
+            existingRoomId={viewer?.existingChatRoomId ?? null}
+            sold={product.status === 'SOLD'}
+          />
         )}
       </footer>
     </>

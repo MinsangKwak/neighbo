@@ -9,4 +9,12 @@ export const queryKeys = {
   allProducts: () => ['products'] as const,
   product: (id: string) => ['product', id] as const,
   chatPartners: (id: string) => ['product', id, 'chatPartners'] as const,
+  // 읽지 않은 메시지가 있는 방의 수 — 탭 배지
+  unread: () => ['me', 'unread'] as const,
+  // productId가 있으면 그 상품의 방만
+  chatRooms: (productId: string | null) => ['chatRooms', { productId }] as const,
+  allChatRooms: () => ['chatRooms'] as const,
+  chatRoom: (id: string) => ['chatRoom', id] as const,
+  allChatRoomDetails: () => ['chatRoom'] as const,
+  messages: (roomId: string) => ['messages', roomId] as const,
 };

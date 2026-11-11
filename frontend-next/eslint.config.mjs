@@ -19,6 +19,24 @@ const config = [
           selector: "JSXAttribute[name.name='className'] Literal[value=/\\[[^\\]]+\\]/]",
           message: 'Tailwind 임의 값 대신 디자인 토큰을 쓴다.',
         },
+        // 타임아웃 없는 emit은 끊긴 동안 버퍼에 남았다가 재연결 뒤 몰래 전송된다 [AC-CH-37]
+        {
+          selector: "CallExpression[callee.property.name='emit']",
+          message: '소켓 전송은 lib/socket/chatSocket.ts를 거친다.',
+        },
+      ],
+    },
+  },
+  {
+    // 소켓에 직접 쓰는 곳은 이 파일 하나다 (테스트의 가짜 소켓 포함)
+    files: ['src/lib/socket/**'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "JSXAttribute[name.name='className'] Literal[value=/\\[[^\\]]+\\]/]",
+          message: 'Tailwind 임의 값 대신 디자인 토큰을 쓴다.',
+        },
       ],
     },
   },

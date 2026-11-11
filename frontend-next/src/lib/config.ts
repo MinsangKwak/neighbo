@@ -52,3 +52,12 @@ export function getDemoPassword(): string | null {
   const value = env.DEMO_PASSWORD;
   return value === undefined || value.length < 8 ? null : value;
 }
+
+// 브라우저가 소켓으로 직접 붙을 백엔드 주소 — 화면에 그대로 나가는 공개 값이다
+// 따로 정하지 않으면 API_URL과 같다 (백엔드는 HTTP와 소켓을 한 포트로 받는다)
+// 서버 레이아웃이 읽어 내려 주므로 빌드가 아니라 실행 시점의 값이 쓰인다
+export function getSocketUrl(): string | null {
+  const value = env.NEXT_PUBLIC_SOCKET_URL ?? env.API_URL;
+  if (value === undefined || !/^https?:\/\/[^/]+$/.test(value)) return null;
+  return new URL(value).origin;
+}
