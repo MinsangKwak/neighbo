@@ -230,6 +230,21 @@ describe('놓친 실행 따라잡기', () => {
     expect(await db.jobRun.count()).toBe(1);
   });
 
+  it('두 인스턴스가 함께 켜져 둘 다 놓쳤다고 읽어도, 잠금을 잡은 뒤 다시 확인해 한 번만 돈다', async () => {
+    let runs = 0;
+    const counted = job(() => Promise.resolve({ done: (runs += 1) }));
+    // 둘 다 기록이 없을 때 읽었다
+    expect([await missedRun(db, counted, now), await missedRun(db, counted, now)]).toEqual([true, true]);
+
+    expect(await runLocked(db, silent, counted, new Date())).toBe(true);
+    expect(await runLocked(db, silent, counted, new Date())).toBe(false);
+    expect(runs).toBe(1);
+
+    // 예정 시각에 도는 실행은 기록과 관계없이 돈다
+    expect(await runLocked(db, silent, counted)).toBe(true);
+    expect(runs).toBe(2);
+  });
+
   it('켜질 때 놓친 실행이 있으면 한 번 돌리고, 없으면 돌리지 않는다', async () => {
     let runs = 0;
     const counted = job(() => Promise.resolve({ done: (runs += 1) }));
