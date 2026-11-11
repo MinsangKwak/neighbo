@@ -20,16 +20,21 @@ const envSchema = z
     ALLOWED_ORIGIN_PATTERN: optional(z.string()),
     STORAGE_DRIVER: z.enum(['local', 's3']),
     STORAGE_LOCAL_DIR: optional(z.string()),
-    S3_ENDPOINT: optional(z.string()),
+    // 버킷 이름은 넣지 않는다. 경로가 붙는 저장소도 있다 (예: …/storage/v1/s3)
+    S3_ENDPOINT: optional(z.string().regex(/^https:\/\/.+[^/]$/, '끝에 /가 없는 https 주소여야 한다')),
     S3_BUCKET: optional(z.string()),
+    // 대부분의 호환 저장소는 auto를 받는다. AWS S3는 버킷의 리전을 적는다
+    S3_REGION: optional(z.string()),
     S3_ACCESS_KEY_ID: optional(z.string()),
     S3_SECRET_ACCESS_KEY: optional(z.string()),
-    S3_PUBLIC_URL: optional(z.string()),
+    // 브라우저가 사진을 읽는 주소의 앞부분 — 끝에 /를 붙이지 않는다
+    S3_PUBLIC_URL: optional(z.string().regex(/^https:\/\/.+[^/]$/, '끝에 /가 없는 https 주소여야 한다')),
     BCRYPT_COST: z.coerce.number().int().min(10).max(14).default(12),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
     DEMO_PASSWORD: optional(z.string().min(8)),
-    // 샘플 데이터(사용자 10 · 상품 60 · 방 15 · 메시지 300)를 시드에 더한다 — 양이 많을 때의 화면 확인용
-    SEED_SAMPLE: optional(z.literal('1', { error: '켜려면 1이어야 한다' })),
+    // 1: 샘플 데이터(사용자 10 · 상품 60 · 방 15 · 메시지 300)를 시드에 더한다 — 양이 많을 때의 화면 확인용
+    // remove: 넣었던 샘플 데이터를 지운다. 지운 뒤에는 변수를 없앤다
+    SEED_SAMPLE: optional(z.enum(['1', 'remove'], { error: '1 또는 remove여야 한다' })),
   })
   .superRefine((env, ctx) => {
     const need = (key: keyof typeof env, when: string) => {
@@ -38,7 +43,7 @@ const envSchema = z
       }
     };
     // 샘플 방은 데모 계정에 붙는다 — 로그인해서 볼 수 있는 계정이 그 둘뿐이다
-    if (env.SEED_SAMPLE !== undefined) need('DEMO_PASSWORD', 'SEED_SAMPLE=1');
+    if (env.SEED_SAMPLE === '1') need('DEMO_PASSWORD', 'SEED_SAMPLE=1');
     if (env.STORAGE_DRIVER === 'local') need('STORAGE_LOCAL_DIR', 'STORAGE_DRIVER=local');
     if (env.STORAGE_DRIVER === 's3') {
       need('S3_ENDPOINT', 'STORAGE_DRIVER=s3');

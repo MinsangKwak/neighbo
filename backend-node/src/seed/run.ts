@@ -5,7 +5,7 @@ import { createPasswordHasher } from '../lib/password.js';
 import { createStorage } from '../storage/index.js';
 import { DEMO_ACCOUNTS, seedDemoAccounts, seedDemoProducts } from './demo.js';
 import { drawSeedImages } from './images.js';
-import { seedSample } from './sample.js';
+import { removeSample, seedSample } from './sample.js';
 
 // 시드 실행 — 배포 때는 마이그레이션 뒤, 서버 시작 전에 돈다
 const log = createLogger('info');
@@ -29,12 +29,17 @@ try {
       const storage = createStorage(config);
       const images = await drawSeedImages(12);
       log.info('seed', { demoProducts: await seedDemoProducts(db, storage, images) });
-      if (config.SEED_SAMPLE !== undefined) {
+      if (config.SEED_SAMPLE === '1') {
         const sample = await seedSample(db, storage, images);
         if (sample.skipped) log.error('seed', { sample: 'conflict' });
         else log.info('seed', { sample: 'done', ...sample });
       }
     }
+    await db.$disconnect();
+  }
+  if (config.SEED_SAMPLE === 'remove') {
+    const db = createDb(config.DATABASE_URL);
+    log.info('seed', { sample: 'removed', ...(await removeSample(db, createStorage(config))) });
     await db.$disconnect();
   }
 } catch (err) {

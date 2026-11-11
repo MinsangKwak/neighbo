@@ -2,6 +2,8 @@ import { createServer, type RequestListener } from 'node:http';
 import { createApp } from './app.js';
 import { ConfigError, loadConfig } from './config.js';
 import { createDb } from './db/client.js';
+import { resetDemo } from './jobs/demoReset.js';
+import { startDaily } from './jobs/scheduler.js';
 import { createLogger } from './lib/log.js';
 import { createPasswordHasher } from './lib/password.js';
 import { createChatService } from './modules/chat/service.js';
@@ -52,12 +54,13 @@ const hub = createSocketHub({
 const chat = createChatService(db, hub.realtime);
 hub.bind(chat);
 
+const storage = createStorage(config);
 const app = createApp({
   config,
   log,
   db,
   hasher,
-  storage: createStorage(config),
+  storage,
   chat,
   realtime: hub.realtime,
   pingDb: async () => {
@@ -70,10 +73,22 @@ server.listen(config.PORT, () => {
   log.info('boot', { port: config.PORT, env: config.NODE_ENV });
 });
 
+// 데모 계정이 있는 환경에서만 매일 04:00 KST에 시드 상태로 되돌린다 [AC-LI-19]
+const demoReset =
+  config.DEMO_PASSWORD === undefined
+    ? null
+    : startDaily(db, log, {
+        name: 'demo-reset',
+        hourKst: 4,
+        lockKey: 40401,
+        run: () => resetDemo(db, storage, { sample: config.SEED_SAMPLE === '1' }),
+      });
+
 // 배포 때 진행 중인 요청을 끝내고 내려간다
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {
   process.on(signal, () => {
     log.info('boot', { shutdown: signal });
+    demoReset?.stop();
     // 소켓 연결을 끊고 진행 중인 HTTP 요청이 끝나면 닫힌다. 클라이언트는 새 인스턴스로 다시 붙는다 [AC-CH-36]
     void hub.close().finally(() => {
       void db.$disconnect().finally(() => process.exit(0));

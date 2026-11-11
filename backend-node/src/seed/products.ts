@@ -49,13 +49,25 @@ export async function upsertSeedProduct(
     imagesPurgedAt: null,
   };
 
-  // 파일은 배포 때마다 다시 쓴다 — 컨테이너 디스크는 재배포에 비워진다
+  // 로컬 저장소는 컨테이너 디스크라 재배포에 비워진다 — 실행할 때마다 다시 쓴다
+  // 외부 저장소는 파일이 남으므로 행이 이미 있는 사진은 다시 올리지 않는다 (사진 한 장이 요청 두 번이다)
+  const kept =
+    storage.localDirectory === null
+      ? new Map((await db.productImage.findMany({ where: { productId: spec.id } })).map((row) => [row.id, row]))
+      : new Map<string, never>();
   const rows: Prisma.ProductImageCreateManyInput[] = [];
   for (let order = 0; order < spec.photos; order += 1) {
+    const id = `${spec.id}_img${order}`;
+    const key = `products/seed-${spec.id}-${order}.webp`;
+    const existing = kept.get(id);
+    if (existing !== undefined && existing.storageKey === key) {
+      rows.push({ ...existing, order });
+      continue;
+    }
     const image = images[(spec.hoursAgo + order * 5) % images.length];
     if (image === undefined) continue;
-    const stored = await putSeedImage(storage, `products/seed-${spec.id}-${order}.webp`, image);
-    rows.push({ id: `${spec.id}_img${order}`, productId: spec.id, order, ...stored });
+    const stored = await putSeedImage(storage, key, image);
+    rows.push({ id, productId: spec.id, order, ...stored });
   }
 
   await db.$transaction(async (tx) => {

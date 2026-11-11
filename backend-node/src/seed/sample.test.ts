@@ -105,6 +105,32 @@ describe('데모 상품 시드', () => {
   });
 });
 
+describe('외부 저장소에서의 시드', () => {
+  it('처음에는 사진을 올리고, 다시 돌 때는 이미 있는 사진을 올리지 않는다', async () => {
+    const puts: string[] = [];
+    const external = {
+      put: (key: string) => {
+        puts.push(key);
+        return Promise.resolve();
+      },
+      remove: () => Promise.resolve(),
+      url: (key: string) => `https://img.example.com/${key}`,
+      localDirectory: null,
+    };
+    await seedDemoProducts(db, external, images);
+    const first = puts.length;
+    // 사진 10장 × (본문 + 썸네일)
+    expect(first).toBe(20);
+    await seedDemoProducts(db, external, images);
+    expect(puts.length).toBe(first);
+    // 사진 행이 지워진 상품만 다시 올린다
+    await db.productImage.deleteMany({ where: { productId: 'demo_p3' } });
+    await seedDemoProducts(db, external, images);
+    expect(puts.slice(first)).toEqual(['products/seed-demo_p3-0.webp', 'products/seed-demo_p3-0.thumb.webp']);
+    expect((await db.productImage.findFirstOrThrow({ where: { productId: 'demo_p1' } })).url).toContain('https://img.example.com/');
+  });
+});
+
 describe('샘플 데이터 시드', () => {
   beforeEach(async () => {
     await seedDemoProducts(db, storage, images);

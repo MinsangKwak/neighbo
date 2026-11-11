@@ -1,6 +1,7 @@
 import { MESSAGE_MAX } from '@neighbo/shared-schema';
 import type { Db } from '../db/client.js';
 import { toPreview } from '../modules/chat/service.js';
+import { thumbnailKey } from '../modules/products/service.js';
 import type { ImageStorage } from '../storage/ImageStorage.js';
 import { drawSeedAvatar, type SeedImage } from './images.js';
 import { upsertSeedProduct, type SeedProduct } from './products.js';
@@ -313,4 +314,35 @@ export async function seedSample(db: Db, storage: ImageStorage, images: SeedImag
     report.messages += messages.length;
   }
   return report;
+}
+
+// 샘플 데이터를 지운다 — SEED_SAMPLE=remove
+// 샘플 상품에 일반 사용자가 연 방도 함께 지운다. 상대가 로그인할 수 없는 가짜 계정이라 남길 기록이 아니다
+export async function removeSample(db: Db, storage: ImageStorage): Promise<{ users: number; products: number; rooms: number }> {
+  const all = db.withDeleted();
+  const userIds = SAMPLE_USERS.map((user) => user.id);
+  const productIds = SAMPLE_PRODUCTS.map((product) => product.id);
+  const rooms = await all.chatRoom.findMany({
+    where: { OR: [{ productId: { in: productIds } }, { sellerId: { in: userIds } }, { buyerId: { in: userIds } }] },
+    select: { id: true },
+  });
+  const roomIds = rooms.map((room) => room.id);
+  const images = await all.productImage.findMany({ where: { productId: { in: productIds } }, select: { storageKey: true } });
+
+  const [, , removedRooms, , removedProducts, removedUsers] = await all.$transaction([
+    all.message.deleteMany({ where: { roomId: { in: roomIds } } }),
+    all.chatRoomMember.deleteMany({ where: { roomId: { in: roomIds } } }),
+    all.chatRoom.deleteMany({ where: { id: { in: roomIds } } }),
+    all.productImage.deleteMany({ where: { productId: { in: productIds } } }),
+    all.product.deleteMany({ where: { id: { in: productIds } } }),
+    all.user.deleteMany({ where: { id: { in: userIds } } }),
+  ]);
+
+  // 파일은 DB 커밋 뒤에 지운다 — 실패해도 고아 파일만 남는다
+  const keys = [
+    ...images.flatMap((image) => [image.storageKey, thumbnailKey(image.storageKey)]),
+    ...SAMPLE_USERS.filter((user) => user.avatar).map((user) => `avatars/seed-${user.id}.webp`),
+  ];
+  await storage.remove(keys).catch(() => undefined);
+  return { users: removedUsers.count, products: removedProducts.count, rooms: removedRooms.count };
 }
