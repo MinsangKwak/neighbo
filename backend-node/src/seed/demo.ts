@@ -1,6 +1,9 @@
 import { normalizePassword } from '@neighbo/shared-schema';
 import type { Db } from '../db/client.js';
 import type { PasswordHasher } from '../lib/password.js';
+import type { ImageStorage } from '../storage/ImageStorage.js';
+import type { SeedImage } from './images.js';
+import { upsertSeedProduct, type SeedProduct } from './products.js';
 
 // 데모 계정 — 고정 ID로 upsert해서 몇 번을 돌려도 같은 결과가 된다
 // 근거: docs/architecture/backend.md 11절 4. 시드 데이터 [AC-LI-19]
@@ -52,4 +55,76 @@ export async function seedDemoAccounts(db: Db, hasher: PasswordHasher, rawPasswo
     report.seeded.push(account.email);
   }
   return report;
+}
+
+// 데모 판매자의 상품 6개 — 판매중 3 · 예약중 1 · 거래완료 1(구매자 = 데모구매자) · 나눔 1
+// 목록 · 상세 · 구매 내역이 비어 있지 않게 한다
+export const DEMO_PRODUCTS: SeedProduct[] = [
+  {
+    id: 'demo_p1',
+    sellerId: 'demo_seller',
+    title: '원목 2인용 식탁 세트',
+    price: 85000,
+    description: '2년 쓴 원목 식탁이에요. 의자 두 개 포함입니다.\n상판에 잔흠집이 조금 있어요. 직접 가져가셔야 해요.',
+    status: 'ON_SALE',
+    hoursAgo: 20,
+    photos: 3,
+  },
+  {
+    id: 'demo_p2',
+    sellerId: 'demo_seller',
+    title: '접이식 자전거 20인치',
+    price: 120000,
+    description: '출퇴근용으로 탔어요. 브레이크와 타이어는 지난달에 갈았습니다.',
+    status: 'ON_SALE',
+    hoursAgo: 33,
+    photos: 2,
+  },
+  {
+    id: 'demo_p3',
+    sellerId: 'demo_seller',
+    title: '블루투스 스피커',
+    price: 30000,
+    description: '충전 케이블 같이 드려요. 소리 잘 나옵니다.',
+    status: 'ON_SALE',
+    hoursAgo: 52,
+    photos: 1,
+  },
+  {
+    id: 'demo_p4',
+    sellerId: 'demo_seller',
+    title: '캠핑 의자 2개',
+    price: 25000,
+    description: '두 번 썼어요. 수납 가방 포함입니다.',
+    status: 'RESERVED',
+    hoursAgo: 75,
+    photos: 2,
+  },
+  {
+    id: 'demo_p5',
+    sellerId: 'demo_seller',
+    title: '전기 주전자 1.7L',
+    price: 12000,
+    description: '이사하면서 정리합니다. 물때 없이 깨끗해요.',
+    status: 'SOLD',
+    buyerId: 'demo_buyer',
+    hoursAgo: 98,
+    photos: 1,
+  },
+  {
+    id: 'demo_p6',
+    sellerId: 'demo_seller',
+    title: '화분 받침 나눔해요',
+    price: 0,
+    description: '크기별로 다섯 개 있어요. 필요하신 분 가져가세요.',
+    status: 'ON_SALE',
+    hoursAgo: 140,
+    photos: 1,
+  },
+];
+
+// 두 데모 계정이 모두 있을 때만 부른다 — 상품의 판매자 · 구매자가 그 둘이다
+export async function seedDemoProducts(db: Db, storage: ImageStorage, images: SeedImage[], now = new Date()): Promise<number> {
+  for (const spec of DEMO_PRODUCTS) await upsertSeedProduct(db, storage, spec, images, now);
+  return DEMO_PRODUCTS.length;
 }

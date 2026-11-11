@@ -28,6 +28,8 @@ const envSchema = z
     BCRYPT_COST: z.coerce.number().int().min(10).max(14).default(12),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
     DEMO_PASSWORD: optional(z.string().min(8)),
+    // 샘플 데이터(사용자 10 · 상품 60 · 방 15 · 메시지 300)를 시드에 더한다 — 양이 많을 때의 화면 확인용
+    SEED_SAMPLE: optional(z.literal('1', { error: '켜려면 1이어야 한다' })),
   })
   .superRefine((env, ctx) => {
     const need = (key: keyof typeof env, when: string) => {
@@ -35,6 +37,8 @@ const envSchema = z
         ctx.addIssue({ code: 'custom', path: [key], message: `${when}일 때 필요하다` });
       }
     };
+    // 샘플 방은 데모 계정에 붙는다 — 로그인해서 볼 수 있는 계정이 그 둘뿐이다
+    if (env.SEED_SAMPLE !== undefined) need('DEMO_PASSWORD', 'SEED_SAMPLE=1');
     if (env.STORAGE_DRIVER === 'local') need('STORAGE_LOCAL_DIR', 'STORAGE_DRIVER=local');
     if (env.STORAGE_DRIVER === 's3') {
       need('S3_ENDPOINT', 'STORAGE_DRIVER=s3');

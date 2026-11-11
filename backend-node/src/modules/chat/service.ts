@@ -26,7 +26,7 @@ export class ProductDeletedError extends Error {
 
 // 목록 미리보기 — 한 줄로 만들고 100자에서 자른다 [CL-OK-06]
 const PREVIEW_MAX = 100;
-function toPreview(content: string): string {
+export function toPreview(content: string): string {
   return Array.from(normalizeText(content)).slice(0, PREVIEW_MAX).join('');
 }
 
