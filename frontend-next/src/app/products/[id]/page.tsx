@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import { AppHeader } from '@/components/AppHeader';
+import { Avatar } from '@/components/Avatar';
 import { RelativeTime } from '@/components/RelativeTime';
 import { StatusBadge } from '@/components/StatusBadge';
 import Link from 'next/link';
@@ -30,7 +31,8 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
     openGraph: {
       title: product.title,
       description,
-      ...(cover === undefined ? {} : { images: [{ url: cover.thumbnailUrl }] }),
+      // 큰 카드로 보이므로 400px 썸네일이 아니라 본 사진을 쓴다
+      ...(cover === undefined ? {} : { images: [{ url: cover.url, width: cover.width, height: cover.height }] }),
     },
   };
 }
@@ -48,15 +50,23 @@ export default async function ProductPage({ params }: ProductPageProps) {
       <main className="flex flex-1 flex-col">
         <Carousel images={product.images} title={product.title} />
         <div className="flex flex-col gap-4 px-4 py-5">
-          <p className="text-sm">
-            <span className="text-text-muted">판매자 </span>
-            <span className="font-semibold">{product.seller.nickname}</span>
+          <p className="flex items-center gap-3 text-sm">
+            <Avatar url={product.seller.avatarUrl} />
+            <span>
+              <span className="sr-only">판매자 </span>
+              <span className="block font-semibold">{product.seller.nickname}</span>
+              <span aria-hidden="true" className="block text-xs text-text-muted">
+                판매자
+              </span>
+            </span>
           </p>
           <div className="flex flex-col gap-2">
             <h1 className="text-xl font-semibold">{product.title}</h1>
             <p className="flex items-center gap-2 text-sm text-text-muted">
               <StatusBadge status={product.status} />
               <RelativeTime iso={product.createdAt} />
+              {/* 다른 사람도 관심을 보이는 물건인지 알 수 있게 — 판매자에게는 아래 링크가 같은 수를 보인다 */}
+              {!isSeller && product.chatRoomCount > 0 && <span>채팅 {product.chatRoomCount}</span>}
             </p>
           </div>
           {/* 줄바꿈은 보존하고, 입력한 글자를 그대로 보여준다. 주소를 링크로 바꾸지 않는다 [AC-PC-07] */}

@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Button } from '@/components/Button';
+import { Button, buttonClass } from '@/components/Button';
 import { useToast } from '@/components/Toast';
 import { loginHref } from '@/features/auth/next';
 import { ApiError, describeApiError } from '@/lib/api/ApiError';
@@ -51,9 +51,19 @@ export function ChatButton({ productId, loggedIn, existingRoomId, sold }: ChatBu
     }
   };
 
-  return (
+  if (blocked) {
     // 막힌 이유를 눌러서 들을 수 있게 disabled가 아니라 aria-disabled로 둔다 [AC-PD-18]
-    <Button loading={loading} aria-disabled={blocked || undefined} onClick={() => void open()}>
+    // 공용 Button은 aria-disabled면 클릭을 삼키므로 여기서는 직접 그린다 — 삼키면 이유를 알릴 수 없다
+    return (
+      <button type="button" aria-disabled="true" className={buttonClass('primary', false)} onClick={() => void open()}>
+        {/* 흐린 [채팅하기]만으로는 왜 안 되는지 알 수 없어 이름으로도 보인다 */}
+        거래완료
+      </button>
+    );
+  }
+
+  return (
+    <Button loading={loading} onClick={() => void open()}>
       {existingRoomId === null ? '채팅하기' : '채팅 이어하기'}
     </Button>
   );

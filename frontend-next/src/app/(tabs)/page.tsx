@@ -49,13 +49,16 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         </HydrationBoundary>
       </main>
       {/* 비로그인이면 보호 경로 검사가 로그인으로 보낸다 [AC-PL-07] */}
-      <Link
-        href="/products/new"
-        aria-label="물건 올리기"
-        className="fixed bottom-20 right-4 z-10 inline-flex size-14 items-center justify-center rounded-full bg-primary text-xl font-semibold text-on-primary shadow-lg"
-      >
-        <span aria-hidden="true">+</span>
-      </Link>
+      {/* 화면이 아니라 앱 칸(최대 640px)의 오른쪽 아래에 붙인다 — fixed로 두면 넓은 화면에서 칸 밖 구석으로 나간다 */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-20 z-10 mx-auto flex max-w-app justify-end px-4">
+        <Link
+          href="/products/new"
+          aria-label="물건 올리기"
+          className="pointer-events-auto inline-flex size-14 items-center justify-center rounded-full bg-primary text-xl font-semibold text-on-primary shadow-lg"
+        >
+          <span aria-hidden="true">+</span>
+        </Link>
+      </div>
     </>
   );
 }

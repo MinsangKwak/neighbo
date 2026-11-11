@@ -12,7 +12,7 @@ import { describeApiError } from '@/lib/api/ApiError';
 import { formatChatTime, formatCount, formatFullTime, formatPrice } from '@/lib/format';
 import { queryKeys } from '@/lib/query/queryKeys';
 import { fetchChatRoomPage } from './api';
-import { Avatar } from './Avatar';
+import { Avatar } from '@/components/Avatar';
 import { uniqueRooms } from './cache';
 
 const linkButton = 'inline-flex min-h-touch items-center rounded-lg bg-primary px-5 font-semibold text-on-primary';

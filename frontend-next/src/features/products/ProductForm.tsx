@@ -346,6 +346,8 @@ export function ProductForm({
           </p>
         )}
         <div className="flex gap-2">
+          {/* 좁은 화면에서 [취소]가 눌려 글자가 세로로 꺾이지 않게 줄어들지 않는 칸에 둔다 */}
+          <span className="shrink-0">
           <Button
             variant="secondary"
             onClick={() => {
@@ -355,6 +357,7 @@ export function ProductForm({
           >
             취소
           </Button>
+          </span>
           <Button type="submit" block loading={submitting} aria-disabled={blocked || undefined}>
             {isEdit ? '저장하기' : '등록하기'}
           </Button>

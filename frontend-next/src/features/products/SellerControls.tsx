@@ -144,7 +144,13 @@ export function SellerControls({ product }: { product: ProductDetail }) {
             </li>
           ))}
           <li>
-            <Button block loading={change.isPending} onClick={() => change.mutate({ status: 'SOLD', buyerId: null })}>
+            {/* 대화 상대와 같은 모양으로 둔다 — 이것만 강조하면 구매자를 고르지 않는 쪽으로 이끈다 */}
+            <Button
+              variant="secondary"
+              block
+              loading={change.isPending}
+              onClick={() => change.mutate({ status: 'SOLD', buyerId: null })}
+            >
               선택 안 함
             </Button>
           </li>

@@ -203,19 +203,30 @@ describe('로그인 폼', () => {
     expect(calls.at(-1)?.body).toEqual({ email: 'kim@example.com', password: 'correct horse' });
   });
 
-  it('[AC-LI-19] 데모 계정 두 개의 안내와 [채워 넣기]가 있고, 누르면 이메일 · 비밀번호가 채워진다', () => {
+  it('[AC-LI-19] 데모 계정 두 개의 안내가 있고, [구매자로 둘러보기]를 한 번 누르면 그 계정으로 바로 로그인한다', async () => {
+    replies['/api/auth/login'] = { status: 200, body: { user } };
     renderForm('demo password 1');
-    expect(screen.getByRole('heading', { name: '둘러보기용 계정' })).toBeDefined();
+    expect(screen.getByRole('heading', { name: '가입 없이 둘러보기' })).toBeDefined();
     expect(screen.getByText(/여러 사람이 함께 쓰는 계정이에요. 개인정보를 적지 마세요. 매일 새벽에 초기화돼요/)).toBeDefined();
-    fireEvent.click(screen.getByRole('button', { name: '구매자 역할 계정 채워 넣기' }));
+    expect(screen.getByRole('button', { name: '판매자로 둘러보기' })).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: '구매자로 둘러보기' }));
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/'));
+    expect(calls.at(-1)).toMatchObject({ url: '/api/auth/login', body: { email: 'demo2@neighbo.app', password: 'demo password 1' } });
+    // 무엇을 보냈는지 칸에도 남는다
     expect(screen.getByLabelText('이메일')).toHaveProperty('value', 'demo2@neighbo.app');
-    expect(screen.getByLabelText('비밀번호')).toHaveProperty('value', 'demo password 1');
-    expect(screen.getByRole('button', { name: '판매자 역할 계정 채워 넣기' })).toBeDefined();
+  });
+
+  it('[AC-LI-19] 데모 로그인이 실패하면 폼 위에 이유를 보인다', async () => {
+    replies['/api/auth/login'] = { status: 401, body: { error: { code: 'INVALID_CREDENTIALS', message: '이메일 또는 비밀번호가 맞지 않아요', fields: null } } };
+    renderForm('demo password 1');
+    fireEvent.click(screen.getByRole('button', { name: '판매자로 둘러보기' }));
+    expect(await screen.findByText('이메일 또는 비밀번호가 맞지 않아요')).toBeDefined();
+    expect(router.replace).not.toHaveBeenCalled();
   });
 
   it('[AC-LI-19] 데모 비밀번호가 설정되지 않은 환경에서는 안내를 숨긴다', () => {
     renderForm(null);
-    expect(screen.queryByRole('heading', { name: '둘러보기용 계정' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: '가입 없이 둘러보기' })).toBeNull();
   });
 
   it('[AC-LI-16] 끊겨서 실패하면 비밀번호를 유지한다', async () => {

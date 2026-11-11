@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useSyncExternalStore } from 'react';
-import { Avatar } from './Avatar';
+import { Avatar } from '@/components/Avatar';
 import type { MessageToast, MessageToasts } from './messageToasts';
 
 const EMPTY: readonly MessageToast[] = [];

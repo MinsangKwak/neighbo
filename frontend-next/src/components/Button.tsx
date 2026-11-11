@@ -18,7 +18,7 @@ interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'cla
 }
 
 export const buttonClass = (variant: Variant, block: boolean) =>
-  `inline-flex min-h-touch items-center justify-center gap-2 rounded-lg px-5 text-base font-semibold ${
+  `inline-flex min-h-touch items-center justify-center gap-2 whitespace-nowrap rounded-lg px-5 text-base font-semibold ${
     VARIANTS[variant]
   } ${block ? 'w-full' : ''} aria-disabled:opacity-60`;
 

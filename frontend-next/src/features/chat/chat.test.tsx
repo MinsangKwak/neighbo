@@ -632,10 +632,12 @@ describe('[채팅하기]', () => {
 
   it('[AC-PD-18] 거래완료 상품은 눌러도 요청하지 않고 이유를 알린다', async () => {
     button({ sold: true });
-    const el = screen.getByRole('button', { name: '채팅하기' });
+    // 막힌 이유가 버튼 이름으로 보인다
+    const el = screen.getByRole('button', { name: '거래완료' });
     expect(el.getAttribute('aria-disabled')).toBe('true');
     fireEvent.click(el);
     expect(calls).toEqual([]);
+    expect((await screen.findByText('거래가 완료된 물건이에요')).closest('[role="status"]')).not.toBeNull();
   });
 
   it('[AC-PD-20] 그사이 거래완료되면 알리고 다시 그리고, 삭제됐으면 홈으로 보낸다', async () => {

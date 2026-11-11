@@ -79,24 +79,16 @@ export function useForm<V extends Values, Output>(options: UseFormOptions<V, Out
     return { value: cleaned, valid: found[name] === undefined };
   };
 
-  // 여러 칸을 한 번에 채운다 (데모 계정 [채워 넣기]). 보이던 오류는 지운다
-  const fill = (partial: Partial<V>) => {
-    setValues((current) => ({ ...current, ...partial }));
-    setErrors({});
-    setFormError(null);
-  };
-
   const setFieldError = (name: keyof V, message: string) => {
     setErrors((current) => ({ ...current, [name]: message }));
   };
 
-  const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault();
+  const submitValues = async (current: V) => {
     // 두 번 제출 방지
     if (submittingRef.current) return;
     setFormError(null);
 
-    const result = schema.safeParse(values);
+    const result = schema.safeParse(current);
     if (!result.success) {
       // 전체 검증 → 틀린 칸 전부 표시 → 첫 오류로 포커스 [AC-SU-04, 17]
       const found = toFieldErrors(result.error) as Errors<V>;
@@ -125,6 +117,19 @@ export function useForm<V extends Values, Output>(options: UseFormOptions<V, Out
     }
   };
 
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    await submitValues(values);
+  };
+
+  // 칸을 채우고 곧바로 제출한다 (데모 계정으로 둘러보기). 칸에도 값이 보이게 해서 실패했을 때 무엇을 보냈는지 알 수 있다
+  const submitWith = (partial: Partial<V>) => {
+    const next = { ...values, ...partial };
+    setValues(next);
+    setErrors({});
+    void submitValues(next);
+  };
+
   const field = (name: keyof V & string) => ({
     name,
     value: values[name] ?? '',
@@ -149,7 +154,7 @@ export function useForm<V extends Values, Output>(options: UseFormOptions<V, Out
     field,
     blur,
     setValue,
-    fill,
+    submitWith,
     setFieldError,
     focus: (name: keyof V) => inputs.current.get(name)?.focus(),
     handleSubmit,

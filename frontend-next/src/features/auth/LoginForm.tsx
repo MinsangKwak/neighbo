@@ -12,8 +12,8 @@ import { announceLogin } from './crossTab';
 
 // 둘러보기용 계정 — 가입 없이 두 역할을 번갈아 써 본다 [AC-LI-19]
 const DEMO_ACCOUNTS = [
-  { email: 'demo@neighbo.app', role: '판매자 역할' },
-  { email: 'demo2@neighbo.app', role: '구매자 역할' },
+  { email: 'demo@neighbo.app', role: '판매자' },
+  { email: 'demo2@neighbo.app', role: '구매자' },
 ];
 
 interface LoginFormProps {
@@ -72,27 +72,26 @@ export function LoginForm({ next, demoPassword }: LoginFormProps) {
       {demoPassword !== null && (
         <section aria-labelledby="demo-heading" className="rounded-lg bg-surface p-4">
           <h2 id="demo-heading" className="text-sm font-semibold">
-            둘러보기용 계정
+            가입 없이 둘러보기
           </h2>
           <p className="mt-1 text-sm text-text-muted">
             여러 사람이 함께 쓰는 계정이에요. 개인정보를 적지 마세요. 매일 새벽에 초기화돼요
           </p>
+          {/* 한 번 눌러 바로 들어간다 — 칸을 채운 뒤 [로그인]을 또 누르게 하지 않는다 */}
           <ul className="mt-3 flex flex-col gap-2">
             {DEMO_ACCOUNTS.map((account) => (
-              <li key={account.email} className="flex items-center justify-between gap-3">
-                <span className="text-sm">
-                  {account.email} <span className="text-text-muted">· {account.role}</span>
-                </span>
+              <li key={account.email}>
                 <Button
                   variant="secondary"
-                  aria-label={`${account.role} 계정 채워 넣기`}
+                  block
+                  loading={form.submitting}
                   onClick={() => {
-                    form.fill({ email: account.email, password: demoPassword });
-                    form.focus('password');
+                    form.submitWith({ email: account.email, password: demoPassword });
                   }}
                 >
-                  채워 넣기
+                  {account.role}로 둘러보기
                 </Button>
+                <p className="mt-1 text-xs text-text-muted">{account.email}</p>
               </li>
             ))}
           </ul>

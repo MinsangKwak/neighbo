@@ -106,11 +106,10 @@ export function Composer({ onSend, disabledReason, blocked }: ComposerProps) {
         />
         <button
           type="submit"
-          aria-label="보내기"
           aria-disabled={!sendable || undefined}
           className="inline-flex min-h-touch shrink-0 items-center rounded-lg bg-primary px-4 font-semibold text-on-primary aria-disabled:opacity-60"
         >
-          전송
+          보내기
         </button>
       </div>
       {length >= MESSAGE_COUNTER_FROM && (
