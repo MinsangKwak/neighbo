@@ -107,6 +107,12 @@ model Upload {
   @@index([createdAt]) // 24시간 지난 고아 정리 배치
 }
 
+// 배치가 마지막으로 끝난 시각 — 서버가 꺼져 있어 놓친 실행을 켜질 때 알아챈다
+model JobRun {
+  name  String   @id
+  ranAt DateTime
+}
+
 // 관심(찜) — 한 사람이 한 상품에 한 번 (docs/features/12-favorite.md)
 model Favorite {
   userId    String

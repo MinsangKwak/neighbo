@@ -36,6 +36,9 @@ export async function runLocked(db: Db, log: Logger, job: DailyJob): Promise<boo
           return false;
         }
         const result = await job.run();
+        // 끝난 시각을 남긴다 — 다음에 켜질 때 놓친 실행이 있는지 이것으로 안다
+        const ranAt = new Date();
+        await tx.jobRun.upsert({ where: { name: job.name }, create: { name: job.name, ranAt }, update: { ranAt } });
         log.info('job', { job: job.name, ...result, ms: Date.now() - started });
         return true;
       },
@@ -46,6 +49,14 @@ export async function runLocked(db: Db, log: Logger, job: DailyJob): Promise<boo
     log.error('job', { job: job.name, failed: err instanceof Error ? err.message : String(err), ms: Date.now() - started });
     return false;
   }
+}
+
+// 가장 최근의 예정 시각 뒤로 돈 적이 없으면 놓친 것이다
+// 쓰지 않으면 꺼지는 호스트에서는 예정 시각에 서버가 없을 수 있다 — 켜질 때 한 번 따라잡는다
+export async function missedRun(db: Db, job: DailyJob, now: Date): Promise<boolean> {
+  const lastDue = new Date(nextRunAt(now, job.hourKst).getTime() - 24 * HOUR);
+  const last = await db.jobRun.findUnique({ where: { name: job.name } });
+  return last === null || last.ranAt.getTime() < lastDue.getTime();
 }
 
 export function startDaily(db: Db, log: Logger, job: DailyJob, now: () => Date = () => new Date()) {
@@ -60,5 +71,12 @@ export function startDaily(db: Db, log: Logger, job: DailyJob, now: () => Date =
     timer.unref();
   };
   arm();
-  return { stop: () => clearTimeout(timer) };
+  // 켜질 때 놓친 실행을 따라잡는다. 실패해도 서버는 계속 뜨고 다음 예정 시각에 다시 돈다
+  const caughtUp = missedRun(db, job, now())
+    .then((missed) => (missed ? runLocked(db, log, job) : false))
+    .catch((err: unknown) => {
+      log.error('job', { job: job.name, failed: err instanceof Error ? err.message : String(err) });
+      return false;
+    });
+  return { stop: () => clearTimeout(timer), caughtUp };
 }

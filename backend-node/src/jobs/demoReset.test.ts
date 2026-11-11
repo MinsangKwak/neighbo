@@ -8,7 +8,7 @@ import { DEMO_PRODUCTS, seedDemoAccounts, seedDemoProducts } from '../seed/demo.
 import { drawSeedImages, type SeedImage } from '../seed/images.js';
 import { removeSample, SAMPLE_ROOMS, seedSample } from '../seed/sample.js';
 import { resetDemo } from './demoReset.js';
-import { nextRunAt, runLocked } from './scheduler.js';
+import { missedRun, nextRunAt, runLocked, startDaily } from './scheduler.js';
 
 const hasher = await createPasswordHasher(10);
 let images: SeedImage[];
@@ -202,5 +202,47 @@ describe('데모 초기화와 관심', () => {
     await resetDemo(db, storage, { sample: false });
 
     expect((await db.favorite.findMany()).map((row) => row.userId)).toEqual([real.id]);
+  });
+});
+
+describe('놓친 실행 따라잡기', () => {
+  const job = (run = () => Promise.resolve({ done: 1 })) => ({ name: 'catch-up-test', hourKst: 4, lockKey: 49901, run });
+  // 2026-11-11 10:00 KST — 가장 최근의 예정 시각은 같은 날 04:00 KST
+  const now = new Date('2026-11-11T01:00:00Z');
+
+  it('돈 적이 없거나, 가장 최근의 예정 시각 뒤로 돈 적이 없으면 놓친 것이다', async () => {
+    expect(await missedRun(db, job(), now)).toBe(true);
+
+    // 어제 04:05 KST에 돌았다 — 오늘 04:00을 놓쳤다
+    await db.jobRun.create({ data: { name: 'catch-up-test', ranAt: new Date('2026-11-09T19:05:00Z') } });
+    expect(await missedRun(db, job(), now)).toBe(true);
+
+    // 오늘 04:00 KST 뒤에 돌았다
+    await db.jobRun.update({ where: { name: 'catch-up-test' }, data: { ranAt: new Date('2026-11-10T19:00:05Z') } });
+    expect(await missedRun(db, job(), now)).toBe(false);
+  });
+
+  it('성공한 실행만 끝난 시각을 남긴다 — 실패한 실행은 다음에 다시 따라잡는다', async () => {
+    await runLocked(db, silent, job(() => Promise.reject(new Error('저장소가 응답하지 않는다'))));
+    expect(await db.jobRun.count()).toBe(0);
+
+    await runLocked(db, silent, job());
+    expect(await db.jobRun.count()).toBe(1);
+  });
+
+  it('켜질 때 놓친 실행이 있으면 한 번 돌리고, 없으면 돌리지 않는다', async () => {
+    let runs = 0;
+    const counted = job(() => Promise.resolve({ done: (runs += 1) }));
+
+    const first = startDaily(db, silent, counted, () => now);
+    expect(await first.caughtUp).toBe(true);
+    first.stop();
+    expect(runs).toBe(1);
+
+    // 방금 돌았으므로 다시 켜져도 돌리지 않는다 (배포가 잦아도 하루 한 번)
+    const second = startDaily(db, silent, counted, () => new Date());
+    expect(await second.caughtUp).toBe(false);
+    second.stop();
+    expect(runs).toBe(1);
   });
 });

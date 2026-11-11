@@ -49,7 +49,7 @@ export function createTestApp(options: { pingDb?: () => Promise<void>; env?: Rec
 
 export async function resetDb() {
   await db.$executeRawUnsafe(
-    'TRUNCATE "Message", "ChatRoomMember", "ChatRoom", "ProductImage", "Upload", "Product", "User" CASCADE',
+    'TRUNCATE "Message", "ChatRoomMember", "ChatRoom", "ProductImage", "Upload", "Product", "User", "JobRun" CASCADE',
   );
 }
 

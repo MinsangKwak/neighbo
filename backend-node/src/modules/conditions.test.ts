@@ -199,6 +199,7 @@ describe('두지 않기로 한 것', () => {
       'ChatRoom',
       'ChatRoomMember',
       'Favorite',
+      'JobRun',
       'Message',
       'Product',
       'ProductImage',

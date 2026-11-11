@@ -183,7 +183,7 @@ describe('GET /chat-rooms/:id', () => {
 });
 
 describe('메시지 저장 (T7)', () => {
-  it('[AC-CH-06] 번호 · 목록용 복사본 · 보낸 사람의 읽음 위치가 한 번에 바뀌고, 커밋 뒤에 알린다', async () => {
+  it('[AC-CH-06, 44] 번호 · 목록용 복사본 · 보낸 사람의 읽음 위치가 한 번에 바뀌고, 커밋 뒤에 알린다', async () => {
     const ctx = createTestApp();
     const { seller, buyer, roomId } = await scene(ctx);
     const first = await ctx.chat.send(buyer.id, text(roomId, '  안녕하세요\n구매 원해요  '), 'conn-1');

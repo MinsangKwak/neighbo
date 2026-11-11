@@ -414,7 +414,7 @@ describe('message:send', () => {
 });
 
 describe('room:read', () => {
-  it('[AC-CH-01, 02, 40] 상대에게는 읽은 위치가, 내 다른 탭에는 읽은 위치와 줄어든 배지가 간다', async () => {
+  it('[AC-CH-01, 02, 40, AC-CL-15] 상대에게는 읽은 위치가, 내 다른 탭에는 읽은 위치와 줄어든 배지가 간다', async () => {
     const { seller, buyer, roomId } = await scene();
     const a = await rt.connected(buyer.token);
     const reader = await rt.connected(seller.token);
