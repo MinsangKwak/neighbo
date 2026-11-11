@@ -1,5 +1,7 @@
 import type { Db } from '../db/client.js';
 import { thumbnailKey } from '../modules/products/service.js';
+import { DEMO_PRODUCTS } from '../seed/demo.js';
+import { SAMPLE_PRODUCTS } from '../seed/sample.js';
 import type { ImageStorage } from '../storage/ImageStorage.js';
 
 // 파일 정리 — 상품에 붙지 않은 업로드와, 지운 지 오래된 상품의 사진을 치운다
@@ -12,6 +14,9 @@ export const ORPHAN_UPLOAD_AFTER_MS = 25 * HOUR;
 export const DELETED_PRODUCT_AFTER_MS = 30 * 24 * HOUR;
 // 큰 삭제가 DB를 오래 잡지 않게 나눠 읽는다
 const BATCH = 100;
+// 시드 상품은 정리하지 않는다 — 지워진 상품을 되살리는 것은 시드뿐이고, 되살릴 때 이미 올린 파일을 다시 쓴다
+// 정리가 파일을 지우는 사이에 되살아나면 살아 있는 상품의 사진이 사라진다. 시드 파일은 시드가 직접 관리한다 (removeSample)
+const SEED_PRODUCT_IDS = [...DEMO_PRODUCTS, ...SAMPLE_PRODUCTS].map((product) => product.id);
 
 export interface FileCleanupResult extends Record<string, unknown> {
   uploadsDeleted: number;
@@ -64,7 +69,7 @@ async function purgeDeletedProducts(db: Db, storage: ImageStorage, now: Date, re
   let cursor = '';
   for (;;) {
     const products = await all.product.findMany({
-      where: { deletedAt: { lt: before }, imagesPurgedAt: null, id: { gt: cursor } },
+      where: { deletedAt: { lt: before }, imagesPurgedAt: null, id: { gt: cursor, notIn: SEED_PRODUCT_IDS } },
       orderBy: { id: 'asc' },
       take: BATCH,
       select: { id: true, images: { select: { storageKey: true } } },
@@ -77,7 +82,7 @@ async function purgeDeletedProducts(db: Db, storage: ImageStorage, now: Date, re
         result.failed += 1;
         continue;
       }
-      // 그 사이에 되살아난 상품(시드 복원)은 건드리지 않는다
+      // 삭제는 되돌릴 수 없으므로 조건이 바뀔 일은 없지만, 같은 조건을 한 번 더 건다
       const purged = await db.$transaction(async (tx) => {
         const count = await tx.$executeRaw`
           UPDATE "Product" SET "imagesPurgedAt" = ${now}

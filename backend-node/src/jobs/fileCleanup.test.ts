@@ -128,6 +128,16 @@ describe('삭제 상품 이미지 정리', () => {
     });
   });
 
+  it('시드 상품은 지운 지 오래돼도 건드리지 않는다 — 되살릴 때 올려 둔 파일을 다시 쓴다', async () => {
+    const seed = await product('seed', ago(40 * DAY));
+    // 사진 행은 외래 키(ON UPDATE CASCADE)를 따라 함께 옮겨진다
+    await db.$executeRaw`UPDATE "Product" SET "id" = 'demo_p1' WHERE "id" = ${seed.id}`;
+
+    expect(await cleanFiles(db, storage, now)).toMatchObject({ productsPurged: 0, filesDeleted: 0 });
+    expect(onDisk(seed.key)).toBe(true);
+    expect(await db.productImage.count({ where: { productId: 'demo_p1' } })).toBe(1);
+  });
+
   it('이미 정리한 상품은 다시 세지 않는다', async () => {
     await product('once', ago(40 * DAY));
     expect(await cleanFiles(db, storage, now)).toMatchObject({ productsPurged: 1 });
