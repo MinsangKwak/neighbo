@@ -33,6 +33,12 @@ export function AuthSync() {
   // 세션 연장은 브라우저가 부른 /api/* 응답의 쿠키로만 일어난다 — 서버 렌더의 /me 조회는 쿠키를 쓸 수 없다
   // 로그인 상태로 문서를 열 때 한 번 불러 연장 쿠키를 받는다 [AC-CM-03]
   // (배지 조회 /api/me/unread가 생기면 그 요청이 이 역할을 맡는다)
+  // 화면이 조작을 받을 준비가 됐다는 표시 — 서버가 그린 버튼은 스크립트가 붙기 전에는 눌러도 반응이 없다
+  // 자동 테스트(e2e)가 이 표시를 기다린 뒤에 누른다
+  useEffect(() => {
+    document.documentElement.dataset.hydrated = 'true';
+  }, []);
+
   const userId = user?.id;
   useEffect(() => {
     if (userId === undefined) return;

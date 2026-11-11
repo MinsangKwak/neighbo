@@ -20,6 +20,20 @@ export function newAccount(role: string): Account {
 export async function newUser(browser: Browser) {
   const context = await browser.newContext();
   const page = await context.newPage();
+  // 서버가 그린 화면은 스크립트가 붙기 전에 눌러도 반응이 없다 — 문서를 새로 열 때마다 준비 표시를 기다린다
+  // (CI의 첫 테스트가 이 틈에 걸려 실패했다. 사람은 이만큼 빨리 누르지 못한다)
+  const goto = page.goto.bind(page);
+  page.goto = async (url, options) => {
+    const response = await goto(url, options);
+    await page.waitForFunction(() => document.documentElement.dataset.hydrated === 'true');
+    return response;
+  };
+  const reload = page.reload.bind(page);
+  page.reload = async (options) => {
+    const response = await reload(options);
+    await page.waitForFunction(() => document.documentElement.dataset.hydrated === 'true');
+    return response;
+  };
   // 화면이 스스로 낸 오류를 모은다. 의도한 실패(잘못된 비밀번호, 지워진 상품)는 각 테스트가 걸러 낸다
   const problems: string[] = [];
   page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`));
