@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MyProductCard, PurchaseCard, UserSelf } from '@neighbo/shared-schema';
 import { ToastProvider } from '@/components/Toast';
+import { sessionChange } from '@/features/auth/sessionChange';
 import { makeQueryClient } from '@/lib/query/QueryProvider';
 import { MyTabs } from './MyTabs';
 import { PasswordForm } from './PasswordForm';
@@ -209,6 +210,9 @@ describe('비밀번호 변경', () => {
       body: { currentPassword: 'correct horse', newPassword: 'battery staple', newPasswordConfirm: 'battery staple' },
     });
     expect(sessionStorage.getItem('nb:flash')).toContain('비밀번호를 바꿨어요');
+    // 응답을 기다리는 동안 끊긴 실시간 연결을 세션 만료로 읽지 않는다
+    expect(sessionChange.active()).toBe(true);
+    sessionChange.end();
   });
 
   it('[AC-MP-09] 확인이 다르거나 현재와 같으면 보내지 않고 칸 아래에 알린다', async () => {
@@ -230,6 +234,8 @@ describe('비밀번호 변경', () => {
     expect(await screen.findByText('비밀번호가 맞지 않아요')).toBeTruthy();
     expect(screen.getByLabelText('현재 비밀번호').getAttribute('aria-invalid')).toBe('true');
     expect(assign).not.toHaveBeenCalled();
+    // 실패하면 평소대로 돌아간다
+    expect(sessionChange.active()).toBe(false);
   });
 
   it('[MP-A11Y-05] 자동 완성 속성이 칸의 뜻과 맞는다', () => {

@@ -4,6 +4,7 @@ import { changePasswordSchema, normalizePassword } from '@neighbo/shared-schema'
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
 import { leaveFlash } from '@/features/auth';
+import { sessionChange } from '@/features/auth/sessionChange';
 import { useForm } from '@/lib/form/useForm';
 import { changePassword } from './api';
 
@@ -16,7 +17,14 @@ export function PasswordForm({ isDemo }: { isDemo: boolean }) {
     // 새 비밀번호를 고치면 확인 칸과 "현재와 같음" 판단도 다시 본다
     dependents: { newPassword: ['newPasswordConfirm'], currentPassword: ['newPassword'] },
     onSubmit: async (input) => {
-      await changePassword(input);
+      // 성공하면 서버가 이 탭의 실시간 연결도 끊는다. 그 신호를 세션 만료로 읽지 않게 한다
+      sessionChange.begin();
+      try {
+        await changePassword(input);
+      } catch (err) {
+        sessionChange.end();
+        throw err;
+      }
       leaveFlash('비밀번호를 바꿨어요. 다른 기기에서는 다시 로그인해야 해요');
       // 문서를 새로 받는다 — 이 탭의 실시간 연결도 옛 세션의 것이라 새 토큰으로 다시 붙어야 한다
       // eslint-disable-next-line @next/next/no-location-assign-relative-destination

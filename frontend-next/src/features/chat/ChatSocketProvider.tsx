@@ -5,6 +5,7 @@ import { createContext, useContext, useEffect, useMemo, useSyncExternalStore, ty
 import { io } from 'socket.io-client';
 import type { Message } from '@neighbo/shared-schema';
 import { loginHref } from '@/features/auth/next';
+import { sessionChange } from '@/features/auth/sessionChange';
 import { useSessionUser } from '@/features/auth/SessionProvider';
 import { queryKeys } from '@/lib/query/queryKeys';
 import { createChatSocket, type ChatSocket, type SocketLike, type SocketSnapshot } from '@/lib/socket/chatSocket';
@@ -179,7 +180,8 @@ export function ChatSocketProvider({ socketUrl, children }: { socketUrl: string 
 
   // 세션이 끝났다 — 지금 화면으로 돌아오도록 로그인으로 보낸다 [AC-CH-31]
   useEffect(() => {
-    if (status !== 'needs_login') return;
+    // 이 탭이 비밀번호를 바꾸는 중이면 끊긴 것이 당연하다 — 그 화면이 새 쿠키로 문서를 다시 받는다
+    if (status !== 'needs_login' || sessionChange.active()) return;
     // 문서를 새로 받아 이전 세션의 캐시 · 연결을 버린다
     window.location.assign(loginHref(`${window.location.pathname}${window.location.search}`));
   }, [status]);

@@ -6,6 +6,7 @@ import type { Message, UserSelf } from '@neighbo/shared-schema';
 import { SessionProvider } from '@/features/auth/SessionProvider';
 import { makeQueryClient } from '@/lib/query/QueryProvider';
 import { queryKeys } from '@/lib/query/queryKeys';
+import { sessionChange } from '@/features/auth/sessionChange';
 import { lastSeq } from './cache';
 import { ChatSocketProvider, useChatSocket } from './ChatSocketProvider';
 
@@ -34,6 +35,10 @@ vi.mock('socket.io-client', () => ({
     wire.listeners.set('__open', () => {
       fake.connected = true;
       wire.listeners.get('connect')?.();
+    });
+    wire.listeners.set('__kick', () => {
+      fake.connected = false;
+      wire.listeners.get('disconnect')?.('io server disconnect');
     });
     wire.listeners.set('__drop', () => {
       fake.connected = false;
@@ -251,5 +256,27 @@ describe('ChatSocketProvider', () => {
     await waitFor(() => expect(document.title).toBe('(99+) 홈 · neighbo'));
     act(() => void client.setQueryData(queryKeys.unread(), { rooms: 0 }));
     await waitFor(() => expect(document.title).toBe('홈 · neighbo'));
+  });
+
+  it('[AC-CH-31] 서버가 세션 만료를 알리고 끊으면 지금 화면으로 돌아오도록 로그인으로 보낸다', async () => {
+    const assign = vi.fn();
+    vi.stubGlobal('location', { pathname: '/chats/room9', search: '?a=1', assign });
+    mount();
+    await fire('__open');
+    await fire('error', { code: 'UNAUTHORIZED', message: '로그인이 필요해요' });
+    await fire('__kick');
+    expect(assign).toHaveBeenCalledWith('/login?next=%2Fchats%2Froom9%3Fa%3D1');
+  });
+
+  it('[AC-MP-09] 이 탭이 비밀번호를 바꾸는 중이면 연결이 끊겨도 로그인으로 보내지 않는다', async () => {
+    const assign = vi.fn();
+    vi.stubGlobal('location', { pathname: '/me/password', search: '', assign });
+    mount();
+    await fire('__open');
+    sessionChange.begin();
+    await fire('error', { code: 'UNAUTHORIZED', message: '로그인이 필요해요' });
+    await fire('__kick');
+    sessionChange.end();
+    expect(assign).not.toHaveBeenCalled();
   });
 });
