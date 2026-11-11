@@ -152,7 +152,15 @@ export type ReadInput = z.infer<typeof readSchema>;
 
 // ── 소켓 ─────────────────────────────────────────────
 
-export const SOCKET_ERROR_CODES = ['UNAUTHORIZED', 'FORBIDDEN', 'PRODUCT_DELETED', 'INVALID_PAYLOAD', 'RATE_LIMITED'] as const;
+export const SOCKET_ERROR_CODES = [
+  'UNAUTHORIZED',
+  'FORBIDDEN',
+  'PRODUCT_DELETED',
+  'INVALID_PAYLOAD',
+  'RATE_LIMITED',
+  // 예상하지 못한 서버 오류 — 같은 tempId로 다시 보내면 된다
+  'INTERNAL',
+] as const;
 export type SocketErrorCode = (typeof SOCKET_ERROR_CODES)[number];
 
 export const SOCKET_ERROR_MESSAGE: Record<SocketErrorCode, string> = {
@@ -161,6 +169,7 @@ export const SOCKET_ERROR_MESSAGE: Record<SocketErrorCode, string> = {
   PRODUCT_DELETED: '삭제된 물건이라 메시지를 보낼 수 없어요',
   INVALID_PAYLOAD: '잘못된 요청이에요',
   RATE_LIMITED: '잠시 후 다시 시도해 주세요',
+  INTERNAL: '일시적인 문제가 생겼어요',
 };
 
 // 재연결 누락분은 한 번에 100개까지, 넘치면 HTTP로 [AC-CH-05]
