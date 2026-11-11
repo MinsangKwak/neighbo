@@ -38,15 +38,28 @@ export function utf8ByteLength(input: string): number {
   return bytes;
 }
 
+// 글 안에서는 지우면 안 되는 제로폭 문자가 있다 — ZWJ(U+200D)는 👨‍👩‍👧 같은 이모지를 잇고, ZWNJ(U+200C)는 일부 문자 체계의 철자다 (I-10)
+// 뜻 없이 섞여 들어오는 셋만 지운다: 제로폭 공백 · 단어 결합자 · BOM
+const TEXT_INVISIBLE = /[\u200B\u2060\uFEFF]/g;
+// 앞뒤에 홀로 남은 결합자는 이을 대상이 없으니 공백과 함께 잘라 낸다
+const TEXT_EDGES = /^[\s\u200C\u200D]+|[\s\u200C\u200D]+$/g;
+
 // 제목 · 설명 · 메시지 공통 [AC-CM-52, 54]
 // 한 줄 칸: 줄바꿈을 공백으로, 연속 공백은 하나로. 여러 줄 칸: 줄바꿈은 보존하되 빈 줄은 한 줄까지
 export function normalizeText(input: string, options: { multiline?: boolean } = {}): string {
-  const cleaned = input.replace(ZERO_WIDTH, '').normalize('NFC').replace(/\r\n?/g, '\n');
+  const cleaned = input.replace(TEXT_INVISIBLE, '').normalize('NFC').replace(/\r\n?/g, '\n');
   if (options.multiline === true) {
     return cleaned
       .replace(/[ \t]+\n/g, '\n')
       .replace(/\n{3,}/g, '\n\n')
-      .trim();
+      .replace(TEXT_EDGES, '');
   }
-  return cleaned.replace(/\s+/g, ' ').trim();
+  return cleaned.replace(/\s+/g, ' ').replace(TEXT_EDGES, '');
+}
+
+// 코드포인트 수 — DB의 char_length와 같은 단위
+export function countCodePoints(input: string): number {
+  let count = 0;
+  for (const _ of input) count += 1;
+  return count;
 }
