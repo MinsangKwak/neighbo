@@ -488,7 +488,7 @@ grapheme 길이는 DB가 셀 수 없으므로(Postgres `char_length`는 코드�
 | T6 | 채팅방 만들기 | ① `SELECT Product ... FOR SHARE` — 삭제 · 거래완료 · 본인 상품 확인 ② `ChatRoom` INSERT ③ `ChatRoomMember` 두 행 INSERT | — | `(productId, buyerId)` 유니크 위반 → 트랜잭션 버리고 기존 방 조회 `200` | 없음 |
 | T7 | 메시지 저장 | ① 참여자 확인 ② `SELECT Product ... FOR SHARE` — 삭제 확인 ③ `SELECT ChatRoom ... FOR UPDATE` — 같은 방 저장을 한 줄로 ④ `(roomId, senderId, tempId)` 있으면 그 메시지를 돌려주고 끝 ⑤ `UPDATE ChatRoom SET lastSeq = lastSeq + 1, 마지막 메시지 필드 RETURNING lastSeq` ⑥ `Message` INSERT(`seq`) ⑦ 두 참여자 `lastActivityAt` 갱신 ⑧ 보낸 사람 `lastReadSeq = seq` | `message:new` → 방, `notification:unread` → 받는 사람 | ④에서 걸러지고, 그래도 유니크 위반이 나면 기존 메시지를 ack로 반환 (재시도) | 없음. 롤백되면 `lastSeq`도 함께 되돌아가 번호에 구멍이 생기지 않음. emit 실패는 재연결 복구가 메움 |
 | T8 | 읽음 | `UPDATE ChatRoomMember m SET lastReadSeq = GREATEST(m.lastReadSeq, LEAST($seq, r.lastSeq)) FROM ChatRoom r WHERE r.id = m.roomId AND …` — 클라이언트가 **그린** 번호 | 내 모든 세션에 `room:read`, `notification:unread` | 순서가 뒤바뀐 요청이 와도 **뒤로 가지 않음** (`GREATEST`), 없는 번호를 앞질러 찍지 않음 (`LEAST`) | 없음 |
-| T9 | 비밀번호 변경 | (트랜잭션 밖: 현재 비밀번호 bcrypt 비교, 새 해시 생성) `UPDATE User SET passwordHash, tokenVersion = tokenVersion + 1` | 새 쿠키 발급 | — | 없음 |
+| T9 | 비밀번호 변경 | (트랜잭션 밖: 현재 비밀번호 bcrypt 비교, 새 해시 생성) `UPDATE User SET passwordHash, tokenVersion = tokenVersion + 1 WHERE id AND tokenVersion = (읽은 값)` | 새 쿠키 발급 · 그 사용자의 소켓 연결 모두 끊기 | 동시에 두 번 바꾸면 늦은 쪽은 0행 → `401` (그 요청의 세션이 이미 무효) | 없음 |
 | T10 | 아바타 변경 | `UPDATE User SET avatarUrl` + `Upload` DELETE | 이전 아바타 파일 삭제 | 마지막이 이김 | 이전 파일 고아 → 배치 |
 | T11 | 닉네임 변경 | `UPDATE User SET nickname, nicknameLower` | — | `nicknameLower` 유니크 → `409` | 없음 |
 
@@ -995,6 +995,8 @@ interface Realtime {
   // unread = 받는 사람의 배지 숫자 + 토스트용 요약. originConnectionId = 보낸 연결(다시 보내지 않는다)
   messageCreated(event: { message: Message; receiverId: Id; unread: NotificationUnread; originConnectionId: string | null }): void;
   roomRead(event: { roomId: Id; userId: Id; lastReadSeq: number; unreadRooms: number }): void;
+  // 비밀번호 변경 — 그 사용자의 연결을 `error: UNAUTHORIZED`와 함께 모두 끊는다 [AC-MP-09]
+  userRevoked(event: { userId: Id }): void;
 }
 ```
 
