@@ -21,7 +21,7 @@
 | AC-MP-07 | 닉네임이 바뀌면 헤더 · 채팅 목록 · 메시지 등 모든 곳에서 새 닉네임이 보인다 | `['me']` 갱신 [F03](../architecture/frontend.md#03--캐시와-낙관적-갱신) | 닉네임은 `User`에서만 읽음 (메시지에 복사 안 함) [B02](../architecture/backend.md#02--데이터-모델) | MP-IN-06 |
 | AC-MP-08 | 아바타는 1장을 클라이언트에서 512px 정사각 중앙 크롭 후 업로드하고 `PATCH /me { avatarUploadId }`로 저장하며 이전 파일은 삭제한다. [기본 이미지로]로 되돌릴 수 있다 | 512px 중앙 크롭 · 업로드 · [기본 이미지로] [F05](../architecture/frontend.md#05--폼) | T10 · 커밋 후 이전 파일 삭제 [B03](../architecture/backend.md#03--트랜잭션-경계) | MP-OK-08, 09, MP-IM-02, 05 |
 | AC-MP-09 | 비밀번호 변경은 현재 · 새 · 확인 세 칸이며 현재가 틀리면 `400 WRONG_PASSWORD`, 새 비밀번호가 현재와 같으면 거부하고, 성공 시 `tokenVersion`이 올라가 다른 세션이 무효화되며 현재 세션은 새 토큰을 받는다 | `/me/password` 화면 · 칸 오류 [F04](../architecture/frontend.md#04--에러-경계) | T9 · `tokenVersion` +1 · 새 쿠키 [B03](../architecture/backend.md#03--트랜잭션-경계) | MP-OK-12, MP-PW-01~04 |
-| AC-MP-10 | 프로필 수정 중 변경이 있으면 이탈 확인이 뜬다 | `useLeaveGuard(dirty)` [F05](../architecture/frontend.md#05--폼) | — | MP-UI-04 |
+| AC-MP-10 | 프로필 수정 중 변경이 있으면 탭을 닫거나 새로고침할 때 이탈 확인이 뜬다 | `useLeaveGuard(dirty)` [F05](../architecture/frontend.md#05--폼) | — | MP-UI-04 |
 | AC-MP-11 | `GET /me`는 본인용 사용자 객체와 `counts { onSale, reserved, sold, purchased }`를 돌려준다 | `['me']` 하이드레이트 | 본인용 직렬화 + `counts` | MP-DT-20 |
 | AC-MP-12 | `PATCH /me` 본문의 `id · email · role`은 무시된다 | 보내지 않음 | 화이트리스트 [B04](../architecture/backend.md#04--권한-매트릭스) | MP-AU-02 |
 

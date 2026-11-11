@@ -96,16 +96,16 @@
 | AC-CM-20 | 데이터를 불러오는 모든 화면은 로딩(스켈레톤) · 빈 상태 · 에러 상태 UI가 있다 | 경로마다 `loading.tsx` 스켈레톤 · 빈 상태 · 에러 컴포넌트 [F01](../architecture/frontend.md#01--렌더링-전략) [F04](../architecture/frontend.md#04--에러-경계) | — | CM-NW-01, CM-NW-06 |
 | AC-CM-21 | 조회 실패 시 본문 자리에 "불러오지 못했어요"와 [다시 시도]를 보여주고 헤더 · 내비는 유지한다 | 페이지 · 영역 에러 경계가 본문만 대체 [F04](../architecture/frontend.md#04--에러-경계) | — | CM-NW-01, CM-NW-02 |
 | AC-CM-22 | 쓰기 실패 시 입력을 유지하고 토스트로 알리며, 재시도는 사용자가 누른다 | 입력 유지 · 토스트 · 자동 재시도 없음 [F03](../architecture/frontend.md#03--캐시와-낙관적-갱신) [F04](../architecture/frontend.md#04--에러-경계) | 재시도가 안전한 쓰기는 멱등 보장 [B05](../architecture/backend.md#05--멱등성) | CM-NW-03 |
-| AC-CM-23 | 없는 자원은 404 화면("찾을 수 없는 페이지예요" + [홈으로])과 404 상태 코드를 돌려준다 | `not-found.tsx` + `notFound()` [F04](../architecture/frontend.md#04--에러-경계) | `404 NOT_FOUND` (없음 · 삭제 · 비참여자) [B04](../architecture/backend.md#04--권한-매트릭스) | CM-NW-08 |
+| AC-CM-23 | 없는 자원은 404 화면("찾을 수 없어요" + [홈으로])과 404 상태 코드를 돌려준다 | `not-found.tsx` + `notFound()` [F04](../architecture/frontend.md#04--에러-경계) | `404 NOT_FOUND` (없음 · 삭제 · 비참여자) [B04](../architecture/backend.md#04--권한-매트릭스) | CM-NW-08 |
 | AC-CM-24 | 제출 버튼은 첫 클릭에서 비활성 + 로딩이 되어 두 번 눌리지 않는다 | `submitting` 동안 버튼 비활성 [F05](../architecture/frontend.md#05--폼) | 중복 요청이 와도 결과 하나 [B05](../architecture/backend.md#05--멱등성) | CM-CC-01 |
 | AC-CM-25 | 뒤로가기로 돌아온 화면은 캐시를 즉시 보여주고 백그라운드로 재조회한다 | 캐시 즉시 표시 + 백그라운드 재조회 [F03](../architecture/frontend.md#03--캐시와-낙관적-갱신) | — | CM-CC-05 |
-| AC-CM-26 | `429`를 받으면 "잠시 후 다시 시도해 주세요" 토스트와 함께 `Retry-After` 동안 버튼이 비활성이다 | 전역 처리: 토스트 + `retryAfter`초 버튼 비활성 [F04](../architecture/frontend.md#04--에러-경계) | `429` + `Retry-After` [B07](../architecture/backend.md#07--보호-장치와-배치) | CM-NW-10 |
+| AC-CM-26 | `429`를 받으면 "잠시 후 다시 시도해 주세요"를 알리고(폼은 폼 오류 자리, 그 밖은 토스트) `Retry-After` 동안 제출 버튼이 비활성이다 | `useCooldown` — `retryAfter`초 동안 제출 버튼 `aria-disabled` [F04](../architecture/frontend.md#04--에러-경계) | `429` + `Retry-After` [B07](../architecture/backend.md#07--보호-장치와-배치) | CM-NW-10 |
 
 ### 0.4 보안
 
 | AC | 조건 | 프론트가 하는 것 | 백엔드가 하는 것 | 근거 |
 | --- | --- | --- | --- | --- |
-| AC-CM-30 | 사용자 입력은 원문 그대로 저장하고 출력 시 이스케이프한다. `dangerouslySetInnerHTML`을 쓰지 않는다 | React 이스케이프에 맡기고 `dangerouslySetInnerHTML` 금지(lint) | 원문 저장, HTML 태그 제거 안 함 | CM-SEC-01 |
+| AC-CM-30 | 사용자 입력은 원문 그대로 저장하고 출력 시 이스케이프한다. `dangerouslySetInnerHTML`을 쓰지 않는다 | React 이스케이프에 맡기고 `dangerouslySetInnerHTML` 금지 (ESLint `no-restricted-syntax`) | 원문 저장, HTML 태그 제거 안 함 | CM-SEC-01 |
 | AC-CM-31 | 쿠키는 `HttpOnly; Secure; SameSite=Lax`이며 쓰기 API는 `Origin` 헤더를 검사한다. 허용 목록은 환경마다 다르고(staging은 Vercel 미리보기 주소 패턴), HTTP와 소켓이 같은 함수를 쓴다 | 같은 오리진 프록시로만 요청 [F01](../architecture/frontend.md#01--렌더링-전략) | 쿠키 속성 · 쓰기 요청 `Origin` 검사 [B01](../architecture/backend.md#01--요청-계층) | CM-SEC-02 |
 | AC-CM-32 | 로그인 · 회원가입 · 이메일/닉네임 중복 확인은 IP당 분당 10회, 그 외 쓰기 API는 사용자당 분당 30회를 넘으면 `429`다 | 429 처리 [F04](../architecture/frontend.md#04--에러-경계) | 경로별 rate limit (IP · 사용자) [B07](../architecture/backend.md#07--보호-장치와-배치) | CM-SEC-04, CM-SEC-05 |
 | AC-CM-33 | 업로드 파일은 매직 바이트로 형식을 검사하고 불일치면 `400 INVALID_FILE`이다 | — (확장자 검사는 편의) | 매직 바이트 검사 [B07](../architecture/backend.md#07--보호-장치와-배치) | CM-SEC-06 |
@@ -121,7 +121,7 @@
 | AC-CM-42 | 모달 · 바텀시트는 포커스를 가두고 Esc로 닫히며 닫힌 뒤 열었던 요소로 돌아간다 | 네이티브 `<dialog>` + 연 요소 복귀 [F06](../architecture/frontend.md#06--포커스와-라이브-리전) | — | CM-A11Y-03 |
 | AC-CM-43 | 토스트는 `role="status"`, 에러 토스트는 `role="alert"`이며 호버 · 포커스 중에는 사라지지 않는다 | 토스트 영역 역할 · 호버/포커스 시 정지 [F06](../architecture/frontend.md#06--포커스와-라이브-리전) | — | CM-A11Y-04 |
 | AC-CM-44 | 폼 오류는 `aria-describedby`로 필드에 연결되고 `aria-invalid`가 설정되며 제출 시 첫 오류 필드로 포커스가 간다 | `<Field>`가 `aria-*`를 자동 연결 [F05](../architecture/frontend.md#05--폼) | `fields`로 칸별 문구 제공 [B06](../architecture/backend.md#06--에러-코드) | CM-A11Y-05 |
-| AC-CM-45 | 아이콘만 있는 버튼은 `aria-label`이 있고, 상품 사진 `alt`는 상품 제목, 아바타 `alt`는 닉네임이다 | 아이콘 버튼 `aria-label`, 이미지 `alt` 규칙 | 상품 제목 · 닉네임을 응답에 포함 | CM-A11Y-06, CM-A11Y-07 |
+| AC-CM-45 | 아이콘만 있는 버튼은 `aria-label`이 있고, 상품 사진 `alt`는 상품 제목이다. 아바타는 장식으로 두고(`alt=""`) 이름은 옆의 닉네임 글자가 말한다 | 아이콘 버튼 `aria-label`, 이미지 `alt` 규칙 | 상품 제목 · 닉네임을 응답에 포함 | CM-A11Y-06, CM-A11Y-07 |
 | AC-CM-46 | 본문 텍스트 명암비 4.5:1, UI 경계 3:1을 만족하고 색만으로 상태를 전달하지 않는다 | Tailwind 토큰 조합 명암비 표 · 상태에 텍스트 병행 | — | CM-A11Y-09, CM-A11Y-11 |
 | AC-CM-47 | 페이지 이동은 `<a>`, 동작은 `<button>`이며 `div onClick`이 없다 | 링크 · 버튼 구분 (lint) | — | CM-A11Y-12 |
 | AC-CM-48 | 360px에서 가로 스크롤 없이 동작하고, 1024px 이상에서는 본문이 640px 중앙 정렬이며, 터치 대상은 44×44px 이상이다 | 640px 컨테이너 · 360px 기준 레이아웃 · 44px 터치 대상 | — | CM-UI-01, CM-UI-02, CM-UI-04 |

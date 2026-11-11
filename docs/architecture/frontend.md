@@ -777,7 +777,7 @@ frontend-next/
    │  ├─ api/                  # apiFetch(클라이언트) · serverFetch(서버, no-store) · ApiError [04]
    │  ├─ query/                # QueryClient · 키 팩토리 [03]
    │  ├─ socket/               # 연결 상태 기계 · 전송 대기열 · emitWithAck 래퍼 [07]
-   │  ├─ form/                 # useForm · useLeaveGuard [05]
+   │  ├─ form/                 # useForm · useLeaveGuard · useCooldown(429 뒤 잠금) · usePasteClip(붙여넣기 자르기) [05]
    │  ├─ a11y/                 # RouteFocus · 라이브 리전 [06]
    │  └─ config.ts             # 환경 변수 검증 (서버 전용 · 공개용 분리)
    └─ styles/                  # Tailwind 진입점 · 토큰

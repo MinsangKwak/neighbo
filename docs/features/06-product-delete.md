@@ -19,7 +19,7 @@
 | AC-PX-05 | 모든 `Product` 조회에 `deletedAt IS NULL`이 Prisma 클라이언트 확장으로 자동 주입되고, 예외는 `withDeleted()`를 명시한 채팅방 · 채팅 목록 요약과 구매 내역뿐이다 | — | Prisma 확장 자동 주입 · `withDeleted()` 두 곳 [B01](../architecture/backend.md#01--요청-계층) | PX-DT-04 |
 | AC-PX-06 | 삭제된 상품은 목록 · 검색 · 상세 · 수정 · 마이페이지 판매 목록 · 판매 개수에서 사라진다 | 캐시 제거 · 무효화 [F03](../architecture/frontend.md#03--캐시와-낙관적-갱신) | 자동 주입 [B01](../architecture/backend.md#01--요청-계층) | PX-ST-01~04, 11, 12 |
 | AC-PX-07 | 채팅 목록에서는 썸네일 회색 + "삭제됨" 라벨로 행이 유지된다 | "삭제됨" 라벨 · 회색 썸네일 | 채팅 목록에 `product.deletedAt` 포함 | PX-ST-05, 06 |
-| AC-PX-08 | 채팅방은 열람 가능하지만 상품 요약은 클릭 불가, 입력창 비활성, "삭제된 물건이라 메시지를 보낼 수 없어요" 안내가 있고 소켓 전송은 `error: PRODUCT_DELETED`다 | 입력창 비활성 · 요약 링크 제거 [F07](../architecture/frontend.md#07--소켓-클라이언트) | `canSendMessage` · 소켓 `PRODUCT_DELETED` [B09](../architecture/backend.md#09--소켓-서버) | PX-ST-07~09 |
+| AC-PX-08 | 채팅방은 열람 가능하지만 상품 요약은 클릭 불가, 입력창 비활성, "삭제된 물건이라 메시지를 보낼 수 없어요" 안내가 있고 소켓 전송은 `error: PRODUCT_DELETED`다 | 입력창 비활성 · 요약 링크 제거 [F07](../architecture/frontend.md#07--소켓-클라이언트) | 방 응답의 `product.deleted` · 소켓 `PRODUCT_DELETED` [B09](../architecture/backend.md#09--소켓-서버) | PX-ST-07~09 |
 | AC-PX-09 | 삭제된 상품 채팅방의 읽지 않은 메시지도 배지에 포함된다 | — | 배지 계산이 상품 상태를 보지 않음 [B02](../architecture/backend.md#02--데이터-모델) | PX-ST-13 |
 | AC-PX-10 | 거래완료된 상품을 삭제해도 구매자의 구매 내역에 "삭제됨" 라벨로 남는다 | "삭제됨" 라벨 · 클릭 불가 | 구매 내역 `withDeleted()` [B01](../architecture/backend.md#01--요청-계층) | PX-ST-14 |
 | AC-PX-11 | 삭제와 동시에 들어온 채팅방 생성 · 상태 변경은 `404`로 실패한다 | 404 처리 [F04](../architecture/frontend.md#04--에러-경계) | T6 · T4가 `FOR SHARE` · 조건부 UPDATE로 [B03](../architecture/backend.md#03--트랜잭션-경계) | PX-CC-02, 05 |
