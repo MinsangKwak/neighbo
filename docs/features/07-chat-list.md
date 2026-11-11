@@ -122,7 +122,7 @@
 | ID | 상황 | 기대 동작 (제안) | 결정 |
 | --- | --- | --- | --- |
 | CL-DT-20 | 목록 API | `GET /chat-rooms?cursor=&limit=30&productId=` → `items: [{ id, product: {id, title, thumbnailUrl, status, deletedAt}, partner: 공개용 user, lastMessage: {content, createdAt, senderId} \| null, unreadCount, myRole: "seller"\|"buyer" }]` | — |
-| CL-DT-21 | `unreadCount` 계산 | `COUNT(Message WHERE roomId AND senderId != me AND seq > myLastReadSeq)`. `ChatRoomMember.lastReadSeq` 방식 → [결정 0007](../decisions.md#0007--읽음은-방-단위-위치-하나로-센다) · [0016](../decisions.md#0016--방-안-순서와-읽음-위치는-시각이-아니라-방별-번호seq로-센다) | — |
+| CL-DT-21 | `unreadCount` 계산 | `ChatRoom.lastSeq − 내 lastReadSeq`. 뜻은 `COUNT(Message WHERE roomId AND senderId != me AND seq > myLastReadSeq)`와 같다 — 내 메시지는 저장할 때 내 `lastReadSeq`를 그 번호로 올리므로 그 뒤 번호는 전부 상대 메시지이고, 번호에는 빈틈이 없다. Message를 세지 않아 목록 쿼리가 하나로 끝난다. `ChatRoomMember.lastReadSeq` 방식 → [결정 0007](../decisions.md#0007--읽음은-방-단위-위치-하나로-센다) · [0016](../decisions.md#0016--방-안-순서와-읽음-위치는-시각이-아니라-방별-번호seq로-센다) | — |
 | CL-DT-22 | 비정규화 컬럼 | `ChatRoom.lastMessageAt · lastMessagePreview · lastMessageSenderId`. 메시지 저장 트랜잭션에서 갱신 | — |
 | CL-DT-23 | 상대(partner) 결정 | `myRole === "seller" ? buyer : seller` | — |
 | CL-DT-24 | 삭제된 상품 포함 조회 | `withDeleted()` 명시 (→ PX-DT-04) | — |

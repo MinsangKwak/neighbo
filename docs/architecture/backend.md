@@ -928,9 +928,9 @@ stdout에 한 줄 JSON. Railway가 수집한다. 별도 로깅 라이브러리 �
 
 | 순서 | 처리 | 실패 시 |
 | --- | --- | --- |
-| 1 | 핸드셰이크 `auth.token` 검증 — 서명 · 만료 · `purpose: socket` | `connect_error UNAUTHORIZED` [AC-CH-31] |
+| 1 | 핸드셰이크 `auth.token` 검증 — 서명 · 만료(60초) · `purpose: socket` · `sxp` 있음 | `connect_error UNAUTHORIZED` [AC-CH-31] |
 | 2 | 사용자 연결 수 확인 — 5개 넘으면 가장 오래된 연결 끊음 | — [AC-CH-33] |
-| 3 | `socket.data = { userId, tokenExp }` | — |
+| 3 | `socket.data = { userId, sessionExp }` — `sessionExp`는 토큰의 `sxp`(토큰을 내준 세션의 만료 시각). 토큰 자체의 `exp`는 60초라 연결 중 검사에 쓸 수 없다 ([I-11](../troubleshooting.md#i-11)) | — |
 | 4 | `user:{userId}` 룸 조인 — 알림 · 읽음 동기화 대상 | — |
 | 5 | 연결 로그 (`connId`, `userId`) | — |
 
@@ -944,7 +944,7 @@ stdout에 한 줄 JSON. Railway가 수집한다. 별도 로깅 라이브러리 �
          disconnect           RATE_LIMITED     INVALID_PAYLOAD (연결 유지)
 ```
 
-① **연결 중에도 만료를 확인하는 이유**: 핸드셰이크 때 한 번만 보면, 소켓이 살아 있는 한 만료된 토큰으로 계속 보낼 수 있다 [AC-CH-31]. 매 이벤트마다 `socket.data.tokenExp < now`만 비교하면 되므로 비용이 거의 없다. 서버가 끊으면 클라이언트는 자동 재연결하지 않는다(`io server disconnect`, [스파이크 ⑤](../tech-notes.md#websocket과-socketio)) — 클라이언트가 이 이유를 보고 재로그인으로 보낸다.
+① **연결 중에도 만료를 확인하는 이유**: 핸드셰이크 때 한 번만 보면, 소켓이 살아 있는 한 만료된 토큰으로 계속 보낼 수 있다 [AC-CH-31]. 매 이벤트마다 `socket.data.sessionExp < now`만 비교하면 되므로 비용이 거의 없다. 서버가 끊으면 클라이언트는 자동 재연결하지 않는다(`io server disconnect`, [스파이크 ⑤](../tech-notes.md#websocket과-socketio)) — 클라이언트가 이 이유를 보고 재로그인으로 보낸다.
 
 ④ 서비스는 HTTP 핸들러와 **같은 함수**다. `chatService.sendMessage(user, input)`이 `AppError`를 던지면 소켓 계층이 `{ ok: false, code }`로 바꾼다. 같은 규칙이 두 군데 구현되지 않는다.
 
@@ -988,9 +988,10 @@ stdout에 한 줄 JSON. Railway가 수집한다. 별도 로깅 라이브러리 �
 
 ```ts
 interface Realtime {
-  productUpdated(productId: string, snapshot: ProductSnapshot): void;
-  messageCreated(message: Message, receiverId: string): void;
-  roomRead(roomId: string, userId: string, lastReadSeq: number): void;
+  productUpdated(event: { roomIds: Id[]; product: ProductSummary }): void;
+  // unread = 받는 사람의 배지 숫자 + 토스트용 요약. originConnectionId = 보낸 연결(다시 보내지 않는다)
+  messageCreated(event: { message: Message; receiverId: Id; unread: NotificationUnread; originConnectionId: string | null }): void;
+  roomRead(event: { roomId: Id; userId: Id; lastReadSeq: number; unreadRooms: number }): void;
 }
 ```
 
@@ -1270,7 +1271,7 @@ interface Page<T> {
 
 ```ts
 // 200 — Cache-Control: no-store
-{ token: string; expiresAt: ISODate }  // 60초, purpose: "socket"
+{ token: string; expiresAt: ISODate }  // 60초, purpose: "socket", sxp: 이 요청의 세션 만료 시각 (I-11)
 ```
 
 ---

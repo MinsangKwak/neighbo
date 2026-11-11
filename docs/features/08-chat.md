@@ -28,7 +28,7 @@
 | AC-CH-10 | `/chats/{roomId}`는 헤더(← · 상대 닉네임) · 상품 요약 바 · 메시지 목록 · 입력창으로 구성되고, 최신 50개를 HTTP로 받은 뒤 맨 아래로 스크롤하고 `room:join` · `room:read`를 보낸다 | 서버에서 방 · 50개 → 마지막 `seq`를 `after`로 조인 [F01](../architecture/frontend.md#01--렌더링-전략) | 방 상세 · 메시지 API · 비참여자 404 [B04](../architecture/backend.md#04--권한-매트릭스) | CH-OK-01, 02 |
 | AC-CH-11 | 상단에 도달하면 이전 50개를 `?before=`로 받아 스크롤 위치를 유지하며, [이전 메시지 보기] 버튼도 함께 있다 | 위 방향 무한 쿼리 · 스크롤 유지 · 버튼 병행 [F03](../architecture/frontend.md#03--캐시와-낙관적-갱신) | `before` 커서 · 역방향 인덱스 [B02](../architecture/backend.md#02--데이터-모델) | CH-OK-03, CH-A11Y-08 |
 | AC-CH-12 | PC는 Enter 전송 · Shift+Enter 줄바꿈, 모바일은 Enter 줄바꿈 · 버튼 전송이며 IME 조합 중 Enter는 무시한다 | 포인터 종류 · `isComposing` 판별 [F05](../architecture/frontend.md#05--폼) | — | CH-OK-04, CH-IN-07 |
-| AC-CH-13 | 빈 · 공백 · 줄바꿈만인 메시지는 보낼 수 없고, 1,000자를 넘으면 입력이 막히며 900자부터 카운터가 보인다 | 전송 비활성 · 카운터 | 스키마 + CHECK [B02](../architecture/backend.md#02--데이터-모델) | CH-IN-01, 02, 06 |
+| AC-CH-13 | 빈 · 공백 · 줄바꿈만인 메시지는 보낼 수 없고, 1,000자(코드포인트로는 16,000개)를 넘으면 입력이 막히며 900자부터 카운터가 보인다 | 전송 비활성 · 카운터 | 스키마 + CHECK [B02](../architecture/backend.md#02--데이터-모델) | CH-IN-01, 02, 06 |
 | AC-CH-14 | 상대 메시지 수신 시 스크롤이 맨 아래 100px 이내면 자동 스크롤, 아니면 [새 메시지 ↓] 버튼이 뜬다. 내 전송은 항상 맨 아래로 | 스크롤 위치 판단 · [새 메시지 ↓] [F07](../architecture/frontend.md#07--소켓-클라이언트) | — | CH-OK-08, 09 |
 | AC-CH-15 | 같은 사람 · 같은 분의 연속 메시지는 마지막에만 시각을 보이고, 날짜가 바뀌면 `role="separator"` 구분선이 들어간다 | 연속 묶음 · 날짜 구분선 | ISO 시각 | CH-OK-07, CH-A11Y-07 |
 | AC-CH-16 | 링크는 평문이고 이모지는 그대로 표시된다 | 평문 렌더 | 원문 저장 | CH-OK-13, 14 |
@@ -44,7 +44,7 @@
 | AC | 조건 | 프론트가 하는 것 | 백엔드가 하는 것 | 근거 |
 | --- | --- | --- | --- | --- |
 | AC-CH-30 | 비참여자의 `room:join` · `message:send`는 `error: FORBIDDEN`이며 조인하지 않은 방에는 보낼 수 없다 | 방 화면이면 404 처리 | 참여자 · 조인 확인 `FORBIDDEN` [B09](../architecture/backend.md#09--소켓-서버) | CH-AU-02, 03, CH-SEC-01 |
-| AC-CH-31 | 비로그인 소켓 연결은 핸드셰이크에서 거부되고, 이벤트 처리 시 토큰이 만료돼 있으면 `error: UNAUTHORIZED` 후 끊는다. 클라이언트는 끊긴 이유가 `io server disconnect`면 자동 재연결을 기다리지 않고 재로그인 화면으로 보내며, 로그인 후 직접 다시 연결한다 | `io server disconnect` → `needs_login` → 재로그인 후 수동 연결 [F07](../architecture/frontend.md#07--소켓-클라이언트) | 이벤트마다 `exp` 확인 → `UNAUTHORIZED` + 끊기 [B09](../architecture/backend.md#09--소켓-서버) | CH-AU-04, 05 |
+| AC-CH-31 | 비로그인 소켓 연결은 핸드셰이크에서 거부되고, 이벤트 처리 시 세션이 만료돼 있으면(소켓 토큰에 실린 `sxp`, [I-11](../troubleshooting.md#i-11)) `error: UNAUTHORIZED` 후 끊는다. 클라이언트는 끊긴 이유가 `io server disconnect`면 자동 재연결을 기다리지 않고 재로그인 화면으로 보내며, 로그인 후 직접 다시 연결한다 | `io server disconnect` → `needs_login` → 재로그인 후 수동 연결 [F07](../architecture/frontend.md#07--소켓-클라이언트) | 이벤트마다 `sxp` 확인 → `UNAUTHORIZED` + 끊기 [B09](../architecture/backend.md#09--소켓-서버) | CH-AU-04, 05 |
 | AC-CH-32 | 모든 수신 이벤트는 Zod로 검증하고 실패 시 `error: INVALID_PAYLOAD`로 연결은 유지한다. 페이로드 한도는 80KB다 (1,000자 메시지가 이모지로만 이뤄져도 통과하는 값) | — | Zod 검증 · `maxHttpBufferSize` 80KB [B09](../architecture/backend.md#09--소켓-서버) | CH-SEC-03, 04 |
 | AC-CH-33 | 전송은 사용자당 토큰 버킷(용량 10, 초당 5개 충전)으로 제한하고, 넘으면 ack `{ ok: false, code: RATE_LIMITED, retryAfterMs }`다. 대기열 재전송은 200ms 간격으로 보내고, `RATE_LIMITED`를 받은 대기 메시지는 실패로 바꾸지 않고 `retryAfterMs` 뒤 다시 보낸다. 소켓 연결은 사용자당 5개까지다 | 재전송 간격 · 거절 시 대기 유지 · 직접 입력은 그동안 [전송] 비활성 + 이유 [F07](../architecture/frontend.md#07--소켓-클라이언트) | 토큰 버킷 · 연결 5개 [B07](../architecture/backend.md#07--보호-장치와-배치) | CH-SEC-02, 05, 트러블슈팅 T-03 |
 | AC-CH-34 | 소켓 이벤트는 클라→서버 `room:join · room:leave · message:send · room:read`, 서버→클라 `message:new · room:read · room:product_updated · notification:unread · error`이며 ack 형식은 CH-DT-08을 따른다 | `useChatSocket` 훅이 이벤트 이름 · 타입 공유 | 이벤트 핸들러 [B09](../architecture/backend.md#09--소켓-서버) | CH-DT-06~08 |
