@@ -74,6 +74,8 @@ export interface SocketHandlers {
   onProductUpdated(event: RoomProductUpdatedEvent): void;
   // 끊겼다 다시 붙었다 — 끊긴 동안의 변화를 다시 조회할 때
   onReconnected(): void;
+  // 처음 붙었을 때 — 화면이 먼저 받아 둔 값과 연결 사이에 생긴 변화를 메운다
+  onFirstConnected?(): void;
   // 참여자가 아닌 방 · 삭제된 상품 등 방 단위의 거절
   onRoomDenied(roomId: string, code: SocketErrorCode): void;
 }
@@ -224,6 +226,7 @@ export function createChatSocket(options: ChatSocketOptions) {
     });
     pump();
     if (reconnected) handlers.onReconnected();
+    else handlers.onFirstConnected?.();
   }
 
   // ── 전송 대기열 ────────────────────────────────────

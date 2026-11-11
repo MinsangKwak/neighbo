@@ -79,6 +79,7 @@ function setup(token: () => Promise<string | 'unauthorized'> = () => Promise.res
     onUnread: vi.fn(),
     onProductUpdated: vi.fn(),
     onReconnected: vi.fn(),
+    onFirstConnected: vi.fn(),
     onRoomDenied: vi.fn(),
   } satisfies SocketHandlers;
   const readFallback = vi.fn();
@@ -115,8 +116,9 @@ describe('연결 상태', () => {
     fake.fire('connect');
     await tick();
     expect(chat.getSnapshot()).toMatchObject({ status: 'connected', disconnectedAt: null });
-    // 처음 연결에는 다시 조회할 것이 없다
+    // 처음 연결은 따로 알린다 — 화면이 먼저 읽어 둔 배지 숫자와 연결 사이의 틈을 메운다
     expect(handlers.onReconnected).not.toHaveBeenCalled();
+    expect(handlers.onFirstConnected).toHaveBeenCalledTimes(1);
 
     fake.fire('disconnect', 'transport close');
     expect(chat.getSnapshot().status).toBe('reconnecting');
@@ -126,6 +128,7 @@ describe('연결 상태', () => {
     await tick();
     expect(chat.getSnapshot()).toMatchObject({ status: 'connected', disconnectedAt: null });
     expect(handlers.onReconnected).toHaveBeenCalledTimes(1);
+    expect(handlers.onFirstConnected).toHaveBeenCalledTimes(1);
   });
 
   it('[AC-CH-31] 서버가 UNAUTHORIZED를 알리고 끊으면 needs_login — 다시 붙으려 하지 않는다', async () => {

@@ -129,6 +129,11 @@ export function ChatSocketProvider({ socketUrl, children }: { socketUrl: string 
         onProductUpdated(event) {
           applyProduct(client, event.roomId, event.product);
         },
+        onFirstConnected() {
+          // 배지 숫자는 화면이 뜰 때 한 번 읽고 그 뒤는 소켓이 알린다
+          // 읽은 뒤 · 붙기 전에 온 메시지는 어느 쪽에도 잡히지 않는다 — 붙자마자 한 번 더 읽는다
+          void client.invalidateQueries({ queryKey: queryKeys.unread() });
+        },
         onReconnected() {
           // 소켓으로만 갱신되는 캐시는 끊긴 동안의 변화를 모른다 — 빼먹으면 옛 값이 영영 남는다
           void client.invalidateQueries({ queryKey: queryKeys.unread() });
