@@ -945,7 +945,7 @@ stdout에 한 줄 JSON. Railway가 수집한다. 별도 로깅 라이브러리 �
          disconnect           RATE_LIMITED     INVALID_PAYLOAD (연결 유지)
 ```
 
-① **연결 중에도 만료를 확인하는 이유**: 핸드셰이크 때 한 번만 보면, 소켓이 살아 있는 한 만료된 토큰으로 계속 보낼 수 있다 [AC-CH-31]. 매 이벤트마다 `socket.data.sessionExp < now`만 비교하면 되므로 비용이 거의 없다. 서버가 끊으면 클라이언트는 자동 재연결하지 않는다(`io server disconnect`, [스파이크 ⑤](../tech-notes.md#websocket과-socketio)) — 클라이언트가 이 이유를 보고 재로그인으로 보낸다.
+① **연결 중에도 만료를 확인하는 이유**: 핸드셰이크 때 한 번만 보면, 소켓이 살아 있는 한 만료된 토큰으로 계속 보낼 수 있다 [AC-CH-31]. 매 이벤트마다 `socket.data.sessionExp < now`만 비교하면 되므로 비용이 거의 없다. 이벤트를 받을 때만 검사하면 **듣기만 하는 연결**은 만료 뒤에도 메시지를 계속 받으므로, 연결할 때 만료 시각에 맞춘 타이머를 하나 걸어 그 순간 같은 방식으로 끊는다(연결이 끝나면 타이머도 지운다). 서버가 끊으면 클라이언트는 자동 재연결하지 않는다(`io server disconnect`, [스파이크 ⑤](../tech-notes.md#websocket과-socketio)) — 클라이언트가 이 이유를 보고 재로그인으로 보낸다.
 
 ④ 서비스는 HTTP 핸들러와 **같은 함수**다. `chatService.sendMessage(user, input)`이 `AppError`를 던지면 소켓 계층이 `{ ok: false, code }`로 바꾼다. 같은 규칙이 두 군데 구현되지 않는다.
 
