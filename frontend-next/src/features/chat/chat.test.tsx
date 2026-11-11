@@ -510,10 +510,19 @@ describe('채팅방', () => {
     expect(screen.getByText('김당근: 새 메시지')).toBeTruthy();
   });
 
-  it('[AC-CH-01] 소켓이 없으면 읽음을 HTTP로 보낸다', () => {
+  it('[AC-CH-01] 소켓이 없으면 읽음을 HTTP로 보내고, 다시 붙으면 같은 번호를 소켓으로 한 번 더 보낸다', async () => {
     const connection = fakeConnection();
     mount(<ChatRoomScreen roomId="room1" myId={ME} />, { client: seeded([msg(1, 'u2')]), connection });
     expect(connection.readFallback).toHaveBeenCalledWith('room1', 1);
+    // 보이는 상태가 바뀌어도 같은 번호를 HTTP로 되풀이하지 않는다
+    act(() => void document.dispatchEvent(new Event('visibilitychange')));
+    expect(connection.readFallback).toHaveBeenCalledTimes(1);
+
+    // HTTP 시도가 실패했을 수 있다 — 연결되면 다시 보낸다
+    await connection.open();
+    await waitFor(() => expect(connection.emitted).toEqual([{ event: 'room:read', payload: { roomId: 'room1', seq: 1 } }]));
+    act(() => void document.dispatchEvent(new Event('visibilitychange')));
+    expect(connection.emitted).toHaveLength(1);
   });
 
   it('[AC-CH-03, 04] 보내면 바로 "전송 중" 말풍선이 생기고, 실패하면 글을 남긴 채 [재시도] · [삭제]를 보인다', async () => {

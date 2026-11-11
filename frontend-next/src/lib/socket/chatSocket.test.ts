@@ -244,7 +244,10 @@ describe('방 조인 · 복구', () => {
     await tick();
     chat.join('room1', () => 1);
     fake.answer('room:join', { ok: true, missed: [], hasMore: false });
+    await tick();
+    expect(chat.isJoined('room1')).toBe(true);
     chat.leave('room1');
+    expect(chat.isJoined('room1')).toBe(false);
     expect(fake.emitted).toEqual([{ event: 'room:leave', payload: { roomId: 'room1' } }]);
     fake.fire('disconnect', 'transport close');
     fake.fire('connect');
@@ -254,10 +257,14 @@ describe('방 조인 · 복구', () => {
 });
 
 describe('메시지 보내기', () => {
+  // 연결하고 room1 화면을 연 상태
   async function connected() {
     const ctx = setup();
     ctx.chat.connect();
     ctx.fake.fire('connect');
+    await tick();
+    ctx.chat.join('room1', () => 1);
+    ctx.fake.answer('room:join', { ok: true, missed: [], hasMore: false });
     await tick();
     return ctx;
   }
@@ -326,8 +333,6 @@ describe('메시지 보내기', () => {
 
   it('[AC-CH-38] 끊긴 동안 보낸 메시지는 "연결 중…"으로 기다렸다가, 다시 붙으면 누락분을 받은 뒤 순서대로 간다', async () => {
     const { chat, fake, handlers } = await connected();
-    chat.join('room1', () => 1);
-    fake.answer('room:join', { ok: true, missed: [], hasMore: false });
     fake.fire('disconnect', 'transport close');
 
     const first = chat.send('room1', '하나');
@@ -366,6 +371,8 @@ describe('메시지 보내기', () => {
     expect(chat.getSnapshot().pending[0]?.status).toBe('queued');
 
     fake.fire('connect');
+    await tick();
+    fake.answer('room:join', { ok: true, missed: [], hasMore: false });
     await tick(200);
     expect(fake.sends()).toEqual([tempId, tempId]);
     // 첫 전송의 5초 타임아웃이 지나도 실패로 바뀌지 않는다
@@ -374,6 +381,50 @@ describe('메시지 보내기', () => {
     fake.answer('message:send', ok(1, tempId));
     await tick();
     expect(chat.getSnapshot().pending).toEqual([]);
+  });
+
+  it('[AC-CH-30] 화면이 열려 있지 않은 방으로 보낼 때는 먼저 조인하고, 다 보내면 나간다', async () => {
+    const { chat, fake, handlers } = await connected();
+    const tempId = chat.send('room2', '다른 방으로');
+    // 서버는 조인하지 않은 방으로의 전송을 거절한다 — 누락분은 묻지 않고 조인만 한다
+    expect(fake.sends()).toEqual([]);
+    expect(fake.answer('room:join', { ok: true, missed: [], hasMore: false })).toEqual({ roomId: 'room2', after: null });
+    await tick();
+    expect(fake.sends()).toEqual([tempId]);
+    fake.answer('message:send', { ok: true, message: { ...message(1, tempId), roomId: 'room2' } });
+    await tick();
+    expect(handlers.onDelivered).toHaveBeenCalled();
+    expect(fake.emitted).toEqual([{ event: 'room:leave', payload: { roomId: 'room2' } }]);
+  });
+
+  it('[AC-CH-38] 끊긴 동안 쓰고 다른 화면으로 가도, 다시 붙으면 그 방에 조인해서 보낸다', async () => {
+    const { chat, fake } = await connected();
+    fake.fire('disconnect', 'transport close');
+    const tempId = chat.send('room1', '끊긴 동안');
+    // 채팅방 화면을 떠났다
+    chat.leave('room1');
+    expect(chat.getSnapshot().pending[0]?.status).toBe('queued');
+
+    fake.fire('connect');
+    await tick();
+    expect(fake.answer('room:join', { ok: true, missed: [], hasMore: false })).toEqual({ roomId: 'room1', after: null });
+    await tick();
+    expect(fake.sends()).toEqual([tempId]);
+    fake.answer('message:send', ok(2, tempId));
+    await tick();
+    expect(chat.getSnapshot().pending).toEqual([]);
+    // 보낼 것이 없어진 뒤에야 나간다
+    expect(fake.emitted).toEqual([{ event: 'room:leave', payload: { roomId: 'room1' } }]);
+  });
+
+  it('보내려는 방의 조인이 거절되면 그 메시지를 실패로 바꾼다', async () => {
+    const { chat, fake, handlers } = await connected();
+    chat.send('room2', '남의 방');
+    fake.answer('room:join', { ok: false, code: 'FORBIDDEN' });
+    await tick();
+    expect(chat.getSnapshot().pending[0]).toMatchObject({ status: 'failed', failure: '이 채팅방에 보낼 수 없어요' });
+    expect(handlers.onRoomDenied).toHaveBeenCalledWith('room2', 'FORBIDDEN');
+    expect(fake.sends()).toEqual([]);
   });
 
   it('[AC-CH-33] RATE_LIMITED는 실패가 아니다 — 알려 준 시간만큼 기다렸다가 같은 메시지를 다시 보낸다', async () => {
@@ -404,12 +455,13 @@ describe('메시지 보내기', () => {
 describe('읽음 · 수신', () => {
   it('[AC-CH-01] 연결돼 있으면 소켓으로, 아니면 HTTP로 읽음을 보낸다', async () => {
     const { chat, fake, readFallback } = setup();
-    chat.read('room1', 3);
+    // HTTP로 시도한 것은 닿았는지 모른다 — false를 돌려주어 다시 붙었을 때 한 번 더 보내게 한다
+    expect(chat.read('room1', 3)).toBe(false);
     expect(readFallback).toHaveBeenCalledWith('room1', 3);
     chat.connect();
     fake.fire('connect');
     await tick();
-    chat.read('room1', 5);
+    expect(chat.read('room1', 5)).toBe(true);
     expect(fake.emitted).toEqual([{ event: 'room:read', payload: { roomId: 'room1', seq: 5 } }]);
     expect(readFallback).toHaveBeenCalledTimes(1);
   });

@@ -61,6 +61,20 @@ export function ChatSocketProvider({ socketUrl, children }: { socketUrl: string 
       timer ??= setTimeout(flushRooms, REORDER_DEBOUNCE_MS);
     };
 
+    // 화면이 열려 있는 방만 메시지 캐시를 이어 붙인다
+    // 닫힌 방은 틈이 생겨도 메울 방법이 없다(조인해야 누락분을 받는다) — 틈을 안은 채 번호만 앞서가면
+    // 다시 열 때 그 번호 뒤부터 받아 빠진 메시지가 영영 안 온다. 캐시를 버려 다음에 처음부터 받게 한다
+    const receive = (message: Message) => {
+      if (!socket.isJoined(message.roomId)) {
+        client.removeQueries({ queryKey: queryKeys.messages(message.roomId) });
+        return;
+      }
+      // 번호가 건너뛰었으면 그 자리에서 채운다 — 연결이 살아 있어도 하나가 빠질 수 있다 [AC-CH-05]
+      const last = lastSeq(client, message.roomId);
+      if (last !== null && message.seq > last + 1) socket.resync(message.roomId);
+      addMessages(client, message.roomId, [message]);
+    };
+
     const socket: ChatSocket = createChatSocket({
       createSocket: (auth) =>
         io(socketUrl ?? '', {
@@ -84,14 +98,11 @@ export function ChatSocketProvider({ socketUrl, children }: { socketUrl: string 
       },
       handlers: {
         onMessage(message) {
-          // 번호가 건너뛰었으면 그 자리에서 채운다 — 연결이 살아 있어도 하나가 빠질 수 있다 [AC-CH-05]
-          const last = lastSeq(client, message.roomId);
-          if (last !== null && message.seq > last + 1) socket.resync(message.roomId);
-          addMessages(client, message.roomId, [message]);
+          receive(message);
           queueRoomUpdate(message);
         },
         onDelivered(message) {
-          addMessages(client, message.roomId, [message]);
+          receive(message);
           queueRoomUpdate(message);
         },
         onMissed(roomId, missed, hasMore) {
@@ -114,6 +125,11 @@ export function ChatSocketProvider({ socketUrl, children }: { socketUrl: string 
           void client.invalidateQueries({ queryKey: queryKeys.unread() });
           void client.invalidateQueries({ queryKey: queryKeys.allChatRooms() });
           void client.invalidateQueries({ queryKey: queryKeys.allChatRoomDetails() });
+          // 닫혀 있는 방의 메시지 캐시는 끊긴 동안의 메시지를 모른다
+          for (const query of client.getQueryCache().findAll({ queryKey: queryKeys.allMessages() })) {
+            const roomId = query.queryKey[1];
+            if (typeof roomId === 'string' && !socket.isJoined(roomId)) client.removeQueries({ queryKey: query.queryKey });
+          }
         },
         onRoomDenied(roomId) {
           // 상품이 삭제됐거나 더는 참여자가 아니다 — 방 정보를 다시 받아 화면이 맞춘다

@@ -17,4 +17,5 @@ export const queryKeys = {
   chatRoom: (id: string) => ['chatRoom', id] as const,
   allChatRoomDetails: () => ['chatRoom'] as const,
   messages: (roomId: string) => ['messages', roomId] as const,
+  allMessages: () => ['messages'] as const,
 };

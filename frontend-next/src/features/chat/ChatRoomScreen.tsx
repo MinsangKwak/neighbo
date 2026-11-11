@@ -68,19 +68,22 @@ export function ChatRoomScreen({ roomId, myId }: { roomId: string; myId: string 
 
   // ── 읽음 ───────────────────────────────────────────
   // 화면이 보이는 상태에서 실제로 그린 마지막 번호를 보낸다: 입장 · 보이는 동안 수신 · 돌아왔을 때 [AC-CH-01]
+  // 소켓으로 보낸 번호만 "보냈다"고 적는다. HTTP로 시도한 것은 닿았는지 모르므로, 다시 붙으면 한 번 더 보낸다
   const sentRead = useRef(0);
+  const triedOverHttp = useRef(0);
   const lastSeqValue = last?.seq ?? 0;
   const connected = snapshot.status === 'connected';
   useEffect(() => {
     const report = () => {
       if (document.visibilityState !== 'visible' || lastSeqValue <= sentRead.current) return;
-      sentRead.current = lastSeqValue;
-      socket.read(roomId, lastSeqValue);
+      // 같은 번호를 HTTP로 되풀이해 보내지는 않는다
+      if (!connected && lastSeqValue <= triedOverHttp.current) return;
+      if (socket.read(roomId, lastSeqValue)) sentRead.current = lastSeqValue;
+      else triedOverHttp.current = lastSeqValue;
     };
     report();
     document.addEventListener('visibilitychange', report);
     return () => document.removeEventListener('visibilitychange', report);
-    // 다시 붙었을 때도 한 번 더 본다 — 끊긴 동안의 읽음은 HTTP로 갔을 수 있다
   }, [connected, lastSeqValue, roomId, socket]);
 
   // ── 스크롤 ─────────────────────────────────────────

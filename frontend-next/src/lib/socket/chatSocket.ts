@@ -118,6 +118,8 @@ export function createChatSocket(options: ChatSocketOptions) {
 
   // 조인한 방 → 그 방에서 받은 마지막 seq를 알려 주는 함수. 서버 메모리는 재시작으로 사라지므로 여기서 기억한다
   const joined = new Map<string, () => number | null>();
+  // 지금 연결에서 서버가 조인을 받아 준 방. 서버는 조인하지 않은 방으로의 전송을 거절한다 [AC-CH-30]
+  const serverJoined = new Set<string>();
   // 한 번이라도 연결된 적이 있는지 — 재연결일 때만 다시 조회를 부른다
   let everConnected = false;
   // 마지막 토큰 요청의 결과 — 서버의 거절이 "세션 만료"인지 "토큰을 못 받음"인지 가른다
@@ -172,12 +174,41 @@ export function createChatSocket(options: ChatSocketOptions) {
       if (attempt < JOIN_ATTEMPTS && socket === current && current.connected) await joinRoom(roomId, attempt + 1);
       return;
     }
-    if (!joined.has(roomId)) return;
+    if (ack.ok && socket === current && current.connected) serverJoined.add(roomId);
+    if (!joined.has(roomId)) {
+      // 응답을 기다리는 사이에 화면을 떠났다
+      releaseRoom(roomId);
+      return;
+    }
     if (ack.ok) {
       if (ack.missed.length > 0 || ack.hasMore) handlers.onMissed(roomId, ack.missed, ack.hasMore);
     } else {
       joined.delete(roomId);
       handlers.onRoomDenied(roomId, ack.code);
+    }
+  }
+
+  // 보낼 메시지가 남은 방은 화면을 떠나도 조인을 유지한다 — 끊긴 동안 쓰고 다른 화면으로 간 메시지가 거절되지 않게
+  const hasOutgoing = (roomId: string) =>
+    snapshot.pending.some((item) => item.roomId === roomId && item.status !== 'failed');
+
+  // 보고 있지도 않고 보낼 것도 없는 방에서 나간다
+  function releaseRoom(roomId: string) {
+    if (joined.has(roomId) || hasOutgoing(roomId) || !serverJoined.delete(roomId)) return;
+    if (socket?.connected === true) socket.emit('room:leave', { roomId });
+  }
+
+  // 화면이 열려 있지 않은 방으로 보내기 전에 조인한다. 누락분은 묻지 않는다 — 그 방의 화면은 다시 열릴 때 새로 받는다
+  async function joinForSend(roomId: string): Promise<SocketErrorCode | null> {
+    const current = socket;
+    if (current === null || !current.connected) return 'INTERNAL';
+    try {
+      const ack = (await current.timeout(JOIN_TIMEOUT_MS).emitWithAck('room:join', { roomId, after: null })) as RoomJoinAck;
+      if (!ack.ok) return ack.code;
+      if (socket === current && current.connected) serverJoined.add(roomId);
+      return null;
+    } catch {
+      return 'INTERNAL';
     }
   }
 
@@ -212,6 +243,18 @@ export function createChatSocket(options: ChatSocketOptions) {
     turns += 1;
     const flight = { tempId: next.tempId, turn: turns };
     inFlight = flight;
+    if (!serverJoined.has(next.roomId)) {
+      void joinForSend(next.roomId).then((code) => {
+        if (inFlight?.turn !== flight.turn) return;
+        inFlight = null;
+        if (code !== null) {
+          patchPending(next.tempId, { status: 'failed', failure: SEND_FAILURE[code] });
+          if (code === 'FORBIDDEN') handlers.onRoomDenied(next.roomId, code);
+        }
+        pump();
+      });
+      return;
+    }
     lastEmitAt = now();
     // 타임아웃 없는 emit은 끊긴 동안 버퍼에 남았다가 재연결 뒤 몰래 전송된다 — 항상 5초 ack와 함께 [AC-CH-37]
     current
@@ -247,13 +290,16 @@ export function createChatSocket(options: ChatSocketOptions) {
       patchPending(tempId, { status: 'failed', failure: SEND_FAILURE[ack.code] });
       if (ack.code === 'PRODUCT_DELETED' || ack.code === 'FORBIDDEN') handlers.onRoomDenied(item.roomId, ack.code);
     }
+    releaseRoom(item.roomId);
     pump();
   }
 
   // 연결을 기다린 지 30초가 지난 메시지는 실패로 [AC-CH-38]
   function expire(tempId: string) {
     const item = snapshot.pending.find((pending) => pending.tempId === tempId);
-    if (item?.status === 'queued') patchPending(tempId, { status: 'failed', failure: SEND_FAILURE.TIMEOUT });
+    if (item?.status !== 'queued') return;
+    patchPending(tempId, { status: 'failed', failure: SEND_FAILURE.TIMEOUT });
+    releaseRoom(item.roomId);
   }
 
   // ── 연결 ───────────────────────────────────────────
@@ -268,6 +314,8 @@ export function createChatSocket(options: ChatSocketOptions) {
 
     created.on('disconnect', ((reason: string) => {
       inFlight = null;
+      // 조인은 연결에 딸린 상태다. 다시 붙으면 처음부터
+      serverJoined.clear();
       // 보내던 메시지와 줄 서 있던 메시지는 "연결 중…"으로 — 다시 붙으면 같은 tempId로 보낸다 (서버가 중복을 거른다)
       const waiting = snapshot.pending.filter((item) => item.status === 'sending');
       if (waiting.length > 0) {
@@ -353,6 +401,7 @@ export function createChatSocket(options: ChatSocketOptions) {
       socket?.disconnect();
       socket = null;
       joined.clear();
+      serverJoined.clear();
       inFlight = null;
       everConnected = false;
       snapshot = { status: 'idle', disconnectedAt: null, pending: [], sendBlockedUntil: null };
@@ -366,9 +415,11 @@ export function createChatSocket(options: ChatSocketOptions) {
     },
 
     leave(roomId: string) {
-      if (!joined.delete(roomId)) return;
-      if (socket?.connected === true) socket.emit('room:leave', { roomId });
+      if (joined.delete(roomId)) releaseRoom(roomId);
     },
+
+    // 화면이 열려 있는 방인가 — 열려 있지 않은 방의 메시지 캐시는 틈을 메울 수 없다
+    isJoined: (roomId: string) => joined.has(roomId),
 
     // 번호가 건너뛰었다 — 연결이 살아 있어도 하나가 빠질 수 있다. 같은 방법으로 채운다 [AC-CH-05]
     resync(roomId: string) {
@@ -404,13 +455,20 @@ export function createChatSocket(options: ChatSocketOptions) {
 
     // 실패한 말풍선을 지운다. 서버에는 아무것도 보내지 않는다
     remove(tempId: string) {
+      const item = snapshot.pending.find((pending) => pending.tempId === tempId);
       dropPending(tempId);
+      if (item !== undefined) releaseRoom(item.roomId);
     },
 
     // 화면에 실제로 그린 마지막 메시지의 번호 [AC-CH-01]
-    read(roomId: string, seq: number) {
-      if (socket?.connected === true) socket.emit('room:read', { roomId, seq });
-      else readFallback(roomId, seq);
+    // 소켓으로 보냈으면 true. false면 HTTP로 시도한 것이라 닿았는지 모른다 — 다시 붙었을 때 한 번 더 보내야 한다
+    read(roomId: string, seq: number): boolean {
+      if (socket?.connected === true) {
+        socket.emit('room:read', { roomId, seq });
+        return true;
+      }
+      readFallback(roomId, seq);
+      return false;
     },
   };
 }
