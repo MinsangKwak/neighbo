@@ -1,8 +1,8 @@
 # backend-node · 백엔드
 
-**백엔드는 인증·권한 검사, 거래 상태 변경, 데이터 저장, 실시간 메시지 전달을 담당하도록 설계했습니다.** 중복 요청과 동시 변경은 서비스 로직·DB 제약·트랜잭션으로 처리합니다. 입력 안내와 화면 갱신은 [프론트엔드](../frontend-next/README.md)에서 담당합니다.
+**백엔드는 인증·권한 검사, 거래 상태 변경, 데이터 저장, 실시간 메시지 전달을 담당합니다.** 중복 요청과 동시 변경은 서비스 로직·DB 제약·트랜잭션으로 처리합니다. 입력 안내와 화면 갱신은 [프론트엔드](../frontend-next/README.md)에서 담당합니다.
 
-> 현재: **구현 0단계(뼈대) 코드 작성.** 실행은 `npm run dev -w backend-node` (`:4000`), 환경 변수는 `.env.example` 참고. 폴더 이름은 `{역할}-{대표 기술}` 규칙을 따릅니다 — 백엔드 · Node.js(Express) ([결정 0015](../docs/decisions.md#0015--최상위-폴더는-역할-대표-기술로-짓는다)).
+> 현재: **구현 0~4단계와 2차 기능(판매자 프로필 · 관심 · 동네)까지 작성 · 배포.** 실행은 `npm run dev -w backend-node` (`:4000`), 환경 변수는 `.env.example` 참고. 폴더 이름은 `{역할}-{대표 기술}` 규칙을 따릅니다 — 백엔드 · Node.js(Express) ([결정 0015](../docs/decisions.md#0015--최상위-폴더는-역할-대표-기술로-짓는다)).
 
 ## 책임 범위
 
@@ -34,7 +34,7 @@
 
 ## 명세·스파이크 검토 결과
 
-명세 검토와 별도 실험에서 확인한 문제입니다. 아래 변경은 설계에 반영했으며, 서비스 구현 후 통합 테스트로 검증할 예정입니다. 증상·원인·확인 방법은 [트러블슈팅 기록](../docs/troubleshooting.md)에 있습니다.
+명세 검토와 별도 실험에서 확인한 문제입니다. 아래 변경은 설계와 구현에 반영했습니다. 증상·원인·확인 방법은 [트러블슈팅 기록](../docs/troubleshooting.md)에 있습니다.
 
 | 번호 | 문제 | 설계·문서에 반영한 내용 |
 | --- | --- | --- |
@@ -52,6 +52,6 @@
 - 결정 기록: [0001 직접 구현](../docs/decisions.md#0001--인증거래채팅-로직은-별도-백엔드에서-관리한다) · [0002 Postgres](../docs/decisions.md#0002--개발--운영-db를-postgresql로-통일한다) · [0003 JWT 쿠키](../docs/decisions.md#0003--인증은-jwt를-httponly-쿠키에-담는다) · [0005 Socket.IO](../docs/decisions.md#0005--실시간-전달은-socketio-누락-복구는-db-커서로-처리한다) · [0006 soft delete](../docs/decisions.md#0006--상품-삭제는-항상-soft-delete-채팅방은-열람만) · [0007 읽음](../docs/decisions.md#0007--읽음은-방-단위-위치-하나로-센다) · [0016 방별 번호](../docs/decisions.md#0016--방-안-순서와-읽음-위치는-시각이-아니라-방별-번호seq로-센다) · [0012 구매자 지정](../docs/decisions.md#0012--거래완료-시-구매자를-지정하고-구매-내역을-둔다)
 - 기술 노트: [WebSocket](../docs/tech-notes.md#websocket과-socketio) · JWT와 쿠키 · 비밀번호 해시 · Postgres 제약 · Prisma · 이미지 파이프라인 ([목록](../docs/tech-notes.md))
 
-## 예정 스택
+## 스택
 
 Node.js · Express · TypeScript (`strict`) · Prisma 7 · PostgreSQL 16 · Socket.IO · Zod (공유 패키지) · bcrypt · sharp · Vitest + supertest

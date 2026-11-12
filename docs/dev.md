@@ -132,7 +132,7 @@ DB는 새로 시작합니다 — 지금 Railway의 데이터는 시드와 확인
 
 ## 브랜치 · 배포 전략 · main은 언제나 배포 가능하게
 
-**명세 단계는 문서 브랜치에서 변경을 검토한 뒤 `main`에 반영하고, 서비스 구현부터 `dev` 통합 브랜치를 추가합니다.** 구현 단계는 작업 브랜치 → `dev` → `main` 순서이며, 역할별 커밋을 보존하는 리베이스 병합을 사용합니다. 배포·CI·보호 규칙은 아래 계획에 따라 코드 단계에서 설정합니다.
+**배포의 첫 기준은 비용입니다. 변경은 `dev`에 모으고, `main`에는 묶음이 찼을 때 한 번에 올립니다(2026-11-12부터).** 명세 단계는 문서 브랜치에서 변경을 검토한 뒤 `main`에 반영하고, 서비스 구현부터 `dev` 통합 브랜치를 추가합니다. 구현 단계는 작업 브랜치 → `dev` → `main` 순서이며, 역할별 커밋을 보존하는 리베이스 병합을 사용합니다. 배포·CI·보호 규칙은 아래 계획에 따라 코드 단계에서 설정합니다.
 
 ### 왜 이 구조인가
 
@@ -143,8 +143,8 @@ DB는 새로 시작합니다 — 지금 Railway의 데이터는 시드와 확인
 | 브랜치 | 역할 | 수명 | 배포 환경 | 직접 push |
 | --- | --- | --- | --- | --- |
 | `main` | 검증된 변경 통합. 언제나 배포 가능한 상태 | 영구 | **운영** — Vercel Production · Railway Production | 금지 |
-| `dev` | 개발 통합. 일반 변경의 PR 대상 | 영구 | **미리보기** — Vercel Preview · Railway Staging | 금지 |
-| `feat/*` `fix/*` `style/*` `refactor/*` `docs/*` `test/*` `ci/*` | 작업 하나 | 수 시간 ~ 수 일. 병합 후 삭제 | PR마다 Vercel Preview URL | 허용 |
+| `dev` | 개발 통합. 일반 변경의 PR 대상. 배포 없이 쌓아 둔다 | 영구 | 없음 — 배포하지 않는다 | 금지 |
+| `feat/*` `fix/*` `style/*` `refactor/*` `docs/*` `test/*` `ci/*` | 작업 하나 | 수 시간 ~ 수 일. 병합 후 삭제 | 없음 — CI만 돈다 | 허용 |
 | `sync-main-vX.Y.Z` | `dev` → `main` 동기화 PR 전용 | PR 하나 | — | 허용 |
 
 작업 브랜치 이름은 `종류/짧은-이름` (ASCII, 커밋 종류와 같은 낱말)이며, 이슈가 있으면 번호를 앞에 둡니다: `feat/12-product-list`, `fix/31-chat-unread-badge`, `docs/3-data-model`.
@@ -250,13 +250,22 @@ GitHub → Settings → Branches에서 `main`과 `dev`에 같은 규칙을 겁�
 
 | 환경 | 트리거 | 프론트 | 백엔드 | DB |
 | --- | --- | --- | --- | --- |
-| PR 미리보기 | 작업 브랜치 push | Vercel Preview (PR마다 URL) | — (Staging API를 바라봄) | Staging |
-| Staging | `dev` 병합 | Vercel Preview (dev 고정 URL) | Railway staging 서비스 | Railway Postgres (staging) |
+| 작업 브랜치 · `dev` | push · PR | 배포 없음 (미리보기 꺼 둠) | 배포 없음 | — |
 | Production | `main` 병합 | Vercel Production | Railway production 서비스 | Railway Postgres (production) |
+
+**운영 환경 하나만 둡니다.** 처음 계획한 Staging과 PR 미리보기는 두지 않습니다 — 무료 한도 안에서 운영하는 것이 먼저이고, 병합 전 확인은 CI의 E2E 17개가 맡습니다.
+
+| 비용을 줄이는 장치 | 설정 | 효과 |
+| --- | --- | --- |
+| `dev`에 모았다가 한 번에 병합 | 기능 PR의 대상은 `dev`. `main` 병합 전에 쌓인 변경과 DB 변경 건수를 알리고 진행한다 | Railway 재배포와 Vercel 운영 빌드가 병합 한 번에 한 번씩만 돈다 |
+| 미리보기 배포 끔 | Vercel 프로젝트 설정 `previewDeploymentsDisabled` (2026-11-12) | 작업 브랜치 push마다 돌던 빌드가 없어진다. PR에 미리보기 링크가 붙지 않는다 |
+| 프론트엔드와 무관한 변경은 빌드 생략 | Vercel "Ignored Build Step": `git diff --quiet "$VERCEL_GIT_PREVIOUS_SHA" HEAD -- . ../shared-schema ../package.json ../package-lock.json` (2026-11-12) | 지난 배포 뒤로 `frontend-next/` · `shared-schema/` · 루트 패키지 파일이 그대로면 운영 빌드를 건너뛴다. 비교할 커밋을 찾지 못하면 빌드한다 |
+
+이 두 Vercel 설정은 켠 뒤 `main` 병합이 아직 없어, 실제로 빌드가 생략되는 것은 확인하지 않았습니다. Railway는 문서만 바뀐 병합에도 다시 배포합니다 — 그래서 문서 변경도 `dev`에 모읍니다. GitHub Actions는 공개 저장소라 사용량 제한이 없습니다.
 
 - 환경 변수는 각 플랫폼의 환경 변수 화면에서 관리하고, 저장소에는 `.env.example`만 둡니다. 전체 목록과 검증 규칙은 [백엔드 11 구성과 시드](architecture/backend.md#11--구성과-시드).
 - DB 마이그레이션은 배포 파이프라인에서 `prisma migrate deploy`로 자동 적용합니다. 수동 적용은 하지 않습니다.
-- 샘플 데이터는 `SEED_SAMPLE=1`인 환경에만 넣습니다. Production은 데모 계정 둘과 데모 상품 6개가 기본이고, Staging이 생기기 전에는 양이 많을 때의 화면을 보려고 한시로 켭니다 ([시드 데이터](architecture/backend.md#4-시드-데이터)).
+- 샘플 데이터는 `SEED_SAMPLE=1`인 환경에만 넣습니다. Production은 데모 계정 둘과 데모 상품 6개가 기본이고, 양이 많을 때의 화면을 보려고 한시로 켜 두었습니다. 공개 전에 `SEED_SAMPLE=remove`로 지웁니다 ([시드 데이터](architecture/backend.md#4-시드-데이터)).
 
 ### 문서 단계에서의 적용
 
@@ -266,6 +275,8 @@ GitHub → Settings → Branches에서 `main`과 `dev`에 같은 규칙을 겁�
 | --- | --- |
 | `docs/짧은-이름` 브랜치에 역할별 커밋 → `main`에 fast-forward 병합 (리베이스 병합과 같은 결과) | 위 흐름 그대로 — `dev`를 만들고 PR 대상으로 |
 | 브랜치 보호 규칙 없음 | `main` · `dev`에 보호 규칙, CI 필수 검사 |
+
+구현 0~5단계와 2차 기능(PR #1~#26)은 `dev` 없이 작업 브랜치를 `main`에 바로 fast-forward로 올렸고, 그때마다 운영 배포가 돌았습니다. 2026-11-12부터 `dev`를 거칩니다.
 
 초기 문서 몇 개는 브랜치 없이 `main`에 직접 커밋했습니다 — 이 규칙을 정하기 전의 일이라 이력에 그대로 둡니다. 2026-11-10 명세 전체 검토(`docs/review-principles`)부터 브랜치를 거칩니다.
 
@@ -291,7 +302,7 @@ GitHub → Settings → Branches에서 `main`과 `dev`에 같은 규칙을 겁�
 
 ## 테스트 전략 · 수용 조건 하나에 테스트 하나
 
-**수용 조건 251개를 기준으로 구현 단계의 검증 범위와 도구를 정했습니다.** 각 조건은 해당 규칙을 담당하는 계층에서 검증하고, 프론트엔드는 화면 반응·접근성, E2E는 판매자·구매자의 거래 흐름을 확인합니다. 단위 · 통합 · 소켓 · 컴포넌트 테스트와 E2E 17개(접근성 자동 검사 · 연결 끊김 포함)는 CI에서 돕니다. 성능 측정과 브라우저별 사진 업로드 호환성 확인은 아직 없습니다.
+**수용 조건(1차 251개, 2차를 더해 279개)을 기준으로 구현 단계의 검증 범위와 도구를 정했습니다.** 각 조건은 해당 규칙을 담당하는 계층에서 검증하고, 프론트엔드는 화면 반응·접근성, E2E는 판매자·구매자의 거래 흐름을 확인합니다. 단위 · 통합 · 소켓 · 컴포넌트 테스트와 E2E 17개(접근성 자동 검사 · 연결 끊김 포함)는 CI에서 돕니다. 성능 측정과 브라우저별 사진 업로드 호환성 확인은 아직 없습니다.
 
 ### 1. 층과 도구
 

@@ -1660,7 +1660,7 @@ type SocketErrorCode = 'UNAUTHORIZED' | 'FORBIDDEN' | 'PRODUCT_DELETED' | 'INVAL
 | `GET /me/unread` | 로그인 | 200 `{ rooms }` | — |
 | `GET /healthz` · `/readyz` | 내부 | 200 | — |
 
-HTTP 25개 (운영 2개 제외) + 소켓 이벤트 9개 (클라이언트 → 서버 4 · 서버 → 클라이언트 5).
+HTTP 25개 (운영 2개 제외) + 소켓 이벤트 9개 (클라이언트 → 서버 4 · 서버 → 클라이언트 5). 2차에서 HTTP 4개(판매자 프로필 1 · 관심 3)를 더해 지금은 29개이며, 동네는 기존 두 엔드포인트의 입력만 늘렸습니다 — 아래 표의 2차 줄.
 
 ### 11. 계약을 지키는 방법
 

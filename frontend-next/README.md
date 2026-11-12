@@ -1,8 +1,8 @@
 # frontend-next · 프론트엔드
 
-**프론트엔드는 Next.js를 기반으로 상품 탐색, 거래 등록, 채팅, 거래 내역 화면을 구성할 예정입니다.** 렌더링·캐시·입력·오류 안내·접근성·연결 상태를 담당하며, 권한과 데이터 무결성의 최종 판단은 [백엔드](../backend-node/README.md)에서 처리합니다.
+**프론트엔드는 Next.js를 기반으로 상품 탐색, 거래 등록, 채팅, 거래 내역 화면을 구성합니다.** 렌더링·캐시·입력·오류 안내·접근성·연결 상태를 담당하며, 권한과 데이터 무결성의 최종 판단은 [백엔드](../backend-node/README.md)에서 처리합니다.
 
-> 현재: **구현 0단계(뼈대) 코드 작성.** 실행은 `npm run dev -w frontend-next` (`:3000`), 환경 변수는 `.env.example` 참고. 폴더 이름은 `{역할}-{대표 기술}` 규칙을 따릅니다 — 프론트엔드 · Next.js(React 기반) ([결정 0015](../docs/decisions.md#0015--최상위-폴더는-역할-대표-기술로-짓는다)).
+> 현재: **구현 0~4단계와 2차 기능(판매자 프로필 · 관심 · 동네)까지 작성 · 배포.** 실행은 `npm run dev -w frontend-next` (`:3000`), 환경 변수는 `.env.example` 참고. 폴더 이름은 `{역할}-{대표 기술}` 규칙을 따릅니다 — 프론트엔드 · Next.js(React 기반) ([결정 0015](../docs/decisions.md#0015--최상위-폴더는-역할-대표-기술로-짓는다)).
 
 ## 책임 범위
 
@@ -32,7 +32,7 @@
 
 ## 명세·스파이크 검토 결과
 
-명세 검토와 별도 실험에서 확인한 문제입니다. 아래 변경은 설계에 반영했으며, 서비스 구현 후 통합 테스트로 검증할 예정입니다. 증상·원인·확인 방법은 [트러블슈팅 기록](../docs/troubleshooting.md)에 있습니다.
+명세 검토와 별도 실험에서 확인한 문제입니다. 아래 변경은 설계와 구현에 반영했습니다. 증상·원인·확인 방법은 [트러블슈팅 기록](../docs/troubleshooting.md)에 있습니다.
 
 | 번호 | 문제 | 설계에 반영한 내용 |
 | --- | --- | --- |
@@ -49,6 +49,6 @@
 - 결정 기록: [0004 같은 오리진 프록시](../docs/decisions.md#0004--프론트가-백엔드를-프록시해-같은-오리진을-유지한다) · [0009 더 보기 버튼](../docs/decisions.md#0009--목록은-무한-스크롤-대신-더-보기-버튼--커서) · [0010 즉시 업로드](../docs/decisions.md#0010--사진은-선택-즉시-업로드하고-등록은-url만-보낸다) · [0011 비로그인 열람](../docs/decisions.md#0011--목록--상세는-비로그인으로-볼-수-있다) · [0014 640px 단일 열](../docs/decisions.md#0014--pc-화면도-640px-단일-열로-간다)
 - 기술 노트: [WebSocket](../docs/tech-notes.md#websocket과-socketio) · Next.js App Router · TanStack Query · Tailwind 토큰 · 접근성 ([목록](../docs/tech-notes.md))
 
-## 예정 스택
+## 스택
 
 Next.js 16 (App Router) · TypeScript (`strict`) · Tailwind CSS · TanStack Query · Socket.IO client · Zod (공유 패키지) · Testing Library · Playwright
