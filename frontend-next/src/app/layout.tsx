@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
+import { LeaveConfirm } from '@/components/LeaveConfirm';
 import { ToastProvider } from '@/components/Toast';
 import { AuthSync, Flash, SessionProvider } from '@/features/auth';
 import { getSessionUser } from '@/features/auth/session';
@@ -35,6 +36,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               {children}
             </div>
             <Flash />
+            <LeaveConfirm />
           </ChatSocketProvider>
           </ToastProvider>
           </QueryProvider>

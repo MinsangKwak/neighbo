@@ -3,11 +3,12 @@
 import { useRouter } from 'next/navigation';
 import { useSyncExternalStore } from 'react';
 import { Avatar } from '@/components/Avatar';
+import { leaveGuard } from '@/lib/form/leaveGuard';
 import type { MessageToast, MessageToasts } from './messageToasts';
 
 const EMPTY: readonly MessageToast[] = [];
 
-// 새 메시지 토스트 — 위쪽 가운데에 뜨고 포커스를 가져가지 않는다. 누르면 그 방으로 [AC-NT-05, 11]
+// 새 메시지 토스트 — 위쪽 가운데에 뜨고 포커스를 가져가지 않는다. 누르면 그 방으로, 작성 중인 폼이 있으면 먼저 묻는다 [AC-NT-05, 11]
 export function MessageToastList({ store }: { store: MessageToasts }) {
   const router = useRouter();
   const toasts = useSyncExternalStore(store.subscribe, store.getSnapshot, () => EMPTY);
@@ -21,7 +22,7 @@ export function MessageToastList({ store }: { store: MessageToasts }) {
           type="button"
           onClick={() => {
             store.dismiss(toast.roomId);
-            router.push(`/chats/${toast.roomId}`);
+            leaveGuard.request(() => router.push(`/chats/${toast.roomId}`));
           }}
           className="pointer-events-auto flex items-center gap-3 rounded-lg bg-text px-4 py-3 text-left text-bg shadow-lg"
         >

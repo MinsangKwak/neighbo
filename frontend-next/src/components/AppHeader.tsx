@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
+import { leaveGuard } from '@/lib/form/leaveGuard';
 
 interface AppHeaderProps {
   // 주면 이 화면의 제목(h1)이 된다
@@ -20,8 +21,11 @@ export function AppHeader({ title, action, fallbackHref = '/' }: AppHeaderProps)
         type="button"
         aria-label="뒤로"
         onClick={() => {
-          if (window.history.length > 1) router.back();
-          else router.replace(fallbackHref);
+          // 작성 중인 폼이 있으면 먼저 묻는다 [AC-PC-04, AC-MP-10]
+          leaveGuard.request(() => {
+            if (window.history.length > 1) router.back();
+            else router.replace(fallbackHref);
+          });
         }}
         className="inline-flex size-touch items-center justify-center text-xl"
       >
