@@ -2,7 +2,7 @@
 
 [서비스·코드 지도](../../README.md)
 
-**기획·개발·디자인 문서의 입구입니다.** 실행 코드는 저장소 루트의 세 패키지, 테스트와 도구는 각각 [project/tests](../tests/)·[project/tools](../tools/)에서 관리합니다.
+**기획·개발·디자인 문서의 입구입니다.** 실행 앱은 저장소 루트의 frontend-react·backend-node, 공유 계약은 project/shared-schema, 테스트와 도구는 각각 [project/tests](../tests/)·[project/tools](../tools/)에서 관리합니다.
 
 | 분류 | 먼저 읽을 문서 | 담는 내용 |
 | --- | --- | --- |

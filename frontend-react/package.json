@@ -9,11 +9,11 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "vitest run --config ../project/tests/frontend-react/vitest.config.ts",
-    "e2e": "playwright test --config ../project/tests/frontend-react/playwright.config.ts"
+    "test": "npm --prefix ../project run test:web",
+    "e2e": "npm --prefix ../project run test:e2e --"
   },
   "dependencies": {
-    "@neighbo/shared-schema": "*",
+    "@neighbo/shared-schema": "file:../project/shared-schema",
     "@tanstack/react-query": "^5.107.1",
     "next": "16.4.6",
     "react": "^19.3.1",

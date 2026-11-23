@@ -39,7 +39,7 @@
 | [S-05](#s-05) | 스키마가 검증을 통과하지 못함 | Prisma 7부터 연결 주소를 스키마에서 받지 않음 | [B02](backend.md#3-prisma-스키마) |
 | [S-06](#s-06) | [더 보기]에서 마지막 항목이 한 번 더 나옴 | 커서의 시각을 JS `Date`로 옮기면 마이크로초가 잘린다 | [B02](backend.md#02--데이터-모델) |
 | [S-07](#s-07) | 중복 요청에 기존 결과 대신 `500` | 유니크 위반 뒤 같은 트랜잭션은 중단 상태(`25P02`) | [B03](backend.md#03--트랜잭션-경계) |
-| [I-01](#i-01) | 설치 직후 lint가 TypeScript 버전 경고와 함께 불안정 | `latest` 태그의 TypeScript 7.0이 typescript-eslint 지원 범위(`<6.1.0`) 밖 | 루트 · 각 앱 `package.json` |
+| [I-01](#i-01) | 설치 직후 lint가 TypeScript 버전 경고와 함께 불안정 | `latest` 태그의 TypeScript 7.0이 typescript-eslint 지원 범위(`<6.1.0`) 밖 | project·각 앱의 `package.json` |
 | [I-02](#i-02) | `/api/products/%2E%2E/admin`이 백엔드의 `/admin`으로 감 | URL 표준은 `%2E%2E`도 `..`로 보고 경로를 접는다 | [흐름 설계](architecture.md) |
 | [I-03](#i-03) | 엔진 바이너리를 받지 못하는 환경에서 `prisma migrate`가 멈춤 | 마이그레이션 명령은 스키마 엔진 바이너리를 내려받아 실행한다 | [B11](backend.md#11--구성과-시드) |
 | [I-04](#i-04) | 중복 가입이 `409`가 아니라 `500`이 될 뻔함 | 드라이버 어댑터를 쓰면 유니크 위반 오류에 `meta.target`이 없다 | [B03](backend.md#03--트랜잭션-경계) |

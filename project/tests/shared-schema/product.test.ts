@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { toFieldErrors } from '../../../shared-schema/src/auth';
-import { normalizeText } from '../../../shared-schema/src/normalize';
-import { changeStatusSchema, createProductSchema, listProductsQuerySchema, updateProductSchema } from '../../../shared-schema/src/product';
+import { toFieldErrors } from '../../shared-schema/src/auth';
+import { normalizeText } from '../../shared-schema/src/normalize';
+import { changeStatusSchema, createProductSchema, listProductsQuerySchema, updateProductSchema } from '../../shared-schema/src/product';
 
 const KEY = '0b1f4c1e-7d43-4a51-9c7e-2f6f1a2b3c4d';
 const valid = { title: '원목 의자', price: 15000, description: '상태 좋아요', imageIds: [], idempotencyKey: KEY };

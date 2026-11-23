@@ -1,5 +1,12 @@
 {
-  "extends": "../tsconfig.base.json",
-  "compilerOptions": { "types": ["node"] },
-  "include": ["src", "prisma.config.ts"]
+  "extends": "../project/tsconfig.base.json",
+  "compilerOptions": {
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "src",
+    "prisma.config.ts"
+  ]
 }

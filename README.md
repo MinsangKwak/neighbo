@@ -14,13 +14,12 @@ React 19·Next.js 16 App Router·TypeScript·Tailwind CSS·TanStack Query로 화
 | --- | --- | --- |
 | [frontend-react/](frontend-react/) | 화면·반응형·접근성, 렌더링·폼·캐시·연결 상태 | [공통 UI](frontend-react/src/components/) · [프론트엔드](project/docs/dev/frontend.md) · [디자인 가이드](project/docs/design/guide.md) |
 | [backend-node/](backend-node/) | 인증·권한, 거래·DB 정합성, 메시지 저장·복구, 사진·배치 | [기능 모듈](backend-node/src/modules/) · [Prisma](backend-node/prisma/schema.prisma) · [백엔드](project/docs/dev/backend.md) |
-| [shared-schema/](shared-schema/) | 두 앱의 Zod 계약·타입·정규화 | [계약 소스](shared-schema/src/) · [공유 경계](project/docs/dev/architecture.md#공유-입력-계약) |
-| [project/docs/](project/docs/) | 기획·개발·디자인 문서 | [기획](project/docs/planning/product.md) · [실행 기준](project/docs/dev/runbook.md) · [문서 목차](project/docs/README.md) |
-| [project/tests/](project/tests/) | 패키지별 단위·통합·E2E·접근성 검사와 설정 | [테스트 전략](project/docs/dev/runbook.md#테스트-전략--수용-조건-하나에-테스트-하나) |
-| [project/tools/](project/tools/) | 문서·AC 검사, 테스트 DB SQL, 독립 기술 실험 | [실험·관찰](project/docs/dev/experiments.md) |
+| [project/](project/) | 공유 계약, 기획·개발·디자인 문서, 테스트·도구·설치·검사 설정 | [공유 계약](project/shared-schema/src/) · [문서 목차](project/docs/README.md) · [테스트](project/tests/) · [실행 기준](project/docs/dev/runbook.md) |
 | [.github/](.github/) | CI·웹 배포·검사와 빌드 자동화 | [CI](.github/workflows/ci.yml) · [배포 기준](project/docs/dev/runbook.md#현재-배포-설정) |
+| [README.md](README.md) | 서비스 소개·역할·코드 지도·빠른 실행 | [기능과 검증 범위](project/docs/planning/product.md) |
+| [LICENSE](LICENSE) | 코드·문서의 MIT 이용 조건 | [라이선스 원문](LICENSE) |
 
-실행 코드는 루트의 세 패키지에, 문서·테스트·도구는 `project/{docs,tests,tools}`에 둡니다. 루트 README 외 Markdown은 `project/docs/`에서 관리합니다.
+Git 루트는 위 여섯 항목으로 구성합니다. 실행 앱은 `frontend-react/`·`backend-node/`, 공유 계약은 `project/shared-schema/`에 두며 루트 README 외 Markdown은 `project/docs/`에서 관리합니다. 앱별 잠금 파일로 설치하고 통합 실행·검사는 project 명령으로 연결합니다.
 
 ## 구현한 흐름
 
@@ -48,32 +47,32 @@ React 19·Next.js 16 App Router·TypeScript·Tailwind CSS·TanStack Query로 화
 Node.js 22 이상·npm·PostgreSQL 16을 사용합니다. 저장소 루트에서 준비합니다.
 
 ```bash
-npm ci
-docker compose up -d db
+python3 project/tools/setup_git.py
+npm --prefix project run setup
 cp backend-node/.env.example backend-node/.env
 cp frontend-react/.env.example frontend-react/.env.local
+docker compose --project-directory . -f project/docker-compose.yml up -d db
 ```
 
 두 앱에 같은 `PROXY_SECRET`·`DEMO_PASSWORD`, 백엔드에 별도 `JWT_SECRET`과 DB 주소를 설정합니다. 실제 비밀값은 커밋하지 않습니다.
 
 ```bash
-npm run db:generate -w backend-node
-npm run db:deploy -w backend-node
-npm run db:seed -w backend-node
+npm --prefix project run db:generate
+npm --prefix project run db:deploy
+npm --prefix project run db:seed
 ```
 
-각 터미널에서 `npm run dev:api`와 `npm run dev:web`을 실행합니다. 웹은 `http://localhost:3000`, API는 `http://localhost:4000`입니다. [환경·데모·테스트 DB](project/docs/dev/runbook.md#로컬-실행과-패키지별-검사)
+각 터미널에서 `npm --prefix project run dev:api`와 `npm --prefix project run dev:web`을 실행합니다. 웹은 `http://localhost:3000`, API는 `http://localhost:4000`입니다. [설치·환경·데모·테스트 DB](project/docs/dev/runbook.md#로컬-실행과-패키지별-검사)
 
 ## 검증과 현재 범위
 
 ```bash
-npm run lint
-npm run typecheck
-npm test
-npm run build
-npm run test:docs -w backend-node
-python3 project/tools/check-docs.py
-python3 project/tools/check-ac.py
+npm --prefix project run lint
+npm --prefix project run typecheck
+npm --prefix project run test
+npm --prefix project run build
+npm --prefix project run test:docs
+npm --prefix project run check:docs
 ```
 
 로컬 확인 기록은 **공유 스키마 53개·프론트엔드 229개·DB 없는 API 문서와 한도 회귀 20개**입니다. 백엔드 전체 통합 검사는 별도 `TEST_DATABASE_URL`, E2E 19개 실행은 별도 DB·Chromium이 필요하며 결과는 CI에서 확인합니다. AC 279개 중 278개에 테스트 ID가 있고, ID 존재가 조건 전체의 검증을 보장하지는 않습니다. [검증 현황·남은 확인](project/docs/planning/product.md#9-설계검증-현황) · [CI](.github/workflows/ci.yml)

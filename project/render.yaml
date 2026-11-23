@@ -6,7 +6,7 @@ services:
     runtime: docker
     plan: free
     region: singapore
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./backend-node/Dockerfile
     dockerContext: .
     # DB를 보지 않는 확인 — DB가 멈춰 있어도 재시작을 되풀이하지 않는다
     healthCheckPath: /healthz

@@ -242,7 +242,7 @@ erDiagram
 
 **모델·필드·관계의 기준은 [Prisma 스키마](../../../backend-node/prisma/schema.prisma)이며, 실제 DB 제약은 [마이그레이션 SQL](../../../backend-node/prisma/migrations/)에서 확인합니다.** 문서에 같은 필드 정의를 복사하지 않고 선택 이유와 검증 경계를 남깁니다.
 
-현재 패키지는 Prisma 7.10.1과 `@prisma/adapter-pg`를 사용합니다. 연결 주소는 [prisma.config.ts](../../../backend-node/prisma.config.ts), 드라이버 어댑터 연결과 soft delete 처리는 [DB 코드](../../../backend-node/src/db/)에 있습니다. 생성은 저장소 루트의 `npm run db:generate -w backend-node`, DB의 CHECK·유니크·경합 검사는 별도 테스트 DB를 사용하는 `npm run test:api`로 확인합니다. 명령의 존재와 실행 통과 결과는 구분합니다.
+현재 패키지는 Prisma 7.10.1과 `@prisma/adapter-pg`를 사용합니다. 연결 주소는 [prisma.config.ts](../../../backend-node/prisma.config.ts), 드라이버 어댑터 연결과 soft delete 처리는 [DB 코드](../../../backend-node/src/db/)에 있습니다. 생성은 저장소 루트의 `npm --prefix project run db:generate`, DB의 CHECK·유니크·경합 검사는 별도 테스트 DB를 사용하는 `npm --prefix project run test:api`로 확인합니다. 명령의 존재와 실행 통과 결과는 구분합니다.
 
 #### DB가 마지막으로 지키는 것 — CHECK 제약
 
@@ -546,7 +546,7 @@ API 명세와 공유 스키마에서 요청 · 응답 모양을 정의하며, �
 
 ## 06 · 에러 코드
 
-현재 HTTP 오류는 [ERROR_CATALOG](../../../shared-schema/src/error.ts) 20개, 소켓 오류는 [SOCKET_ERROR_MESSAGE](../../../shared-schema/src/chat.ts) 6개를 기준으로 확인합니다.
+현재 HTTP 오류는 [ERROR_CATALOG](../../shared-schema/src/error.ts) 20개, 소켓 오류는 [SOCKET_ERROR_MESSAGE](../../shared-schema/src/chat.ts) 6개를 기준으로 확인합니다.
 
 **에러 코드는 클라이언트의 처리 기준으로 고정하고, 안내 문구는 별도로 관리합니다.** 클라이언트가 다른 동작을 해야 할 때 코드를 구분합니다. 같은 HTTP 상태라도 재시도·로그인·입력 수정 등 후속 처리가 다르면 별도 코드를 사용합니다.
 
@@ -616,7 +616,7 @@ API 명세와 공유 스키마에서 요청 · 응답 모양을 정의하며, �
 - 해요체, "~할 수 없어요" · "~해 주세요". 사과 표현 없음 (사용자 잘못이 아닐 때만 `INTERNAL`에 "일시적인").
 - 무엇이 잘못됐는지 + 할 수 있는 것. "오류가 발생했습니다"만 쓰지 않는다.
 - 내부 정보 금지 — 테이블 · 제약 이름 · 스택 · SQL.
-- 공통 카탈로그(`shared-schema/src/error.ts`)에 문구가 있고, 서비스는 코드만 던진다.
+- 공통 카탈로그(`project/shared-schema/src/error.ts`)에 문구가 있고, 서비스는 코드만 던진다.
 
 ## 07 · 보호 장치와 배치
 
@@ -879,7 +879,7 @@ interface Realtime {
 
 ## 10 · API 명세
 
-**실행 API 계약의 기준은 [공유 Zod](../../../shared-schema/src/)와 [OpenAPI 생성 코드](../../../backend-node/src/modules/api-docs/openapi.ts)입니다.** [읽기 전용 Node Swagger](https://neighbo-liart.vercel.app/node-swagger)는 HTTP 31개 동작을 설명합니다. 문서에는 필드를 다시 복사하지 않고, 요청 경계·권한·예외와 설계 판단을 정리합니다.
+**실행 API 계약의 기준은 [공유 Zod](../../shared-schema/src/)와 [OpenAPI 생성 코드](../../../backend-node/src/modules/api-docs/openapi.ts)입니다.** [읽기 전용 Node Swagger](https://neighbo-liart.vercel.app/node-swagger)는 HTTP 31개 동작을 설명합니다. 문서에는 필드를 다시 복사하지 않고, 요청 경계·권한·예외와 설계 판단을 정리합니다.
 
 ### 1. 공통 규칙
 
@@ -902,11 +902,11 @@ interface Realtime {
 
 | 계약 | 기준 소스 |
 | --- | --- |
-| 계정·공개/본인 사용자 | [auth.ts](../../../shared-schema/src/auth.ts) · [user.ts](../../../shared-schema/src/user.ts) |
-| 상품·사진·관심·목록·상태 전이 | [product.ts](../../../shared-schema/src/product.ts) |
-| 마이페이지·프로필·비밀번호·구매 내역 | [me.ts](../../../shared-schema/src/me.ts) |
-| 채팅방·메시지·읽음·소켓 이벤트 | [chat.ts](../../../shared-schema/src/chat.ts) |
-| 공통 오류·정규화 | [error.ts](../../../shared-schema/src/error.ts) · [normalize.ts](../../../shared-schema/src/normalize.ts) |
+| 계정·공개/본인 사용자 | [auth.ts](../../shared-schema/src/auth.ts) · [user.ts](../../shared-schema/src/user.ts) |
+| 상품·사진·관심·목록·상태 전이 | [product.ts](../../shared-schema/src/product.ts) |
+| 마이페이지·프로필·비밀번호·구매 내역 | [me.ts](../../shared-schema/src/me.ts) |
+| 채팅방·메시지·읽음·소켓 이벤트 | [chat.ts](../../shared-schema/src/chat.ts) |
+| 공통 오류·정규화 | [error.ts](../../shared-schema/src/error.ts) · [normalize.ts](../../shared-schema/src/normalize.ts) |
 
 화면 단위 응답을 나눈 이유는 목록에 설명 전문이나 개인 필드가 실리지 않게 **응답 크기와 노출 범위를 제한**하기 위해서입니다. 공개 사용자와 본인 사용자를 분리하고 어떤 응답에도 비밀번호 해시를 보내지 않습니다. 구매 내역은 거래 시점 `soldPrice`와 삭제 여부를 보존하며, 메시지 시각은 표시용이고 순서·복구·읽음은 `seq`를 사용합니다.
 
@@ -920,7 +920,7 @@ interface Realtime {
 
 ### 4. 상품
 
-[상품 라우트](../../../backend-node/src/modules/products/route.ts)·[서비스](../../../backend-node/src/modules/products/service.ts)가 목록·상세·쓰기·관심·구매자 후보를 처리합니다. 상태 전이는 [공유 STATUS_TRANSITIONS](../../../shared-schema/src/product.ts), 쓰기 경계와 재시도는 [03](#03--트랜잭션-경계)·[05](#05--멱등성)를 함께 봅니다.
+[상품 라우트](../../../backend-node/src/modules/products/route.ts)·[서비스](../../../backend-node/src/modules/products/service.ts)가 목록·상세·쓰기·관심·구매자 후보를 처리합니다. 상태 전이는 [공유 STATUS_TRANSITIONS](../../shared-schema/src/product.ts), 쓰기 경계와 재시도는 [03](#03--트랜잭션-경계)·[05](#05--멱등성)를 함께 봅니다.
 
 | 예외·판단 | 처리 이유 |
 | --- | --- |
@@ -960,7 +960,7 @@ interface Realtime {
 
 ### 9. 소켓 이벤트
 
-이벤트 타입·검증은 [공유 chat.ts](../../../shared-schema/src/chat.ts), 처리·전달 대상은 [09 소켓 서버](#09--소켓-서버)와 [socketHub](../../../backend-node/src/realtime/socketHub.ts)가 기준입니다. Socket.IO 이벤트는 HTTP 31개에 포함하지 않습니다.
+이벤트 타입·검증은 [공유 chat.ts](../../shared-schema/src/chat.ts), 처리·전달 대상은 [09 소켓 서버](#09--소켓-서버)와 [socketHub](../../../backend-node/src/realtime/socketHub.ts)가 기준입니다. Socket.IO 이벤트는 HTTP 31개에 포함하지 않습니다.
 
 `room:join`은 받은 `seq` 이후를 최대 100개 반환하고 `hasMore`로 후속 복구를 안내합니다. 메시지는 5초 ack 타임아웃과 같은 `tempId` 재시도로 중복을 막습니다. `notification:unread.latest.count`는 같은 방의 5초 메시지 묶음이며 모든 세션이 같은 기준으로 토스트를 합치도록 합니다.
 
@@ -979,7 +979,7 @@ interface Realtime {
 
 ### 11. 계약을 지키는 방법
 
-공유 Zod를 실행 라우트와 OpenAPI가 함께 사용하고, 통합 테스트는 응답도 같은 스키마로 parse합니다. DB 없는 `npm run test:docs -w backend-node`는 OpenAPI 3.1 구조·실제 경로 일치·공개 자원·읽기 전용 설정을 검사합니다. DB 통합과 브라우저 E2E는 별도 실행 환경이 필요합니다.
+공유 Zod를 실행 라우트와 OpenAPI가 함께 사용하고, 통합 테스트는 응답도 같은 스키마로 parse합니다. DB 없는 `npm --prefix project run test:docs`는 OpenAPI 3.1 구조·실제 경로 일치·공개 자원·읽기 전용 설정을 검사합니다. DB 통합과 브라우저 E2E는 별도 실행 환경이 필요합니다.
 
 공개 Swagger는 GET·HEAD의 고정 문서 자원만 프록시합니다. Try it out·외부 validator·인증 지속 저장을 끄고 쿠키·Authorization·프록시 비밀을 전달하지 않습니다. 이 설정은 실제 API의 인증·권한·Origin 검사를 대신하지 않습니다. [보안 경계와 한계](security.md)
 
@@ -1029,7 +1029,7 @@ interface Realtime {
 | --- | --- |
 | 스키마 변경은 `prisma migrate dev`가 만든 SQL 파일을 커밋 | 운영에 적용될 SQL을 리뷰에서 본다 |
 | CHECK 제약 · 부분 인덱스처럼 Prisma가 못 쓰는 것은 같은 마이그레이션 파일에 SQL로 추가 | [02 데이터 모델](#02--데이터-모델)의 DB 제약이 스키마와 한 벌로 움직이게 |
-| 배포는 `prisma migrate deploy` → 성공하면 서버 시작, 실패하면 배포 중단 (루트 `Dockerfile`의 시작 명령. CI의 `image` 작업이 빌드 · 마이그레이션 · `/readyz`를 확인) | 스키마와 코드가 어긋난 채 뜨지 않게 |
+| 배포는 `prisma migrate deploy` → 성공하면 서버 시작, 실패하면 배포 중단 (`backend-node/Dockerfile`의 시작 명령. CI의 `image` 작업이 빌드 · 마이그레이션 · `/readyz`를 확인) | 스키마와 코드가 어긋난 채 뜨지 않게 |
 | 한 배포 안에서는 **이전 코드도 견디는 변경만** (열 추가 → 코드 배포 → 옛 열 제거는 다음 배포) | 마이그레이션과 새 코드 시작 사이에 옛 코드가 잠깐 돈다 |
 | 적용된 마이그레이션 파일은 고치지 않는다 | 환경마다 이력이 달라진다 |
 

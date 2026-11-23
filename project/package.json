@@ -4,20 +4,31 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "lint": "eslint tests",
-    "typecheck": "tsc -p tests/shared-schema/tsconfig.json && tsc -p tests/backend-node/tsconfig.json && tsc -p tests/frontend-react/tsconfig.json",
+    "build": "npm --prefix ../frontend-react run build",
+    "test:web": "vitest run --config tests/frontend-react/vitest.config.ts",
+    "test:docs": "vitest run --config tests/backend-node/vitest.docs.config.ts",
+    "test:shared": "vitest run --config tests/shared-schema/vitest.config.ts",
+    "typecheck:tests": "tsc -p tests/shared-schema/tsconfig.json && tsc -p tests/backend-node/tsconfig.json && tsc -p tests/frontend-react/tsconfig.json",
+    "test:e2e": "playwright test --config tests/frontend-react/playwright.config.ts",
+    "setup": "node tools/install.mjs",
+    "setup:git": "python3 tools/setup_git.py",
+    "dev:web": "npm --prefix ../frontend-react run dev",
+    "dev:api": "npm --prefix ../backend-node run dev",
+    "lint": "npm run lint --workspace shared-schema --if-present && npm --prefix ../backend-node run lint && npm --prefix ../frontend-react run lint && eslint tests",
+    "typecheck": "npm run typecheck --workspace shared-schema && npm --prefix ../backend-node run typecheck && npm --prefix ../frontend-react run typecheck && npm run typecheck:tests",
     "test": "npm run test:shared && npm run test:api && npm run test:web",
-    "test:shared": "npm run test -w @neighbo/shared-schema",
-    "test:api": "npm run test -w @neighbo/backend-node",
-    "test:web": "npm run test -w @neighbo/frontend-react",
-    "test:docs": "npm run test:docs -w @neighbo/backend-node",
-    "test:e2e": "npm run e2e -w @neighbo/frontend-react"
+    "test:api": "npm --prefix ../backend-node run db:generate && vitest run --config tests/backend-node/vitest.config.ts",
+    "db:generate": "npm --prefix ../backend-node run db:generate",
+    "db:deploy": "npm --prefix ../backend-node run db:deploy",
+    "db:migrate": "npm --prefix ../backend-node run db:migrate",
+    "db:seed": "npm --prefix ../backend-node run db:seed",
+    "check:docs": "python3 tools/check-docs.py && python3 tools/check-ac.py"
   },
   "devDependencies": {
     "@apidevtools/swagger-parser": "13.1.0",
     "@axe-core/playwright": "^4.14.0",
     "@eslint/js": "^10.0.0",
-    "@playwright/test": "^1.65.0",
+    "@playwright/test": "1.65.0",
     "@tanstack/react-query": "^5.107.1",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^22.0.0",
@@ -37,6 +48,24 @@
     "typescript": "~6.0.0",
     "typescript-eslint": "^8.72.2",
     "vitest": "^5.1.0",
-    "zod": "^4.6.7"
-  }
+    "zod": "^4.6.7",
+    "next": "16.4.6",
+    "@types/express": "^5.0.0"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scarfSettings": {
+    "enabled": false
+  },
+  "overrides": {
+    "@prisma/config": {
+      "effect": "3.22.1"
+    },
+    "playwright-core": "1.65.0"
+  },
+  "workspaces": [
+    "shared-schema"
+  ]
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { ERROR_CATALOG, errorResponseSchema } from '../../../shared-schema/src/error';
-import { productCardSchema } from '../../../shared-schema/src/product';
+import { ERROR_CATALOG, errorResponseSchema } from '../../shared-schema/src/error';
+import { productCardSchema } from '../../shared-schema/src/product';
 
 describe('에러 응답 스키마', () => {
   it('[AC-CM-10] code · message · fields 세 필드를 가진다', () => {

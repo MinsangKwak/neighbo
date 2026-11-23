@@ -1,0 +1,15 @@
+.git
+project/**
+!project/package.json
+!project/package-lock.json
+!project/tsconfig.base.json
+!project/shared-schema
+!project/shared-schema/**
+frontend-react
+**/node_modules
+**/.next
+**/.env
+**/.env.*
+!**/.env.example
+backend-node/src/generated
+backend-node/.data

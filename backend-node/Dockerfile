@@ -1,5 +1,5 @@
 # 백엔드(backend-node) 실행 이미지 — Railway가 이 파일로 빌드한다
-# 저장소 루트에서 빌드해야 workspaces의 shared-schema가 함께 들어간다
+# 저장소 루트를 빌드 컨텍스트로 사용한다
 FROM node:22-slim
 
 # Prisma 스키마 엔진(마이그레이션)이 OpenSSL을 쓴다
@@ -10,16 +10,16 @@ WORKDIR /app
 
 # 의존성 층을 먼저 만들어 소스만 바뀐 빌드에서 재사용한다
 # frontend-react/package.json은 lockfile 검증에만 쓰이고, 프론트엔드 의존성은 설치하지 않는다
-COPY package.json package-lock.json tsconfig.base.json ./
-COPY shared-schema/package.json shared-schema/
-COPY backend-node/package.json backend-node/
-COPY frontend-react/package.json frontend-react/
-COPY project/package.json project/
-RUN npm ci --workspace backend-node --workspace shared-schema
+COPY project/package.json project/package-lock.json project/
+COPY project/shared-schema/package.json project/shared-schema/
+RUN npm --prefix project ci --workspace shared-schema --include-workspace-root=false
+COPY backend-node/package.json backend-node/package-lock.json backend-node/
+RUN npm --prefix backend-node ci
 
-COPY shared-schema shared-schema
+COPY project/shared-schema project/shared-schema
+COPY project/tsconfig.base.json project/tsconfig.base.json
 COPY backend-node backend-node
-RUN npm run db:generate --workspace backend-node \
+RUN npm --prefix backend-node run db:generate \
   && chown -R node:node /app/backend-node
 
 ENV NODE_ENV=production

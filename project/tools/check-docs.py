@@ -3,6 +3,7 @@
 # 사용법: python3 project/tools/check-docs.py  (저장소 루트에서, 문제가 있으면 종료 코드 1)
 import os
 import re
+import subprocess
 import sys
 import unicodedata
 
@@ -58,6 +59,12 @@ def main():
     files = list(markdown_files())
     anchors = {path: collect_anchors(path) for path in files}
     problems = []
+    inventory = subprocess.run(['git', 'ls-files', '--cached', '--others', '--exclude-standard', '-z'], cwd=ROOT, capture_output=True, text=True)
+    if inventory.returncode == 0:
+        allowed = {'.github', 'frontend-react', 'backend-node', 'project', 'README.md', 'LICENSE'}
+        roots = {name.split('/', 1)[0] for name in inventory.stdout.split('\0') if name and os.path.exists(os.path.join(ROOT, name))}
+        for name in sorted(roots - allowed):
+            problems.append(f'{name} 루트 설정·자료는 실행 패키지 또는 project/ 아래에 둔다')
     for path in files:
         rel = os.path.relpath(path, ROOT)
         if rel != 'README.md' and not rel.startswith(f'project{os.sep}docs{os.sep}'):

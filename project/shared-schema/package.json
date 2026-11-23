@@ -8,7 +8,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --config ../project/tests/shared-schema/vitest.config.ts"
+    "test": "npm --prefix .. run test:shared"
   },
   "dependencies": {
     "zod": "^4.6.7"

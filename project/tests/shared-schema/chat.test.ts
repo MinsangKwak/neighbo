@@ -5,8 +5,8 @@ import {
   messageSendSchema,
   readSchema,
   roomJoinSchema,
-} from '../../../shared-schema/src/chat';
-import { utf8ByteLength } from '../../../shared-schema/src/normalize';
+} from '../../shared-schema/src/chat';
+import { utf8ByteLength } from '../../shared-schema/src/normalize';
 
 const send = (content: unknown) => messageSendSchema.safeParse({ roomId: 'room1', tempId: 't1', content });
 
