@@ -1,67 +1,45 @@
 import 'server-only';
 import type { ServerConfig } from '@/lib/config';
-import { APP_PERMISSIONS_POLICY } from '@/lib/securityHeaders';
+import {
+  OPENAPI_SECURITY_HEADERS,
+  SWAGGER_SECURITY_HEADERS,
+  applySecurityHeaders,
+  type SecurityHeader,
+} from '@/lib/securityHeaders';
 
 const TIMEOUT_MS = 10_000;
-
-export const SWAGGER_CONTENT_SECURITY_POLICY = [
-  "default-src 'none'",
-  "script-src 'self'",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data:",
-  "font-src 'self'",
-  "connect-src 'self'",
-  "object-src 'none'",
-  "base-uri 'none'",
-  "form-action 'none'",
-  "frame-ancestors 'none'",
-].join('; ');
-
-const NON_HTML_CONTENT_SECURITY_POLICY = [
-  "default-src 'none'",
-  "object-src 'none'",
-  "base-uri 'none'",
-  "form-action 'none'",
-  "frame-ancestors 'none'",
-].join('; ');
 
 interface PublicDocument {
   upstreamPath: string;
   contentType: string;
-  html?: boolean;
+  securityHeaders: readonly SecurityHeader[];
   openApi?: boolean;
 }
 
 const SWAGGER_DOCUMENTS = new Map<string, PublicDocument>([
-  ['', { upstreamPath: '/node-swagger', contentType: 'text/html; charset=utf-8', html: true }],
-  ['assets/swagger-ui.css', { upstreamPath: '/node-swagger/assets/swagger-ui.css', contentType: 'text/css; charset=utf-8' }],
-  ['assets/swagger-ui-bundle.js', { upstreamPath: '/node-swagger/assets/swagger-ui-bundle.js', contentType: 'text/javascript; charset=utf-8' }],
-  ['assets/init.js', { upstreamPath: '/node-swagger/assets/init.js', contentType: 'text/javascript; charset=utf-8' }],
+  ['', { upstreamPath: '/node-swagger', contentType: 'text/html; charset=utf-8', securityHeaders: SWAGGER_SECURITY_HEADERS }],
+  ['assets/swagger-ui.css', { upstreamPath: '/node-swagger/assets/swagger-ui.css', contentType: 'text/css; charset=utf-8', securityHeaders: SWAGGER_SECURITY_HEADERS }],
+  ['assets/swagger-ui-bundle.js', { upstreamPath: '/node-swagger/assets/swagger-ui-bundle.js', contentType: 'text/javascript; charset=utf-8', securityHeaders: SWAGGER_SECURITY_HEADERS }],
+  ['assets/init.js', { upstreamPath: '/node-swagger/assets/init.js', contentType: 'text/javascript; charset=utf-8', securityHeaders: SWAGGER_SECURITY_HEADERS }],
 ]);
 
 const OPENAPI_DOCUMENT: PublicDocument = {
   upstreamPath: '/node-openapi.json',
   contentType: 'application/json; charset=utf-8',
+  securityHeaders: OPENAPI_SECURITY_HEADERS,
   openApi: true,
 };
 
 function documentHeaders(document: PublicDocument): Headers {
-  return new Headers({
-    'Cache-Control': 'no-store',
-    'Content-Security-Policy': document.html
-      ? SWAGGER_CONTENT_SECURITY_POLICY
-      : NON_HTML_CONTENT_SECURITY_POLICY,
-    'Content-Type': document.contentType,
-    'Cross-Origin-Resource-Policy': 'same-origin',
-    'Permissions-Policy': APP_PERMISSIONS_POLICY,
-    'Referrer-Policy': 'no-referrer',
-    'X-Content-Type-Options': 'nosniff',
-    'X-Frame-Options': 'DENY',
-  });
+  return applySecurityHeaders(new Headers({ 'Content-Type': document.contentType }), document.securityHeaders);
 }
 
 function localResponse(status: number, message: string, extraHeaders?: HeadersInit): Response {
-  const headers = documentHeaders({ upstreamPath: '', contentType: 'text/plain; charset=utf-8' });
+  const headers = documentHeaders({
+    upstreamPath: '',
+    contentType: 'text/plain; charset=utf-8',
+    securityHeaders: OPENAPI_SECURITY_HEADERS,
+  });
   if (extraHeaders !== undefined) {
     for (const [name, value] of new Headers(extraHeaders)) headers.set(name, value);
   }

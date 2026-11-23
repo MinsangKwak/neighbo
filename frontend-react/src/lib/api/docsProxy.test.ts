@@ -2,7 +2,8 @@
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { proxyOpenApiDocument, proxySwaggerDocument, SWAGGER_CONTENT_SECURITY_POLICY } from './docsProxy';
+import { SWAGGER_CONTENT_SECURITY_POLICY } from '@/lib/securityHeaders';
+import { proxyOpenApiDocument, proxySwaggerDocument } from './docsProxy';
 
 interface SeenRequest {
   method: string;
