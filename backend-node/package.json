@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "typecheck": "prisma generate && tsc --noEmit",
     "test": "prisma generate && vitest run",
+    "test:docs": "vitest run --config vitest.docs.config.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
@@ -27,10 +28,12 @@
     "pg": "^8.13.0",
     "sharp": "^0.35.5",
     "socket.io": "^4.8.4",
+    "swagger-ui-dist": "5.35.1",
     "tsx": "^4.23.15",
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@apidevtools/swagger-parser": "13.1.0",
     "@eslint/js": "^10.0.0",
     "@types/bcrypt": "^6.0.0",
     "@types/busboy": "^1.5.5",

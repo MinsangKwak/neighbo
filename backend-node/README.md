@@ -12,6 +12,7 @@
 | [src/storage/](src/storage/) | 로컬·S3 호환 사진 저장소 인터페이스 |
 | [src/jobs/](src/jobs/) · [src/seed/](src/seed/) | 파일 정리·데모 초기화·시드 |
 | [src/config.ts](src/config.ts) | 시작 시 환경 변수 검증 |
+| [src/docs/](src/docs/) | 공유 스키마 기반 OpenAPI 3.1·읽기 전용 Swagger·계약 회귀 검사 |
 | [shared-schema](../shared-schema/src/) | 두 앱이 사용하는 Zod 스키마·정규화·타입 |
 
 주요 기술은 Node.js·Express·TypeScript·Prisma 7·PostgreSQL 16·Socket.IO·Zod·bcrypt·sharp·Vitest·Supertest입니다.
@@ -45,11 +46,18 @@ API는 `http://localhost:4000`입니다. `DEMO_PASSWORD`가 있어야 데모 계
 | --- | --- |
 | lint·타입 | `npm run lint -w backend-node` · `npm run typecheck -w backend-node` |
 | 통합 테스트 | 별도 `TEST_DATABASE_URL` 지정 후 `npm run test:api` |
+| DB 없는 문서·제한 회귀 | `npm run test:docs -w backend-node` |
 | 개발 마이그레이션 작성 | `npm run db:migrate -w backend-node` |
 | 배포 마이그레이션 적용 | `npm run db:deploy -w backend-node` |
 | 프로세스·DB 상태 | `/healthz` · `/readyz` |
 
 현재 배포 구성은 Railway와 Supabase Storage입니다. 루트 Dockerfile은 마이그레이션 후 서버를 시작합니다. `render.yaml`은 이전용 설정이며 Render 이전 완료 기록은 아닙니다. [운영·이전 기준](../docs/dev.md#호스팅-비용과-옮길-계획)
+
+## 읽기 전용 Node Swagger와 보안
+
+API 실행 후 `http://localhost:4000/node-swagger`에서 실제 HTTP 31개 동작의 입력·응답·인증 조건을 확인합니다. JSON은 `/node-openapi.json`입니다. 웹 서비스의 [같은 문서](https://neighbo-liart.vercel.app/node-swagger)는 공개 문서만 인증 없이 프록시하고 API 기준 주소를 `/api`로 표시합니다. Try it out·외부 검증·인증 지속 저장을 끄며 고정된 자체 호스팅 자원만 제공합니다.
+
+상품 생성·수정·상태 변경·삭제는 각각 사용자 30회/분으로 제한합니다. 소켓 join·read는 메시지 send와 분리한 사용자 버킷으로 DB 호출 전에 차단합니다. 서버 입력 재검증·Origin·세션·소유권·업로드·오류·의존성에 대한 [위협별 방어와 검증 범위](../docs/SECURITY.md)를 함께 기록했습니다.
 
 ## 상세 설계
 

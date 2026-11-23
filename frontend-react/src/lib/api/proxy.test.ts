@@ -113,6 +113,9 @@ describe('같은 오리진 프록시', () => {
     const limited = await call('limited');
     expect(limited.status).toBe(429);
     expect(limited.headers.get('Retry-After')).toBe('30');
+    expect(limited.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(limited.headers.get('X-Frame-Options')).toBe('DENY');
+    expect(limited.headers.get('Content-Security-Policy')).toContain("frame-ancestors 'none'");
   });
 
   it('저장된 이미지 응답만 백엔드의 캐시 지시를 전하고, 실패한 파일 응답 · API 응답은 no-store다', async () => {

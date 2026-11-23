@@ -4,6 +4,8 @@
   "license": "MIT",
   "engines": { "node": ">=22" },
   "workspaces": ["shared-schema", "backend-node", "frontend-react"],
+  "scarfSettings": { "enabled": false },
+  "overrides": { "@prisma/config": { "effect": "3.22.1" } },
   "scripts": {
     "dev": "npm run dev -w backend-node & npm run dev -w frontend-react",
     "dev:web": "npm run dev -w frontend-react",

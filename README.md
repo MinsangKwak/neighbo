@@ -2,7 +2,7 @@
 
 **상품 탐색부터 채팅·거래완료·구매 내역까지 이어지는 개인 풀스택 프로젝트입니다.** React·Next.js로 사용자 화면을 만들고, Express·PostgreSQL로 인증·거래 상태·메시지 저장을 구현했습니다. 퍼블리싱과 접근성을 공통 UI에 반영하고, 연결 끊김과 중복 요청의 복구 흐름까지 다뤘습니다.
 
-[서비스 열기](https://neighbo-liart.vercel.app/) · [Notion 상세](https://www.notion.so/421cbbdd109b81ee8960e32dd7038b4a) · [문서 목차](docs/README.md)
+[서비스 열기](https://neighbo-liart.vercel.app/) · [Node Swagger](https://neighbo-liart.vercel.app/node-swagger) · [Notion 상세](https://www.notion.so/421cbbdd109b81ee8960e32dd7038b4a) · [문서 목차](docs/README.md)
 
 ## 기술과 폴더
 
@@ -63,6 +63,20 @@
 - **중복 요청·상태 변경은 서버와 DB에서 제어합니다.** 유니크 제약·조건부 UPDATE·트랜잭션을 적용하고 화면은 거절 결과와 재시도 방법을 안내합니다. [트랜잭션 경계](docs/architecture/backend.md#03--트랜잭션-경계)
 - **연결이 끊겨도 전송 상태를 구분합니다.** ack·타임아웃·대기열과 같은 식별자의 재시도로 중복 저장을 막습니다. [소켓 클라이언트](docs/architecture/frontend.md#07--소켓-클라이언트)
 
+## 보안 경계와 API 문서
+
+**화면의 입력 안내와 서버의 최종 검사를 나누고, 실제 누락을 재현해 보완했습니다.** [Node Swagger](https://neighbo-liart.vercel.app/node-swagger)는 요청·응답과 인증 조건을 보는 읽기 전용 문서입니다. 공유 Zod를 사용하며 HTTP 31개 동작을 설명하고, Try it out·외부 validator·인증 지속 저장을 끕니다.
+
+| 위협 | 구현한 방어·이번 보완 | 검증 근거 |
+| --- | --- | --- |
+| 변조 입력·타인 데이터 조작 | 서버 Zod 재검증, 세션·소유자·채팅 참여자·업로드 소유권 확인 | 공유 스키마·서비스 통합 테스트 |
+| 다른 사이트 쓰기·서버 비밀 유출 | Origin 검사, 서버 프록시의 자동 리다이렉트 금지, 공개 문서에 인증 정보 무전달 | Origin·serverFetch·문서 프록시 회귀 |
+| 과도한 쓰기·소켓 DB 요청 | 상품 생성·수정·상태·삭제 동작별 30회/분, 소켓 join·read 별도 사용자 버킷 추가 | DB 독립 제한 회귀 9개 |
+| 위장·과대 이미지·HTML 악용 | 4MB·형식·픽셀 검사와 WebP 재인코딩, nosniff·프레임 금지·부분 CSP | 업로드·공통 헤더 테스트 |
+| 알려진 의존성 취약점 | Prisma 하위 effect의 ReDoS 공지를 확인하고 3.22.1로 패치 | lockfile·`npm audit` |
+
+검사는 현재 코드와 테스트 범위입니다. 앱 CSP는 스크립트 nonce를 포함한 전면 정책이 아니며, 한도 저장소는 단일 프로세스 기준입니다. [방어·수정·검증과 남은 경계](docs/SECURITY.md)
+
 ## 로컬에서 실행하기
 
 **Node.js 22 이상, npm, PostgreSQL 16**이 필요합니다. 저장소 루트에서 실행합니다.
@@ -103,13 +117,14 @@ npm run lint
 npm run typecheck
 npm test
 npm run build
+npm run test:docs -w backend-node
 python3 scripts/check-docs.py
 python3 scripts/check-ac.py
 ```
 
 백엔드 테스트에는 개발 DB와 분리된 `TEST_DATABASE_URL`이 필요합니다. E2E는 마이그레이션이 적용된 별도 DB와 Chromium을 준비한 뒤 `npm run test:e2e`로 실행합니다. 개별 패키지는 `test:web`·`test:api`·`test:shared`로 확인할 수 있습니다.
 
-저장소의 현재 검증 기록은 단위·통합·컴포넌트 **540개**, E2E **18개**입니다. 수용 조건 **279개 중 278개**에는 조건 ID가 붙은 테스트가 있습니다. 이는 기록된 실행의 범위이며 이번 구조 변경의 결과는 PR 검사에서 별도로 확인합니다. 조건 ID 존재가 조건 전체의 검증을 보장하지는 않습니다. [검증 현황](docs/overview.md#9-설계검증-현황) · [테스트 전략](docs/dev.md#테스트-전략--수용-조건-하나에-테스트-하나) · [CI](.github/workflows/ci.yml)
+이번 변경의 로컬 검증은 **공유 스키마 53개·프론트엔드 228개·DB 없는 API 문서와 한도 회귀 20개**입니다. 백엔드 전체 통합 검사와 E2E **19개**의 실행 결과는 PR의 CI에서 확인합니다. 수용 조건 **279개 중 278개**에는 조건 ID가 붙은 테스트가 있으며, ID 존재가 조건 전체의 검증을 보장하지는 않습니다. [검증 현황](docs/overview.md#9-설계검증-현황) · [테스트 전략](docs/dev.md#테스트-전략--수용-조건-하나에-테스트-하나) · [CI](.github/workflows/ci.yml)
 
 ## 채용 검토용 코드 지도
 
@@ -119,6 +134,7 @@ python3 scripts/check-ac.py
 | 폼과 서버 오류 연결 | [lib/form](frontend-react/src/lib/form/) · [shared-schema](shared-schema/src/) |
 | 캐시와 실시간 상태 | [features/chat](frontend-react/src/features/chat/) · [lib/socket](frontend-react/src/lib/socket/) |
 | API·권한·트랜잭션 | [modules](backend-node/src/modules/) · [Prisma 모델](backend-node/prisma/schema.prisma) · [백엔드 설계](docs/architecture/backend.md) |
+| 보안 경계·실제 API 계약 | [보안 근거](docs/SECURITY.md) · [OpenAPI](backend-node/src/docs/openapi.ts) · [Node Swagger](https://neighbo-liart.vercel.app/node-swagger) |
 | 기획·예외 흐름·검증 기준 | [요구사항](docs/README.md#기능별-요구사항--한-기능--한-장) · [흐름 설계](docs/architecture/flow.md) · [트러블슈팅](docs/troubleshooting.md) |
 
 ## 현재 범위와 남은 확인

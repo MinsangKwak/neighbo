@@ -2,6 +2,7 @@ import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { ERROR_CATALOG, REQUEST_ID_HEADER, type ErrorCode, type ErrorResponse } from '@neighbo/shared-schema';
 import type { ServerConfig } from '@/lib/config';
+import { applyAppSecurityHeaders } from '@/lib/securityHeaders';
 
 // 같은 오리진 프록시 — 브라우저의 /api/* 를 백엔드로 넘긴다 [결정 0004]
 // 근거: docs/architecture/flow.md 연결 경로 · docs/troubleshooting.md T-02
@@ -21,7 +22,9 @@ function errorResponse(code: ErrorCode, status: number, requestId: string): Resp
   const body: ErrorResponse = { error: { code, message: ERROR_CATALOG[code].message, fields: null } };
   return Response.json(body, {
     status,
-    headers: { [REQUEST_ID_HEADER]: requestId, 'Cache-Control': 'no-store' },
+    headers: applyAppSecurityHeaders(
+      new Headers({ [REQUEST_ID_HEADER]: requestId, 'Cache-Control': 'no-store' }),
+    ),
   });
 }
 
@@ -81,7 +84,7 @@ export async function proxyToBackend(
     return errorResponse('INTERNAL', 502, requestId);
   }
 
-  const responseHeaders = new Headers({ 'Cache-Control': 'no-store' });
+  const responseHeaders = applyAppSecurityHeaders(new Headers({ 'Cache-Control': 'no-store' }));
   // 성공한 파일 응답만 캐시하게 둔다. 그 밖의 모든 응답은 no-store
   const passthrough = isFile && (upstream.ok || upstream.status === 304) ? [...RESPONSE_HEADERS, ...FILE_RESPONSE_HEADERS] : RESPONSE_HEADERS;
   for (const name of passthrough) {
