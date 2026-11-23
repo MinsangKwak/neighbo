@@ -148,7 +148,7 @@
 | API 경로 | Next.js Route Handler가 백엔드를 프록시 (같은 오리진) | 프론트 · 백엔드 도메인이 달라도 쿠키가 `SameSite=Lax`로 동작. CORS · `SameSite=None` 설정이 사라짐 | 중간 | 프록시 한 파일 · 쿠키 설정 |
 | 실시간 | Socket.IO (WebSocket + 폴링 폴백) | 채팅·읽음·배지를 같은 연결로 전달. 재연결·룸·ack는 라이브러리를 사용하고, 누락 복구와 전송 재시도는 서비스에서 처리 ([실험 결과](../dev/experiments.md#websocket과-socketio)) | 낮음 | 채팅 · 알림 · 소켓 서버 |
 | 이미지 저장 | `ImageStorage` 인터페이스 — 로컬 디스크(개발) · S3 호환(운영) | 업로드 · 리사이즈 · 삭제 세 메서드 뒤에 저장소를 숨김. 운영 저장소가 바뀌어도 호출부 무변경 | **높음** (Cloudflare R2 · Supabase Storage 등) | 구현체 한 파일 |
-| 검증 | Zod 스키마를 `shared-schema/`에서 프론트 · 백엔드 공유 | 같은 규칙을 두 번 쓰지 않음. 서버가 최종 검증자 | 낮음 | 스키마 패키지 |
+| 검증 | Zod 스키마를 `project/shared-schema/`에서 프론트 · 백엔드 공유 | 같은 규칙을 두 번 쓰지 않음. 서버가 최종 검증자 | 낮음 | 스키마 패키지 |
 | 데이터 조회 (프론트) | TanStack Query | 캐시 · 재조회 · 낙관적 갱신 · 뒤로가기 복원을 한 규칙으로 | 낮음 | 모든 조회 훅 |
 | 테스트 | 백엔드 API 통합 테스트(Vitest + supertest + 진짜 PostgreSQL) · 프론트 컴포넌트(Testing Library) · E2E 19개(Playwright — 흐름 6 · 배치 3 · 공통 조건 5 · 채팅 2 · 접근성 1 · 이탈 확인 1 · API 문서 1) | 수용 조건과 1:1. 층별 역할은 [테스트 전략](../dev/runbook.md#테스트-전략--수용-조건-하나에-테스트-하나) | 낮음 | — |
 | 배포 | 프론트 Vercel · 백엔드 Railway | GitHub 연결 자동 배포, Postgres 원클릭, WebSocket · 상시 실행. 환경 매핑은 [브랜치 · 배포 전략](../dev/runbook.md#브랜치--배포-전략--main은-언제나-배포-가능하게) | 중간 | 환경 변수 · 워크플로 |
@@ -171,7 +171,7 @@
 
 ## 5. 폴더 구조
 
-실행 코드는 루트의 세 패키지, 문서·테스트·도구는 project 아래로 구분합니다. 중복되는 폴더 설명은 [루트 코드 지도](../../../README.md#폴더별-역할)를 기준으로 합니다.
+실행 앱은 루트의 두 폴더, 공유 계약·문서·테스트·도구·통합 설정은 project 아래로 구분합니다. 중복되는 폴더 설명은 [루트 코드 지도](../../../README.md#폴더별-역할)를 기준으로 합니다.
 
 ## 6. 문서 진행 순서
 
@@ -231,7 +231,7 @@
 | 인증·권한·계약 | [backend-node](../dev/backend.md) · [공유 스키마](../dev/architecture.md#공유-입력-계약) | HTTP·소켓 권한, 정상·오류 응답, 입력 정규화 |
 | 거래·채팅 데이터 | [트랜잭션](../dev/backend.md#03--트랜잭션-경계) · [modules](../../../backend-node/src/modules/) | 실제 PostgreSQL의 제약·동시 요청·상태 전이·메시지 저장과 복구 |
 | 배치·사진·데모 | [jobs](../../../backend-node/src/jobs/) · [seed](../../../backend-node/src/seed/) | 파일 정리·초기화, 실패 시 재시도와 현재 DB 조건 |
-| 빌드·실행 | [CI](../../../.github/workflows/ci.yml) · [Dockerfile](../../../Dockerfile) | lint·타입·테스트·웹 운영 빌드·Chromium E2E·컨테이너 |
+| 빌드·실행 | [CI](../../../.github/workflows/ci.yml) · [Dockerfile](../../../backend-node/Dockerfile) | lint·타입·테스트·웹 운영 빌드·Chromium E2E·컨테이너 |
 
 ### 공통 문서
 

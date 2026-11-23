@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.*
+!.env.example
+.next/
+out/
+dist/
+coverage/
+__pycache__/
+*.tsbuildinfo
+next-env.d.ts
+tests/frontend-react/test-results/
+tests/frontend-react/playwright-report/

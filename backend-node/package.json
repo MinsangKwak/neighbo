@@ -10,15 +10,15 @@
     "start": "tsx src/server.ts",
     "lint": "eslint .",
     "typecheck": "prisma generate && tsc --noEmit",
-    "test": "prisma generate && vitest run --config ../project/tests/backend-node/vitest.config.ts",
-    "test:docs": "vitest run --config ../project/tests/backend-node/vitest.docs.config.ts",
+    "test": "npm --prefix ../project run test:api",
+    "test:docs": "npm --prefix ../project run test:docs",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx --env-file-if-exists=.env src/seed/run.ts"
   },
   "dependencies": {
-    "@neighbo/shared-schema": "*",
+    "@neighbo/shared-schema": "file:../project/shared-schema",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
     "aws4fetch": "1.0.20",
@@ -43,5 +43,13 @@
     "prisma": "7.10.1",
     "typescript": "~6.0.0",
     "typescript-eslint": "^8.72.2"
+  },
+  "overrides": {
+    "@prisma/config": {
+      "effect": "3.22.1"
+    }
+  },
+  "scarfSettings": {
+    "enabled": false
   }
 }

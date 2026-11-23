@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { toFieldErrors } from '../../../shared-schema/src/auth';
-import { changePasswordSchema, myProductsQuerySchema, updateMeSchema } from '../../../shared-schema/src/me';
+import { toFieldErrors } from '../../shared-schema/src/auth';
+import { changePasswordSchema, myProductsQuerySchema, updateMeSchema } from '../../shared-schema/src/me';
 
 const password = (input: Record<string, unknown>) => {
   const result = changePasswordSchema.safeParse({

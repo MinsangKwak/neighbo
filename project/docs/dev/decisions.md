@@ -111,7 +111,7 @@
 
 ### 선택
 
-로컬 · 테스트 · 운영 모두 PostgreSQL 16. 로컬은 `docker compose up db` 한 줄, 테스트는 같은 컨테이너의 별도 데이터베이스, 운영은 Railway Postgres.
+로컬 · 테스트 · 운영 모두 PostgreSQL 16. 로컬은 `docker compose --project-directory . -f project/docker-compose.yml up -d db` 한 줄, 테스트는 같은 컨테이너의 별도 데이터베이스, 운영은 Railway Postgres.
 
 ### 버린 대안
 
@@ -596,7 +596,7 @@ Next.js Route Handler `app/api/[...path]/route.ts`가 `/api/*` 요청을 백엔�
 | --- | --- |
 | 영향 | 저장소 최상위 구조 · 루트 README · 커밋 범위 표 · 공유 패키지 경로 · 워크스페이스 설정 · 배포 루트 디렉터리 |
 
-**앱 폴더는 역할과 대표 기술로, 공유 패키지는 담긴 내용으로 구분합니다.** `frontend-react/`·`backend-node/`·`shared-schema/`를 최상위에 배치합니다. React 기반 화면과 Node.js API를 이름에서 구분하고, Next.js·Express 등 구체적인 실행 프레임워크는 루트 README와 역할별 설계에 적습니다. 문서·테스트·도구는 `project/{docs,tests,tools}/`로 분리합니다.
+**앱 폴더는 역할과 대표 기술로 구분하고 공통 자료는 project에 모읍니다.** `frontend-react/`·`backend-node/`는 최상위 실행 앱, `project/shared-schema/`는 두 앱의 공유 계약입니다. Next.js·Express 등 구체적인 실행 프레임워크는 루트 README와 역할별 설계에 적습니다. 문서·테스트·도구는 `project/{docs,tests,tools}/`로 분리합니다.
 
 ### 맥락
 
@@ -606,12 +606,7 @@ Next.js Route Handler `app/api/[...path]/route.ts`가 `/api/*` 요청을 백엔�
 
 **실행되는 앱은 `{역할}-{대표 기술}`, 앱들이 함께 쓰는 패키지는 `shared-{담긴 것}`.** 최상위에 바로 둔다.
 
-| 위치 | 역할 |
-| --- | --- |
-| `frontend-react/` | React 기반 화면. 실행 프레임워크 Next.js |
-| `backend-node/` | Node.js·Express API와 실시간 서버 |
-| `shared-schema/` | 두 앱의 Zod 스키마·타입·정규화 |
-| `project/` | 검증 전용 워크스페이스. docs는 기획·개발·디자인, tests는 검사, tools는 도구·실험 |
+Git 루트는 `.github/`·`frontend-react/`·`backend-node/`·`project/`·`README.md`·`LICENSE` 여섯 항목입니다. 숨김 설정을 포함한 공통 설치 메타데이터·Node 버전·기본 TypeScript·Compose·Render 설정은 project가 맡고 Dockerfile은 backend-node가 소유합니다. [폴더별 역할](../../../README.md#폴더별-역할)을 코드 지도의 기준으로 사용합니다.
 
 | 규칙 | 이유 |
 | --- | --- |
@@ -624,11 +619,15 @@ Next.js Route Handler `app/api/[...path]/route.ts`가 `/api/*` 요청을 백엔�
 
 #### 워크스페이스
 
-루트 `package.json`의 npm workspaces로 실행·공유 패키지와 검증 패키지를 묶습니다. 패키지 이름은 `@neighbo/` 범위 아래 역할별 이름을 사용하며 검증 전용 `project`는 `@neighbo/project`입니다.
+`project/package.json`은 `@neighbo/project`이며 내부 workspace는 `shared-schema` 하나입니다. 두 실행 앱은 각각 package-lock을 가진 독립 패키지이고 `file:../project/shared-schema`로 계약을 참조합니다. 저장소 루트에는 package.json·lockfile을 두지 않습니다.
 
 ```json
-{ "private": true, "workspaces": ["shared-schema", "backend-node", "frontend-react", "project"] }
+{ "name": "@neighbo/project", "private": true, "workspaces": ["shared-schema"] }
 ```
+
+외부 폴더를 가리키는 workspace와 중첩 workspace는 npm 10·11 설치 검증에서 실패해 채택하지 않았습니다. 독립 잠금 파일과 project 내부 공유 workspace를 사용하며, 저장소 루트의 `npm --prefix project run setup`이 project·공유 계약 → backend → frontend 순서로 clean install을 실행합니다. 개발·DB·검사·빌드도 같은 project 명령으로 연결합니다. [실행·배포 기준](runbook.md#로컬-실행과-패키지별-검사)
+
+Git 제외 규칙은 각 앱과 project의 .gitignore가 먼저 적용됩니다. `python3 project/tools/setup_git.py`는 `.git/info/exclude`의 자체 관리 블록만 설치하며 기존 hook 설정을 덮어쓰지 않습니다. 실제 비밀값·node_modules·빌드·생성 파일은 Git 루트에 설정 파일을 추가하지 않고 제외합니다.
 
 ```ts
 import { productCreateSchema, normalizeEmail } from '@neighbo/shared-schema';
@@ -656,7 +655,7 @@ import { productCreateSchema, normalizeEmail } from '@neighbo/shared-schema';
 
 ### 바뀔 가능성과 되돌리는 법
 
-낮음. 바뀐다면 원인은 기술 교체이고, 그때 고칠 곳은 ① `git mv` ② 루트 `package.json` workspaces ③ 공유 패키지 import 경로(이름이 같으므로 패키지 이름만 바꾸면 됨) ④ Vercel · Railway의 루트 디렉터리 설정 ⑤ 커밋 규칙 범위 표 ⑥ 문서 링크. 문서 링크는 링크 검사 스크립트로 찾는다.
+낮음. 구조를 바꾸면 실제 폴더, project·앱별 package·lockfile과 공유 file 의존성, 소스·검사·Git 제외 경로, Vercel·Railway 빌드 설정, 문서 링크를 함께 갱신합니다. 문서 링크는 `npm --prefix project run check:docs`로 확인합니다.
 
 ## 0016 · 방 안 순서와 읽음 위치는 시각이 아니라 방별 번호(`seq`)로 센다
 

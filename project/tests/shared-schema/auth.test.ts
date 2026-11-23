@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { loginSchema, signupSchema, toFieldErrors } from '../../../shared-schema/src/auth';
-import { countGraphemes, normalizeEmail, normalizeNickname, normalizePassword } from '../../../shared-schema/src/normalize';
+import { loginSchema, signupSchema, toFieldErrors } from '../../shared-schema/src/auth';
+import { countGraphemes, normalizeEmail, normalizeNickname, normalizePassword } from '../../shared-schema/src/normalize';
 
 const valid = { email: 'kim@example.com', password: 'correct horse', passwordConfirm: 'correct horse', nickname: '김당근' };
 
@@ -116,7 +116,7 @@ describe('로그인 스키마', () => {
 
 describe('UTF-8 바이트 수', () => {
   it('영문 1 · 한글 3 · 이모지 4바이트로 센다', async () => {
-    const { utf8ByteLength } = await import('../../../shared-schema/src/normalize');
+    const { utf8ByteLength } = await import('../../shared-schema/src/normalize');
     expect(utf8ByteLength('abc')).toBe(3);
     expect(utf8ByteLength('가')).toBe(3);
     expect(utf8ByteLength('é')).toBe(2);

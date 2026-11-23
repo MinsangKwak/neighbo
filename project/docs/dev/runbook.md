@@ -6,29 +6,54 @@
 
 ## 로컬 실행과 패키지별 검사
 
-Node.js 22 이상·npm·PostgreSQL 16을 사용합니다. 개발 DB·시드 DB와 테스트 DB를 분리합니다. [빠른 실행](../../../README.md#로컬-실행) 후 두 터미널에서 `npm run dev:api`·`npm run dev:web`을 실행합니다.
+Node.js 22 이상·npm·PostgreSQL 16을 사용합니다. Node 버전 기준은 `project/.nvmrc`, 공통 TypeScript 설정은 `project/tsconfig.base.json`에 있습니다. 아래 명령은 모두 저장소 루트에서 실행합니다.
+
+```bash
+python3 project/tools/setup_git.py
+npm --prefix project run setup
+```
+
+`setup_git.py`를 먼저 실행해 이 체크아웃의 `.git/info/exclude`에 이 프로젝트가 관리하는 제외 블록만 추가합니다. 기존 제외 항목이나 hooks 설정은 덮어쓰지 않습니다. 앱과 project의 `.gitignore`도 clone 직후부터 환경 파일·node_modules·빌드·생성 코드를 제외합니다.
+
+`setup`은 project와 내부 shared-schema, 백엔드, 프론트엔드 순서로 각 lockfile의 clean install을 실행합니다. 루트에는 package.json이나 npm workspace를 두지 않습니다. npm 10·11에서 project 바깥의 앱을 가리키는 workspace·중첩 workspace 설치가 실패해, **앱별 독립 package-lock과 project 내부 공유 workspace**로 설치 경계를 정했습니다.
+
+| 위치 | 설치·의존성 경계 |
+| --- | --- |
+| `project/package.json` | `@neighbo/project`가 실행·검사 명령을 모음. 내부 workspace는 `project/shared-schema` 하나 |
+| `project/shared-schema/` | 두 앱이 공유하는 Zod 계약·정규화·타입 |
+| `backend-node/` · `frontend-react/` | 각자의 package.json·package-lock.json. 공유 계약은 `file:../project/shared-schema`로 참조 |
+| 저장소 루트 | `.github/`·`frontend-react/`·`backend-node/`·`project/`·README.md·LICENSE만 관리 |
 
 | 앱·환경 | 준비·확인 |
 | --- | --- |
 | React 웹 | `frontend-react/.env.example` → `.env.local`, `API_URL`과 서버와 같은 `PROXY_SECRET` 설정. 기본 `:3000` |
 | Node API | `backend-node/.env.example` → `.env`, `DATABASE_URL`·`JWT_SECRET`·`PROXY_SECRET`·`ALLOWED_ORIGIN` 설정. 기본 `:4000` |
 | 데모 | 두 앱의 `DEMO_PASSWORD`를 일치시킴. 백엔드 시드 실행 시 값이 있어야 데모 계정·상품 생성 |
-| DB 준비 | `docker compose up -d db` → `npm run db:generate -w backend-node` → `npm run db:deploy -w backend-node` → `npm run db:seed -w backend-node` |
 | 상태 확인 | `/healthz`는 프로세스, `/readyz`는 DB 연결까지 확인 |
+
+기존 Compose 볼륨과 저장소 루트 기준의 경로를 유지하도록 `--project-directory .`를 지정합니다. 개발 DB·통합 검사 DB·E2E DB는 분리합니다.
+
+```bash
+docker compose --project-directory . -f project/docker-compose.yml up -d db
+npm --prefix project run db:generate
+npm --prefix project run db:deploy
+npm --prefix project run db:seed
+```
+
+두 터미널에서 `npm --prefix project run dev:api`·`npm --prefix project run dev:web`을 실행합니다.
 
 | 목적 | 저장소 루트 명령 |
 | --- | --- |
-| 설치·정적 검사 | `npm ci` · `npm run lint` · `npm run typecheck` |
-| 웹·공유 계약 | `npm run test:web` · `npm run test:shared` |
-| API 통합 | 별도 `TEST_DATABASE_URL` 설정 후 `npm run test:api` |
-| DB 없는 API 문서·한도 회귀 | `npm run test:docs -w backend-node` |
-| 웹 운영 빌드 | `npm run build` |
-| 브라우저 | 마이그레이션이 적용된 E2E DB·Chromium 준비 후 `npm run test:e2e` |
-| 문서·수용 조건 연결 | `python3 project/tools/check-docs.py` · `python3 project/tools/check-ac.py` |
+| 전체 정적 검사 | `npm --prefix project run lint` · `npm --prefix project run typecheck` |
+| 전체 단위·통합·컴포넌트 검사 | 별도 `TEST_DATABASE_URL` 설정 후 `npm --prefix project run test` |
+| 웹·공유 계약 | `npm --prefix project run test:web` · `npm --prefix project run test:shared` |
+| API 통합 | 별도 `TEST_DATABASE_URL` 설정 후 `npm --prefix project run test:api` |
+| DB 없는 API 문서·한도 회귀 | `npm --prefix project run test:docs` |
+| 웹 운영 빌드 | `npm --prefix project run build` |
+| 브라우저 | 마이그레이션이 적용된 E2E DB·Chromium 준비 후 `npm --prefix project run test:e2e` |
+| 문서·수용 조건 연결 | `npm --prefix project run check:docs` |
 
-검사 파일·지원 코드는 [project/tests](../../tests/)에, 링크·수용 조건 검사기와 실험은 [project/tools](../../tools/)에 둡니다. 실제 서비스 소스는 각 앱·공유 패키지에 남깁니다. DB 생성·마이그레이션·시드는 해당 환경을 대상으로 실행하며, 비밀값을 코드·문서·로그에 기록하지 않습니다.
-
-`@neighbo/project` 워크스페이스가 테스트 의존성과 실행 설정을 소유합니다. 루트 `npm test`는 이 워크스페이스의 전체 테스트를 한 번 실행하고, 기존 패키지별 검사 명령은 같은 설정으로 연결됩니다. `npm run lint`·`npm run typecheck`도 검증 코드를 포함하며, 개별 확인은 `npm run lint -w @neighbo/project`·`npm run typecheck -w @neighbo/project`입니다. 테스트 DB 초기화 SQL은 `project/tools/postgres/init-test-db.sql`에 둡니다. 클린 체크아웃에서 문서 워크스페이스의 타입 검사만 실행하려면 먼저 `npm run db:generate -w backend-node`로 Prisma 타입을 생성합니다. 루트 `npm run typecheck`에는 이 생성 단계가 포함됩니다.
+검사 파일·지원 코드는 [project/tests](../../tests/)에, 검사기·설치 도구·테스트 DB SQL·실험은 [project/tools](../../tools/)에 둡니다. `typecheck`는 Prisma 생성과 앱·공유 계약·검증 코드의 타입 검사를 포함합니다. DB 초기화 SQL은 `project/tools/postgres/init-test-db.sql`입니다. 비밀값은 코드·문서·로그에 기록하지 않습니다.
 
 ## 커밋 메시지 · 변경 이유를 찾을 수 있게 쓰기
 
@@ -76,9 +101,9 @@ Refs: #12
 | `web` | `frontend-react/` 와 프론트엔드 설계 `project/docs/dev/frontend.md` |
 | `server` | `backend-node/` 와 백엔드 설계 `project/docs/dev/backend.md` |
 | `docs` | 그 밖의 `project/docs/` 아래 문서. 종류가 `docs`이면 범위는 비워도 된다 |
-| `infra` | 배포 · 환경 변수 · 컨테이너 · 워크플로 · 루트 `package.json` |
+| `infra` | 배포·환경 변수·컨테이너·워크플로·project 실행 설정 |
 
-`shared-schema/`만 고치는 커밋은 범위를 비우고, 한쪽 역할 때문에 고치면 그 역할 범위를 쓴다. 범위 낱말은 역할이고 폴더 이름은 역할 + 기술이라, 기술이 바뀌어 폴더 이름이 바뀌어도 범위는 유지한다 ([결정 0015](decisions.md#0015--최상위-폴더는-역할-대표-기술로-짓는다)).
+`project/shared-schema/`만 고치는 커밋은 범위를 비우고, 한쪽 역할 때문에 고치면 그 역할 범위를 쓴다. 범위 낱말은 역할이고 폴더 이름은 역할 + 기술이라, 기술이 바뀌어 폴더 이름이 바뀌어도 범위는 유지한다 ([결정 0015](decisions.md#0015--최상위-폴더는-역할-대표-기술로-짓는다)).
 
 ### PR과 병합 커밋
 
@@ -116,10 +141,10 @@ sync: dev → main — v1.0.0
 
 | 어디 | 무엇 | 켜는 법 |
 | --- | --- | --- |
-| 로컬 `commit-msg` 훅 | 저장 전에 제목 꼴을 본다 | 저장소에서 한 번 `git config core.hooksPath .githooks` (훅과 검사기는 코드 단계에서 추가) |
-| 작업 세션 | PR을 열기 전에 `--range origin/dev..HEAD`로 커밋 제목을 모두 본다 | 자동 |
+| clone 직후 | `python3 project/tools/setup_git.py`로 로컬 제외 블록 구성 | 기존 제외 항목·hooks 설정을 유지 |
+| 작업 세션 | PR 전 변경 범위의 커밋 제목과 본문을 확인 | 위 형식·종류·범위 기준으로 검토 |
 
-검사기는 제목 한 줄만 보고 본문은 보지 않습니다 — 규칙은 제목에만 있습니다.
+제목 형식과 함께 본문의 변경 이유·실행한 검사·고유 기여 근거를 확인합니다. 설치 도구가 커밋 훅을 자동으로 지정하거나 기존 훅 경로를 변경하지는 않습니다.
 
 ### DCO 서명
 
@@ -127,34 +152,30 @@ sync: dev → main — v1.0.0
 
 ## 호스팅 비용과 옮길 계획
 
-지금 백엔드와 DB는 Railway의 Trial(가입 후 30일 · $5 크레딧)에서 돕니다. Trial이 끝나면 월 $1 크레딧으로 줄어 상시 가동으로는 한 달을 채우지 못합니다. 그 전에 기간 제한 없는 무료 플랜으로 옮깁니다.
+현재 프론트엔드는 Vercel, 백엔드·DB는 Railway, 사진은 Supabase Storage를 사용합니다. Render와 Supabase PostgreSQL로의 이전은 설정 준비 단계이며 아직 배포한 결과가 없습니다. 요금·휴면 조건은 이전 시점에 확인하고, 이 문서에서는 적용할 설정과 남은 검증을 관리합니다.
 
-| 대상 | 옮길 곳 | 조건 (2026-11-11에 각 서비스 문서로 확인) | 걸리는 점 |
-| --- | --- | --- | --- |
-| 백엔드 | Render 무료 웹 서비스 (Docker) | 월 750시간, 15분 동안 요청 · 소켓 메시지가 없으면 꺼지고 다음 요청에 약 1분 뒤 켜짐. 리전에 Singapore가 있다 | 0.1 CPU에서 마이그레이션 · 시드까지의 부팅 시간은 재 보지 않았다 |
-| DB | Supabase 무료 Postgres (사진과 같은 프로젝트) | 500MB, 일주일 동안 쓰지 않으면 멈추고 대시보드에서 직접 되살려야 한다 | 풀러를 거친 접속에서 마이그레이션 · 권고 잠금이 도는지 확인하지 않았다. Render의 무료 Postgres는 30일 뒤 만료라 쓰지 않는다 |
-| 사진 | Supabase Storage (`STORAGE_DRIVER=s3`, 엔드포인트 `…/storage/v1/s3`) — 옮김 | 파일 1GB · 전송 월 5GB | 운영에서 사진 주소가 Supabase로 나가는 것을 확인했다 |
+| 대상 | 현재·계획 | 남은 확인 |
+| --- | --- | --- |
+| 백엔드 | Railway 운영, `project/render.yaml`에 Render 이전 설정 준비 | 부팅·마이그레이션·시드 시간, 휴면 후 재기동 |
+| DB | Railway 운영, Supabase PostgreSQL 이전 계획 | 세션 풀러에서 마이그레이션·잠금, 서비스와 같은 DB 연결 |
+| 사진 | Supabase Storage의 S3 호환 인터페이스 사용 | 이전 후 기존 사진 주소·저장소 권한 유지 |
 
-옮길 때 바뀌는 것은 환경 변수뿐입니다. 백엔드는 저장소 루트의 `Dockerfile` 하나로 뜨고, DB는 `DATABASE_URL`, 사진은 `STORAGE_DRIVER`와 `S3_*`로 정해집니다. Vercel의 `API_URL`을 새 백엔드 주소로 바꾸고, 백엔드의 `ALLOWED_ORIGIN`은 그대로 둡니다. 꺼졌다 켜지는 호스트에서는 켜질 때마다 시드가 돌아 데모 상품이 처음 상태로 돌아갑니다.
+실행 이미지는 `backend-node/Dockerfile`, 빌드 context는 저장소 루트입니다. DB는 `DATABASE_URL`, 사진은 `STORAGE_DRIVER`·`S3_*`로 정합니다. 호스트가 바뀌면 Vercel의 `API_URL`을 새 API 주소로 맞추고 Origin·프록시 비밀의 계약도 확인합니다. 배치가 꺼진 동안 실행되지 못한 경우는 `JobRun`의 마지막 완료 시각으로 재기동 때 따라잡습니다.
 
 ### 옮기는 절차
 
-저장소 루트의 `render.yaml`이 백엔드 설정(Docker · Singapore · 무료 · 환경 변수 이름)을 담고 있습니다. 비밀값은 파일에 없고 대시보드에서 직접 넣습니다. **아직 이 절차로 옮겨 본 적은 없습니다.**
+`project/render.yaml`이 백엔드 이전용 Docker·리전·환경 변수 설정을 담습니다. 배포 파일의 위치와 무관하게 Docker context는 저장소 루트, Dockerfile은 `backend-node/Dockerfile`로 맞춥니다. 비밀값은 파일에 없고 대시보드에서 직접 넣습니다. **아직 이 절차로 옮겨 본 적은 없습니다.**
 
 | 순서 | 할 일 | 확인 |
 | --- | --- | --- |
 | 1 | Supabase 대시보드 → Connect에서 **Session pooler** 접속 문자열을 복사한다. 마이그레이션(`prisma migrate deploy`)은 세션 단위 기능을 쓰므로 Transaction pooler(6543)가 아니라 세션 쪽이어야 한다 | 문자열의 포트가 5432 |
 | 2 | Render → New → Blueprint로 이 저장소를 고르고, 묻는 값(`DATABASE_URL` · `JWT_SECRET` · `PROXY_SECRET` · `DEMO_PASSWORD` · `S3_ACCESS_KEY_ID` · `S3_SECRET_ACCESS_KEY`)을 넣는다. `PROXY_SECRET` · `DEMO_PASSWORD`는 Vercel에 넣은 값과 같아야 한다 | 로그에 마이그레이션 → 시드 → `boot` 순서, `/readyz`가 200 |
 | 3 | Vercel의 `API_URL`을 Render 주소로 바꾸고 다시 배포한다 | 홈에 상품이 보이고 로그인 · 채팅 전송이 된다 |
-| 4 | Railway 서비스를 멈춘다 | — |
+| 4 | 새 서비스의 거래·채팅·파일 동작 확인 후 Railway 전환 여부를 결정한다 | 기존 서비스와 새 서비스의 DB·환경 변수를 구분 |
 
 DB는 새로 시작합니다 — 지금 Railway의 데이터는 시드와 확인용 계정뿐이라 옮기지 않습니다. 사진은 이미 Supabase에 있어 그대로 보입니다.
 
-| 옮긴 뒤 달라지는 것 | 이유 · 대응 |
-| --- | --- |
-| 15분 동안 요청이 없으면 꺼지고, 다음 요청은 켜질 때까지(약 1분) 기다린다 | 무료 플랜의 조건. 화면은 목록 자리에 오류와 [다시 시도]를 보인다 |
-| 매일 03:00 · 04:00의 배치는 예정 시각에 서버가 꺼져 있으면 다음에 켜질 때 돈다 | 스케줄러가 서버 프로세스 안에 있어 꺼진 동안에는 돌 수 없다. 배치가 끝난 시각을 `JobRun` 표에 남기고, 켜질 때 가장 최근의 예정 시각 뒤로 돈 적이 없으면 한 번 따라잡는다 |
-| Supabase 프로젝트는 일주일 동안 쓰지 않으면 멈춘다 | 대시보드에서 직접 되살린다. DB 연결 실패 시 현재 `/readyz`는 500, `/healthz`는 200이다 |
+이전 후에는 호스트의 휴면·재기동, DB 일시 중지, 배치 따라잡기와 `/healthz`·`/readyz` 응답을 확인합니다. 새 호스트에서 실행한 결과가 생기기 전까지 현재 운영 성과로 기록하지 않습니다.
 
 ## 브랜치 · 배포 전략 · main은 언제나 배포 가능하게
 
@@ -286,18 +307,33 @@ GitHub → Settings → Branches에서 적용할 보호 기준을 정리한 표�
 
 ### 현재 배포 설정
 
-Vercel은 다음 설정으로 React 앱과 공유 패키지를 함께 설치합니다.
+다음은 이 저장소 구조에 맞춘 배포 설정입니다. 플랫폼 값의 적용·배포 성공은 별도 확인 결과로 기록합니다.
 
-| 설정 | 값 |
+| Vercel 설정 | 값 |
 | --- | --- |
 | Root Directory | `frontend-react` |
 | Framework | `nextjs` |
 | Build Command | `npm run build` |
-| Install Command | `cd .. && npm ci --workspace frontend-react --workspace shared-schema` |
+| Install Command | `npm --prefix ../project ci --workspace shared-schema --include-workspace-root=false && npm ci` |
 | 루트 외부 소스 포함 | `sourceFilesOutsideRootDirectory=true` |
-| 빌드 건너뛰기 | `frontend-react/vercel.json`의 `ignoreCommand` — 앞 배포 이후 `frontend-react` · `shared-schema` · 루트 `package*.json`이 그대로면 건너뛴다. 앞 배포의 커밋이 없거나(새 브랜치의 첫 배포) 클론에 없으면 빌드한다. `git diff`가 그 경우 128로 끝나면 Vercel은 배포 실패로 처리한다 |
+| 변경 감지 | 앱뿐 아니라 `project/shared-schema`·해당 lockfile·project 설치 설정 변경을 함께 확인. 이전 커밋이 없는 첫 배포는 빌드 |
 
-백엔드는 저장소 루트 Dockerfile로 빌드해 `backend-node`와 `shared-schema`를 함께 사용합니다. 폴더를 바꿀 때 코드·CI뿐 아니라 플랫폼의 Root Directory도 함께 맞춥니다.
+위 Install Command는 Vercel이 `frontend-react/`를 작업 경로로 사용할 때의 명령입니다. project 전체 검사 의존성을 배포에 설치하지 않고 내부 공유 계약을 먼저 준비한 뒤 프론트엔드의 독립 lockfile을 설치합니다.
+
+| 백엔드 설정 | 값 |
+| --- | --- |
+| Dockerfile | `backend-node/Dockerfile` |
+| 빌드 context | 저장소 루트 `/` |
+| Railway | 서비스의 Dockerfile 경로를 `backend-node/Dockerfile`로 지정하고 저장소 루트 context 유지 |
+| Render | `project/render.yaml`의 이전용 설정. 아직 배포하지 않음 |
+
+로컬 이미지 빌드도 저장소 루트에서 실행합니다.
+
+```bash
+docker build -f backend-node/Dockerfile -t neighbo-backend .
+```
+
+폴더를 바꿀 때 코드·CI뿐 아니라 플랫폼의 Root Directory·설치 명령·Dockerfile 경로·빌드 context도 함께 맞춥니다.
 
 ## 구현 순서 · 뒤 단계가 앞 단계 위에 서게
 
@@ -305,7 +341,7 @@ Vercel은 다음 설정으로 React 앱과 공유 패키지를 함께 설치합�
 
 ## 테스트 전략 · 수용 조건 하나에 테스트 하나
 
-**수용 조건 279개를 기준으로 검증 범위와 도구를 관리합니다.** 각 조건은 해당 규칙을 담당하는 계층에서 검증하고, 프론트엔드는 화면 반응·접근성, E2E는 판매자·구매자의 거래 흐름을 확인합니다. 단위 · 통합 · 소켓 · 컴포넌트 테스트와 E2E 19개(접근성 자동 검사 · 연결 끊김 · 이탈 확인 · 공개 API 문서 포함)는 CI에서 돕니다. DB 없는 문서·한도 회귀는 `npm run test:docs -w backend-node`로 실행합니다. 성능 측정과 브라우저별 사진 업로드 호환성 확인은 아직 없습니다.
+**수용 조건 279개를 기준으로 검증 범위와 도구를 관리합니다.** 각 조건은 해당 규칙을 담당하는 계층에서 검증하고, 프론트엔드는 화면 반응·접근성, E2E는 판매자·구매자의 거래 흐름을 확인합니다. 단위 · 통합 · 소켓 · 컴포넌트 테스트와 E2E 19개(접근성 자동 검사 · 연결 끊김 · 이탈 확인 · 공개 API 문서 포함)는 CI에서 돕니다. DB 없는 문서·한도 회귀는 `npm --prefix project run test:docs`로 실행합니다. 성능 측정과 브라우저별 사진 업로드 호환성 확인은 아직 없습니다.
 
 ### 1. 층과 도구
 
@@ -350,7 +386,7 @@ it('AC-PD-13 같은 구매자가 같은 상품에 채팅하기를 두 번 눌러
 | AC 대응표 (`project/tools/check-ac.py`) | 실패는 아니고 작업 로그에 "번호를 단 테스트가 없는 AC" 목록. 지금 279개 중 278개 — 남은 하나(AC-CM-47, 링크와 버튼의 구분)는 테스트가 아니라 lint 규칙으로 강제한다 |
 | 문서 링크 검사 | 경로·앵커 오류 수정 후 병합 |
 
-E2E는 로컬에서 `npm run e2e -w frontend-react`로 돕니다. 마이그레이션이 적용된 빈 DB(`E2E_DATABASE_URL`, 기본 `neighbo_e2e`)가 필요하고, 백엔드(4100)와 운영 빌드의 프론트엔드(3100)는 실행기가 직접 띄웁니다. 설치된 Chrome을 쓰려면 `PW_CHANNEL=chrome`을 붙입니다. 테스트마다 새 계정을 만들어 앞선 실행의 데이터와 섞이지 않습니다.
+E2E는 로컬에서 `npm --prefix project run test:e2e`로 돕니다. 마이그레이션이 적용된 빈 DB(`E2E_DATABASE_URL`, 기본 `neighbo_e2e`)가 필요하고, 백엔드(4100)와 운영 빌드의 프론트엔드(3100)는 실행기가 직접 띄웁니다. 설치된 Chrome을 쓰려면 `PW_CHANNEL=chrome`을 붙입니다. 테스트마다 새 계정을 만들어 앞선 실행의 데이터와 섞이지 않습니다.
 
 ### 5. 흔들리는 테스트
 

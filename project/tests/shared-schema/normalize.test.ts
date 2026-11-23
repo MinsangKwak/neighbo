@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clipGraphemes, countGraphemes, normalizeEmail, normalizeNickname, normalizePassword, normalizeText } from '../../../shared-schema/src/index';
+import { clipGraphemes, countGraphemes, normalizeEmail, normalizeNickname, normalizePassword, normalizeText } from '../../shared-schema/src/index';
 
 describe('글자 수', () => {
   it('AC-CM-53 길이는 사용자가 한 글자로 느끼는 단위로 센다 — 한글 · 결합 문자 · 이모지', () => {

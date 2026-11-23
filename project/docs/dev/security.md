@@ -6,7 +6,7 @@
 
 | 위협·실패 상황 | 프론트엔드의 처리 | 백엔드의 최종 방어·근거 |
 | --- | --- | --- |
-| 변조된 입력·잘못된 타입 | 공유 Zod로 입력 안내, 서버 필드 오류 표시 | [validate](../../../backend-node/src/middleware/validate.ts)에서 재검증, JSON 1MB 제한. [공유 스키마](../../../shared-schema/src/)의 정규화·길이·교차 필드 검사 |
+| 변조된 입력·잘못된 타입 | 공유 Zod로 입력 안내, 서버 필드 오류 표시 | [validate](../../../backend-node/src/middleware/validate.ts)에서 재검증, JSON 1MB 제한. [공유 스키마](../../shared-schema/src/)의 정규화·길이·교차 필드 검사 |
 | 세션 탈취·만료·다른 기기 세션 유지 | 세션 토큰을 브라우저 저장소에 넣지 않고, 인증 응답을 캐시하지 않음 | [auth](../../../backend-node/src/middleware/auth.ts)·[JWT](../../../backend-node/src/lib/jwt.ts): HttpOnly·SameSite=Lax·운영 Secure 쿠키, 서명 알고리즘·만료·용도·tokenVersion·삭제 여부 검사 |
 | 다른 사이트의 쓰기 요청·소켓 연결 | 같은 출처의 `/api` 프록시 사용 | [originGuard](../../../backend-node/src/middleware/origin.ts)가 허용되지 않거나 빠진 Origin의 쓰기를 거절. Socket.IO는 CORS 표시 외에 `allowRequest`로 연결 자체를 제한 |
 | 다른 사람의 상품·파일·채팅방 조작 | 권한에 따라 조작 버튼과 안내 분기 | [상품 서비스](../../../backend-node/src/modules/products/service.ts)의 소유권·업로드 소유권·조건부 UPDATE, [채팅 서비스](../../../backend-node/src/modules/chat/service.ts)의 참여자 검사·매개변수화 SQL. UI 숨김은 권한 검사 대체 수단이 아님 |
@@ -36,23 +36,25 @@
 | Next.js 웹·배포 서비스 | `/node-swagger` · `/node-openapi.json` | 같은 출처의 `/api` 프록시 |
 | Node.js API 직접 접속 | `http://localhost:4000/node-swagger` · `/node-openapi.json` | 같은 출처의 `/` |
 
-문서는 [공유 Zod](../../../shared-schema/src/)에서 입력·응답 스키마를 만들고, 실제 HTTP **31개 동작**을 설명합니다. 정규화·문자 수·교차 필드·권한 판단은 서버가 최종 기준입니다. Socket.IO 이벤트는 HTTP 목록에 넣지 않았습니다.
+문서는 [공유 Zod](../../shared-schema/src/)에서 입력·응답 스키마를 만들고, 실제 HTTP **31개 동작**을 설명합니다. 정규화·문자 수·교차 필드·권한 판단은 서버가 최종 기준입니다. Socket.IO 이벤트는 HTTP 목록에 넣지 않았습니다.
 
 Swagger UI 5.35.1의 CSS·bundle과 자체 초기화 파일만 제공합니다. 임의 패키지 파일은 공개하지 않으며 CDN·외부 validator를 사용하지 않습니다. 모든 메서드의 Try it out, 쿼리 설정 주입, 인증 지속 저장을 끄고 스키마 요청에 `credentials: omit`을 적용합니다. 문서 프록시는 GET·HEAD만 허용하고, 리다이렉트·임의 경로·인증 전달을 차단하며 응답을 `no-store`로 처리합니다. UI의 읽기 전용 설정과 별개로 실제 API는 기존 인증·권한·Origin 검사를 수행합니다. [Swagger UI 설정 기준](https://swagger.io/docs/open-source-tools/swagger-ui/usage/configuration/)
 
 ## 검사와 한계
 
 ```bash
-npm run test:docs -w backend-node
-npm run test:web
-npm run test:shared
-npm run typecheck
-npm run lint
-npm audit
+npm --prefix project run test:docs
+npm --prefix project run test:web
+npm --prefix project run test:shared
+npm --prefix project run typecheck
+npm --prefix project run lint
+npm --prefix project audit
+npm --prefix frontend-react audit
+npm --prefix backend-node audit
 ```
 
 `test:docs`는 DB 없이 OpenAPI 3.1 구조·실제 경로 일치, 공개 자원·헤더·읽기 전용 설정과 상품·소켓 제한을 검사합니다. 백엔드 전체 테스트에는 `TEST_DATABASE_URL`, E2E에는 별도 DB와 Chromium이 필요합니다. 전체 실행 결과는 [CI](../../../.github/workflows/ci.yml)에서 확인합니다.
 
-이번 변경의 로컬 실행 범위는 문서·제한 회귀 20개, 프론트엔드 229개와 공유 스키마 53개입니다. lint·타입·Next 빌드도 검사합니다. 2026-11-23 `npm audit`는 개발 의존성 포함 0건이었으며, 이는 해당 시점의 알려진 공지 기준입니다. 공개 문서의 렌더링·요청 실행 비활성은 E2E에 포함했습니다. DB 통합·전체 E2E·배포 환경 검증은 CI와 배포 후 확인 범위입니다.
+이번 변경의 로컬 실행 범위는 문서·제한 회귀 20개, 프론트엔드 229개와 공유 스키마 53개입니다. lint·타입·Next 빌드도 검사합니다. 2026-11-23 의존성 감사 기록은 개발 의존성 포함 0건이었으며, 이는 해당 시점의 알려진 공지 기준입니다. 공개 문서의 렌더링·요청 실행 비활성은 E2E에 포함했습니다. DB 통합·전체 E2E·배포 환경 검증은 CI와 배포 후 확인 범위입니다.
 
 HTTP 한도·소켓 버킷·세션 연결 무효화 정보는 프로세스 메모리에 있습니다. 여러 인스턴스를 운영하려면 공유 저장소가 필요합니다. 원 IP 검사는 신뢰하는 프록시가 전달 헤더를 덮어쓴다는 배포 계약에 의존합니다. 저장소 서비스의 실제 권한 정책·비밀값 회전·호스트 방화벽·분산 부하·외부 침투 테스트는 이 코드 검사의 범위에 포함하지 않았습니다.

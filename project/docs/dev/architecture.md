@@ -27,7 +27,7 @@ flowchart LR
 
 | 계약 | 프론트엔드 | 백엔드 | 어긋나지 않게 하는 장치 |
 | --- | --- | --- | --- |
-| 요청 · 응답 모양 | 화면 단위 타입으로 받는다 | 화면 단위 타입으로 직렬화한다 | 공유 Zod 스키마(`shared-schema/`), 백엔드 테스트가 응답도 `parse` |
+| 요청 · 응답 모양 | 화면 단위 타입으로 받는다 | 화면 단위 타입으로 직렬화한다 | 공유 Zod 스키마(`project/shared-schema/`), 백엔드 테스트가 응답도 `parse` |
 | 입력 규칙 | 칸을 떠날 때 같은 함수로 정규화 · 검증해 미리 알린다 | 같은 함수로 다시 정규화 · 검증하고 최종 판단 | 정규화 함수와 스키마를 한 패키지에서 import |
 | 실패 | 에러 코드마다 정해진 화면 반응 | 코드 하나에 HTTP 상태 · 문구를 카탈로그로 | [에러 코드 표](backend.md#06--에러-코드) ↔ [에러 경계](frontend.md#04--에러-경계) |
 | 실시간 이벤트 | 이벤트마다 캐시 갱신 규칙 | 커밋 **후** 발행, 순서는 방별 `seq` | [소켓 이벤트](backend.md#9-소켓-이벤트) ↔ [소켓 이벤트 → 캐시](frontend.md#소켓-이벤트--캐시) |
@@ -213,17 +213,17 @@ sequenceDiagram
 
 ## 공유 입력 계약
 
-React 화면과 Node.js API가 함께 사용하는 **Zod 스키마·TypeScript 타입·입력 정규화 함수**입니다. 같은 입력을 두 앱에서 서로 다른 규칙으로 해석하지 않도록 계약을 [shared-schema/src](../../../shared-schema/src/) 한곳에서 관리합니다.
+React 화면과 Node.js API가 함께 사용하는 **Zod 스키마·TypeScript 타입·입력 정규화 함수**입니다. 같은 입력을 두 앱에서 서로 다른 규칙으로 해석하지 않도록 계약을 [project/shared-schema/src](../../shared-schema/src/) 한곳에서 관리합니다.
 
 | 코드 | 담당하는 계약 |
 | --- | --- |
-| [auth.ts](../../../shared-schema/src/auth.ts) | 가입·로그인 입력 |
-| [product.ts](../../../shared-schema/src/product.ts) | 상품 입력·조회·상태 |
-| [chat.ts](../../../shared-schema/src/chat.ts) | 채팅 요청·메시지 |
-| [me.ts](../../../shared-schema/src/me.ts) · [user.ts](../../../shared-schema/src/user.ts) | 내 정보·사용자 데이터 |
-| [normalize.ts](../../../shared-schema/src/normalize.ts) | 정규화와 사용자에게 보이는 문자 단위 처리 |
-| [error.ts](../../../shared-schema/src/error.ts) | 공통 오류 형식·필드 오류 변환 |
-| [index.ts](../../../shared-schema/src/index.ts) | 공개 진입점 |
+| [auth.ts](../../shared-schema/src/auth.ts) | 가입·로그인 입력 |
+| [product.ts](../../shared-schema/src/product.ts) | 상품 입력·조회·상태 |
+| [chat.ts](../../shared-schema/src/chat.ts) | 채팅 요청·메시지 |
+| [me.ts](../../shared-schema/src/me.ts) · [user.ts](../../shared-schema/src/user.ts) | 내 정보·사용자 데이터 |
+| [normalize.ts](../../shared-schema/src/normalize.ts) | 정규화와 사용자에게 보이는 문자 단위 처리 |
+| [error.ts](../../shared-schema/src/error.ts) | 공통 오류 형식·필드 오류 변환 |
+| [index.ts](../../shared-schema/src/index.ts) | 공개 진입점 |
 
 ## 두 앱의 책임
 
@@ -233,4 +233,4 @@ React 화면과 Node.js API가 함께 사용하는 **Zod 스키마·TypeScript �
 
 ## 검사
 
-저장소 루트에서 `npm ci` 후 `npm run typecheck -w shared-schema`·`npm run test:shared`를 실행합니다. [계약 검사](../../tests/shared-schema/)는 정상값·경계값·오류 변환·정규화를 확인하며 DB·실행 중인 서버는 필요하지 않습니다.
+저장소 루트에서 `python3 project/tools/setup_git.py`·`npm --prefix project run setup` 후 `npm --prefix project run typecheck`·`npm --prefix project run test:shared`를 실행합니다. [계약 검사](../../tests/shared-schema/)는 정상값·경계값·오류 변환·정규화를 확인하며 DB·실행 중인 서버는 필요하지 않습니다.

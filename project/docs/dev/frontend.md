@@ -570,5 +570,5 @@ Field의 레이블·힌트·오류 연결은 [퍼블리싱 가이드](../design/
 | `components/`는 `features/`를 모른다 | 공통 조각이 특정 기능의 타입에 묶이지 않게 | 같음 |
 | `serverFetch`는 서버 컴포넌트에서만, `apiFetch`는 클라이언트에서만 | 쿠키 전달 방식과 캐시 규칙이 다르다 [01] | `server-only` · `client-only` 패키지 표시 |
 | `socket.emit(` 직접 호출 금지 | 타임아웃 없는 전송 방지 [S-04](troubleshooting.md#s-04) | ESLint 규칙 |
-| 요청 · 응답 타입은 `shared-schema/`에서만 가져온다 | 두 역할이 같은 모양을 가정 | — |
+| 요청 · 응답 타입은 `project/shared-schema/`에서만 가져온다 | 두 역할이 같은 모양을 가정 | — |
 | 테스트는 `project/tests/frontend-react/`에서 실행 코드의 하위 계층을 유지 | 앱 코드와 검증 자료를 나누고 같은 역할 경로로 찾는다 | Vitest·Playwright 설정과 문서 링크 검사 |
