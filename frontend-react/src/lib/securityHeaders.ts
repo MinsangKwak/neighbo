@@ -15,7 +15,33 @@ export const APP_PERMISSIONS_POLICY = [
   'usb=()',
 ].join(', ');
 
-export const APP_SECURITY_HEADERS: { key: string; value: string }[] = [
+export interface SecurityHeader {
+  key: string;
+  value: string;
+}
+
+export const SWAGGER_CONTENT_SECURITY_POLICY = [
+  "default-src 'none'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data:",
+  "font-src 'self'",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'none'",
+  "frame-ancestors 'none'",
+].join('; ');
+
+export const OPENAPI_CONTENT_SECURITY_POLICY = [
+  "default-src 'none'",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'none'",
+  "frame-ancestors 'none'",
+].join('; ');
+
+export const APP_SECURITY_HEADERS: SecurityHeader[] = [
   { key: 'Content-Security-Policy', value: APP_CONTENT_SECURITY_POLICY },
   { key: 'Permissions-Policy', value: APP_PERMISSIONS_POLICY },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
@@ -25,7 +51,38 @@ export const APP_SECURITY_HEADERS: { key: string; value: string }[] = [
   { key: 'X-XSS-Protection', value: '0' },
 ];
 
-export function applyAppSecurityHeaders(headers: Headers): Headers {
-  for (const { key, value } of APP_SECURITY_HEADERS) headers.set(key, value);
+const PUBLIC_DOCUMENT_HEADERS: SecurityHeader[] = [
+  { key: 'Cache-Control', value: 'no-store' },
+  { key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
+  { key: 'Permissions-Policy', value: APP_PERMISSIONS_POLICY },
+  { key: 'Referrer-Policy', value: 'no-referrer' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'X-Frame-Options', value: 'DENY' },
+];
+
+export const SWAGGER_SECURITY_HEADERS: SecurityHeader[] = [
+  { key: 'Content-Security-Policy', value: SWAGGER_CONTENT_SECURITY_POLICY },
+  ...PUBLIC_DOCUMENT_HEADERS,
+];
+
+export const OPENAPI_SECURITY_HEADERS: SecurityHeader[] = [
+  { key: 'Content-Security-Policy', value: OPENAPI_CONTENT_SECURITY_POLICY },
+  ...PUBLIC_DOCUMENT_HEADERS,
+];
+
+// Next.js는 여러 source가 맞으면 뒤 규칙의 같은 헤더 키를 사용한다.
+// 앱 공통 규칙 뒤에 문서 전용 규칙을 두어 Route Handler의 강한 CSP가 전역 부분 CSP에 덮이지 않게 한다.
+export const NEXT_SECURITY_HEADER_RULES: { source: string; headers: SecurityHeader[] }[] = [
+  { source: '/:path*', headers: APP_SECURITY_HEADERS },
+  { source: '/node-swagger/:path*', headers: SWAGGER_SECURITY_HEADERS },
+  { source: '/node-openapi.json', headers: OPENAPI_SECURITY_HEADERS },
+];
+
+export function applySecurityHeaders(headers: Headers, values: readonly SecurityHeader[]): Headers {
+  for (const { key, value } of values) headers.set(key, value);
   return headers;
+}
+
+export function applyAppSecurityHeaders(headers: Headers): Headers {
+  return applySecurityHeaders(headers, APP_SECURITY_HEADERS);
 }

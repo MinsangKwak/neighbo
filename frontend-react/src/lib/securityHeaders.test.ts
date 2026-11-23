@@ -4,6 +4,9 @@ import {
   APP_CONTENT_SECURITY_POLICY,
   APP_PERMISSIONS_POLICY,
   APP_SECURITY_HEADERS,
+  NEXT_SECURITY_HEADER_RULES,
+  OPENAPI_CONTENT_SECURITY_POLICY,
+  SWAGGER_CONTENT_SECURITY_POLICY,
   applyAppSecurityHeaders,
 } from './securityHeaders';
 
@@ -26,5 +29,17 @@ describe('공통 브라우저 보안 헤더', () => {
     expect(headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
     expect(headers.get('X-XSS-Protection')).toBe('0');
     expect(APP_SECURITY_HEADERS).toHaveLength(7);
+  });
+
+  it('전역 정책 뒤에 공개 문서 전용 정책을 두어 같은 CSP 키를 더 강하게 덮는다', () => {
+    expect(NEXT_SECURITY_HEADER_RULES.map(({ source }) => source)).toEqual([
+      '/:path*',
+      '/node-swagger/:path*',
+      '/node-openapi.json',
+    ]);
+    expect(SWAGGER_CONTENT_SECURITY_POLICY).toContain("script-src 'self'");
+    expect(SWAGGER_CONTENT_SECURITY_POLICY).toContain("form-action 'none'");
+    expect(SWAGGER_CONTENT_SECURITY_POLICY).not.toContain("script-src 'unsafe-inline'");
+    expect(OPENAPI_CONTENT_SECURITY_POLICY).toContain("default-src 'none'");
   });
 });
