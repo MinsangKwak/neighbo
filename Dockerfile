@@ -9,11 +9,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-cert
 WORKDIR /app
 
 # 의존성 층을 먼저 만들어 소스만 바뀐 빌드에서 재사용한다
-# frontend-next/package.json은 lockfile 검증에만 쓰이고, 프론트엔드 의존성은 설치하지 않는다
+# frontend-react/package.json은 lockfile 검증에만 쓰이고, 프론트엔드 의존성은 설치하지 않는다
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY shared-schema/package.json shared-schema/
 COPY backend-node/package.json backend-node/
-COPY frontend-next/package.json frontend-next/
+COPY frontend-react/package.json frontend-react/
 RUN npm ci --workspace backend-node --workspace shared-schema
 
 COPY shared-schema shared-schema

@@ -47,7 +47,7 @@ Refs: #12
 
 | 범위 | 가리키는 곳 |
 | --- | --- |
-| `web` | `frontend-next/` 와 프론트엔드 설계 `docs/architecture/frontend.md` |
+| `web` | `frontend-react/` 와 프론트엔드 설계 `docs/architecture/frontend.md` |
 | `server` | `backend-node/` 와 백엔드 설계 `docs/architecture/backend.md` |
 | `docs` | 그 밖의 `docs/` 아래 문서. 종류가 `docs`이면 범위는 비워도 된다 |
 | `infra` | 배포 · 환경 변수 · 컨테이너 · 워크플로 · 루트 `package.json` |
@@ -258,16 +258,19 @@ GitHub → Settings → Branches에서 `main`과 `dev`에 같은 규칙을 겁�
 - DB 마이그레이션은 배포 파이프라인에서 `prisma migrate deploy`로 자동 적용합니다. 수동 적용은 하지 않습니다.
 - 샘플 데이터는 `SEED_SAMPLE=1`인 환경에만 넣습니다. Production은 데모 계정 둘과 데모 상품 6개가 기본이고, Staging이 생기기 전에는 양이 많을 때의 화면을 보려고 한시로 켭니다 ([시드 데이터](architecture/backend.md#4-시드-데이터)).
 
-### 문서 단계에서의 적용
+### 현재 배포 설정
 
-**명세 단계에서는 `dev`를 아직 두지 않습니다.** `dev`의 역할은 staging 배포인데 배포할 코드가 없기 때문입니다. 지금은 이렇게 갑니다.
+Vercel은 다음 설정으로 React 앱과 공유 패키지를 함께 설치합니다.
 
-| 지금 (명세) | 코드 첫 커밋부터 |
+| 설정 | 값 |
 | --- | --- |
-| `docs/짧은-이름` 브랜치에 역할별 커밋 → `main`에 fast-forward 병합 (리베이스 병합과 같은 결과) | 위 흐름 그대로 — `dev`를 만들고 PR 대상으로 |
-| 브랜치 보호 규칙 없음 | `main` · `dev`에 보호 규칙, CI 필수 검사 |
+| Root Directory | `frontend-react` |
+| Framework | `nextjs` |
+| Build Command | `npm run build` |
+| Install Command | `cd .. && npm ci --workspace frontend-react --workspace shared-schema` |
+| 루트 외부 소스 포함 | `sourceFilesOutsideRootDirectory=true` |
 
-초기 문서 몇 개는 브랜치 없이 `main`에 직접 커밋했습니다 — 이 규칙을 정하기 전의 일이라 이력에 그대로 둡니다. 2026-11-10 명세 전체 검토(`docs/review-principles`)부터 브랜치를 거칩니다.
+백엔드는 저장소 루트 Dockerfile로 빌드해 `backend-node`와 `shared-schema`를 함께 사용합니다. 폴더를 바꿀 때 코드·CI뿐 아니라 플랫폼의 Root Directory도 함께 맞춥니다.
 
 ## 구현 순서 · 뒤 단계가 앞 단계 위에 서게
 
@@ -291,7 +294,7 @@ GitHub → Settings → Branches에서 `main`과 `dev`에 같은 규칙을 겁�
 
 ## 테스트 전략 · 수용 조건 하나에 테스트 하나
 
-**수용 조건 251개를 기준으로 구현 단계의 검증 범위와 도구를 정했습니다.** 각 조건은 해당 규칙을 담당하는 계층에서 검증하고, 프론트엔드는 화면 반응·접근성, E2E는 판매자·구매자의 거래 흐름을 확인합니다. 단위 · 통합 · 소켓 · 컴포넌트 테스트와 E2E 17개(접근성 자동 검사 · 연결 끊김 포함)는 CI에서 돕니다. 성능 측정과 브라우저별 사진 업로드 호환성 확인은 아직 없습니다.
+**수용 조건 279개를 기준으로 검증 범위와 도구를 관리합니다.** 각 조건은 해당 규칙을 담당하는 계층에서 검증하고, 프론트엔드는 화면 반응·접근성, E2E는 판매자·구매자의 거래 흐름을 확인합니다. 단위 · 통합 · 소켓 · 컴포넌트 테스트와 E2E 18개(접근성 자동 검사 · 연결 끊김 · 이탈 확인 포함)는 CI에서 돕니다. 성능 측정과 브라우저별 사진 업로드 호환성 확인은 아직 없습니다.
 
 ### 1. 층과 도구
 
@@ -336,7 +339,7 @@ it('AC-PD-13 같은 구매자가 같은 상품에 채팅하기를 두 번 눌러
 | AC 대응표 (`scripts/check-ac.py`) | 실패는 아니고 작업 로그에 "번호를 단 테스트가 없는 AC" 목록. 지금 279개 중 278개 — 남은 하나(AC-CM-47, 링크와 버튼의 구분)는 테스트가 아니라 lint 규칙으로 강제한다 |
 | 문서 링크 검사 | 경로·앵커 오류 수정 후 병합 |
 
-E2E는 로컬에서 `npm run e2e -w frontend-next`로 돕니다. 마이그레이션이 적용된 빈 DB(`E2E_DATABASE_URL`, 기본 `neighbo_e2e`)가 필요하고, 백엔드(4100)와 운영 빌드의 프론트엔드(3100)는 실행기가 직접 띄웁니다. 설치된 Chrome을 쓰려면 `PW_CHANNEL=chrome`을 붙입니다. 테스트마다 새 계정을 만들어 앞선 실행의 데이터와 섞이지 않습니다.
+E2E는 로컬에서 `npm run e2e -w frontend-react`로 돕니다. 마이그레이션이 적용된 빈 DB(`E2E_DATABASE_URL`, 기본 `neighbo_e2e`)가 필요하고, 백엔드(4100)와 운영 빌드의 프론트엔드(3100)는 실행기가 직접 띄웁니다. 설치된 Chrome을 쓰려면 `PW_CHANNEL=chrome`을 붙입니다. 테스트마다 새 계정을 만들어 앞선 실행의 데이터와 섞이지 않습니다.
 
 ### 5. 흔들리는 테스트
 

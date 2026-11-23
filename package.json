@@ -3,13 +3,19 @@
   "private": true,
   "license": "MIT",
   "engines": { "node": ">=22" },
-  "workspaces": ["shared-schema", "backend-node", "frontend-next"],
+  "workspaces": ["shared-schema", "backend-node", "frontend-react"],
   "scripts": {
-    "dev": "npm run dev -w backend-node & npm run dev -w frontend-next",
+    "dev": "npm run dev -w backend-node & npm run dev -w frontend-react",
+    "dev:web": "npm run dev -w frontend-react",
+    "dev:api": "npm run dev -w backend-node",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "build": "npm run build -w frontend-next",
-    "build:preview": "npm run build:preview -w frontend-next"
+    "test:web": "npm run test -w frontend-react",
+    "test:api": "npm run test -w backend-node",
+    "test:shared": "npm run test -w shared-schema",
+    "test:e2e": "npm run e2e -w frontend-react",
+    "build": "npm run build -w frontend-react",
+    "build:preview": "npm run build"
   }
 }
