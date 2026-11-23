@@ -1,6 +1,19 @@
 # 문서 목차
 
-**현재 기능의 코드·설계·검증 근거를 찾는 문서 목차입니다.** 빠르게 보려면 [서비스 소개](../README.md) → [React 프론트엔드](../frontend-react/README.md) → 필요한 기능·설계 순서로 읽으세요. 기능 문서 14장, 역할별 설계 3장과 기술·검증 기록으로 구성됩니다.
+**현재 기능의 코드·설계·검증 근거를 찾는 문서 목차입니다.** 빠르게 보려면 [서비스 소개](../README.md) → [React 프론트엔드](architecture/frontend.md) → 필요한 기능·설계 순서로 읽으세요. 기능 문서 14장, 흐름·역할별 설계와 기술·검증 기록으로 구성됩니다.
+
+## 폴더 역할
+
+| 위치 | 담는 내용 |
+| --- | --- |
+| [features/](features/) | 기능별 요구사항·경우의 수·수용 조건 |
+| [architecture/](architecture/) | 화면→서버 흐름, 프론트엔드·백엔드·공유 계약의 책임과 코드 지도 |
+| [tests/frontend-react/](tests/frontend-react/) | 컴포넌트·상태·접근성 테스트, E2E·지원 코드·Vitest·Playwright 설정 |
+| [tests/backend-node/](tests/backend-node/) | HTTP·DB·소켓·배치 통합 테스트, DB 없는 문서 회귀와 지원·설정 |
+| [tests/shared-schema/](tests/shared-schema/) | 두 앱의 입력·응답 계약과 정규화 단위 테스트 |
+| [tools/](tools/) | 링크·AC 검사기, PostgreSQL 테스트 초기화 SQL, [스파이크 실행 안내](tools/spikes/README.md) |
+
+실행 코드는 저장소의 `frontend-react/`·`backend-node/`·`shared-schema/`에 둡니다. `docs/`는 검증 전용 npm 워크스페이스 `@neighbo/docs`이며 실행 앱의 배포 대상에 포함하지 않습니다. 실행 명령은 [개발 기준](dev.md#로컬-실행과-패키지별-검사), 편집 기준은 [AGENTS.md](AGENTS.md)에 정리했습니다.
 
 ## 시작
 
@@ -38,6 +51,7 @@
 | [흐름 설계](architecture/flow.md) | 연결 경로 · 두 역할의 계약 · 핵심 흐름 · 실패가 화면까지 오는 길 |
 | [프론트엔드 설계](architecture/frontend.md) | 렌더링 · 상태 · 캐시 · 에러 · 폼 · 포커스 · 소켓 클라이언트 · 화면 명세 · 공통 컴포넌트 · 폴더 구조 |
 | [백엔드 설계](architecture/backend.md) | 요청 계층 · 데이터 모델 · 트랜잭션 · 권한 · 멱등성 · 에러 코드 · 보호 장치 · 로그 · 소켓 서버 · API 명세 · 구성과 시드 |
+| [공유 계약](architecture/shared-schema.md) | Zod 계약·정규화 코드 지도, 두 앱의 소비 경계와 검사 방법 |
 
 ## 기록
 
@@ -47,7 +61,8 @@
 | [트러블슈팅](troubleshooting.md) | 명세 검토 12건 · 스파이크 7건 · 구현 19건의 원인 · 수정 · 확인 방법 |
 | [기술 노트](tech-notes.md) | 기술별 동작 원리와 실험 결과 (WebSocket · JWT와 비밀번호 해시 · PostgreSQL 제약과 트랜잭션) |
 | [개발 규칙](dev.md) | 커밋 · 브랜치 · 구현 순서 · 테스트 전략 · AI 작업·검증 |
+| [스파이크 실행 안내](tools/spikes/README.md) | WebSocket 6개·인증 4개·PostgreSQL 5개 실험의 명령·환경·데이터 경계 |
 
 ## 문서 간 연결
 
-수용 조건은 같은 문서의 경우의 수 ID(`CH-CC-07` 등)를, 설계는 수용 조건 번호(`AC-CH-05` 등)를 참조합니다. 문서를 고친 뒤에는 `python3 scripts/check-docs.py`로 링크 · 앵커 · 표를 검사합니다.
+수용 조건은 같은 문서의 경우의 수 ID(`CH-CC-07` 등)를, 설계는 수용 조건 번호(`AC-CH-05` 등)를 참조합니다. 문서를 고친 뒤에는 `python3 docs/tools/check-docs.py`로 링크 · 앵커 · 표를 검사합니다.

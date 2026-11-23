@@ -8,13 +8,16 @@
 
 | 위치 | 대표 기술 | 담당하는 일 |
 | --- | --- | --- |
-| [frontend-react/](frontend-react/README.md) | React 19 · Next.js 16 · TypeScript · Tailwind CSS · TanStack Query | 화면·반응형·접근성, 서버 렌더링, 폼·캐시·소켓 상태 |
-| [backend-node/](backend-node/README.md) | Node.js · Express · Prisma 7 · PostgreSQL 16 · Socket.IO | 인증·권한, 거래 상태·트랜잭션, 채팅 저장·복구, 사진·정리 배치 |
-| [shared-schema/](shared-schema/README.md) | Zod · TypeScript | 두 앱이 공유하는 요청·응답 타입, 입력 검증·정규화 |
+| [frontend-react/](frontend-react/) | React 19 · Next.js 16 · TypeScript · Tailwind CSS · TanStack Query | 화면·반응형·접근성, 서버 렌더링, 폼·캐시·소켓 상태 |
+| [backend-node/](backend-node/) | Node.js · Express · Prisma 7 · PostgreSQL 16 · Socket.IO | 인증·권한, 거래 상태·트랜잭션, 채팅 저장·복구, 사진·정리 배치 |
+| [shared-schema/](shared-schema/) | Zod · TypeScript | 두 앱이 공유하는 요청·응답 타입, 입력 검증·정규화 |
 | [docs/](docs/README.md) | 요구사항·설계·검증 기록 | 기능별 수용 조건, 역할별 책임, 선택 이유와 재현 방법 |
-| [spikes/](spikes/) | WebSocket · 인증 · PostgreSQL 실험 | 서비스 코드와 분리한 최소 재현 실험 |
+| [docs/tests/](docs/tests/) | Vitest · Testing Library · Playwright | 패키지별 단위·통합·E2E·접근성 검사와 실행 설정 |
+| [docs/tools/](docs/tools/) | Python 검사 · SQL · 기술 스파이크 | 문서·수용 조건 점검, 테스트 DB 준비, 독립 재현 실험 |
 
 `frontend-react`는 React 기반 UI를 찾기 쉽게 붙인 이름이며, 실제 실행 프레임워크는 **Next.js App Router**입니다. 백엔드는 별도 Node.js 서비스입니다. [폴더 이름 기준](docs/decisions.md#0015--최상위-폴더는-역할-대표-기술로-짓는다)
+
+문서·검증 코드는 `docs/`에 모으고 실행 코드는 세 패키지에 둡니다. 루트 소개 외 Markdown은 `docs/`에서 관리합니다. 역할별 설명은 [프론트엔드](docs/architecture/frontend.md)·[백엔드](docs/architecture/backend.md)·[공유 계약](docs/architecture/shared-schema.md), 실험 실행 방법은 [스파이크 안내](docs/tools/spikes/README.md)에서 확인할 수 있습니다.
 
 ## 현재 제공하는 기능
 
@@ -51,10 +54,10 @@
 | 오류 정정 | [useForm](frontend-react/src/lib/form/useForm.ts)의 서버 필드 오류 반영과 첫 오류 입력으로 초점 이동 |
 | 키보드 초점 | [RouteFocus](frontend-react/src/lib/a11y/RouteFocus.tsx)의 새 화면 h1 초점, 입력·대화상자 초점 유지 |
 | 대화상자·알림 | [Dialog](frontend-react/src/components/Dialog.tsx)의 네이티브 `showModal()`·제목 연결, [Toast](frontend-react/src/components/Toast.tsx)의 status·alert 영역 |
-| 명도 대비·사용자 설정 | [공통 CSS](frontend-react/src/styles/globals.css)의 토큰·44px 조작 영역·동작 줄이기, [색 조합 검사](frontend-react/src/styles/tokens.test.ts)의 본문 4.5:1·UI 3:1 조건 |
-| 좁은 화면·접근 가능한 이름 | [레이아웃 E2E](frontend-react/e2e/layout.spec.ts)의 360px 버튼 줄바꿈·표시 문구와 접근 가능한 이름 비교 |
+| 명도 대비·사용자 설정 | [공통 CSS](frontend-react/src/styles/globals.css)의 토큰·44px 조작 영역·동작 줄이기, [색 조합 검사](docs/tests/frontend-react/styles/tokens.test.ts)의 본문 4.5:1·UI 3:1 조건 |
+| 좁은 화면·접근 가능한 이름 | [레이아웃 E2E](docs/tests/frontend-react/e2e/layout.spec.ts)의 360px 버튼 줄바꿈·표시 문구와 접근 가능한 이름 비교 |
 
-[접근성 E2E](frontend-react/e2e/a11y.spec.ts)는 손님·구매자·판매자의 주요 화면과 오류·확인 창 상태를 대상으로 합니다. 위 내용은 구현과 검사 범위이며 전체 접근성 적합성 심사나 인증 결과는 아닙니다.
+[접근성 E2E](docs/tests/frontend-react/e2e/a11y.spec.ts)는 손님·구매자·판매자의 주요 화면과 오류·확인 창 상태를 대상으로 합니다. 위 내용은 구현과 검사 범위이며 전체 접근성 적합성 심사나 인증 결과는 아닙니다.
 
 ## 대표적인 설계 판단
 
@@ -108,7 +111,7 @@ npm run dev:api
 npm run dev:web
 ```
 
-웹은 `http://localhost:3000`, API는 `http://localhost:4000`입니다. [환경 변수·데모·테스트 DB](backend-node/README.md#실행과-환경-변수)
+웹은 `http://localhost:3000`, API는 `http://localhost:4000`입니다. [환경 변수·데모·테스트 DB](docs/dev.md#로컬-실행과-패키지별-검사)
 
 ## 검증 방법과 근거
 
@@ -118,8 +121,8 @@ npm run typecheck
 npm test
 npm run build
 npm run test:docs -w backend-node
-python3 scripts/check-docs.py
-python3 scripts/check-ac.py
+python3 docs/tools/check-docs.py
+python3 docs/tools/check-ac.py
 ```
 
 백엔드 테스트에는 개발 DB와 분리된 `TEST_DATABASE_URL`이 필요합니다. E2E는 마이그레이션이 적용된 별도 DB와 Chromium을 준비한 뒤 `npm run test:e2e`로 실행합니다. 개별 패키지는 `test:web`·`test:api`·`test:shared`로 확인할 수 있습니다.
@@ -134,8 +137,9 @@ python3 scripts/check-ac.py
 | 폼과 서버 오류 연결 | [lib/form](frontend-react/src/lib/form/) · [shared-schema](shared-schema/src/) |
 | 캐시와 실시간 상태 | [features/chat](frontend-react/src/features/chat/) · [lib/socket](frontend-react/src/lib/socket/) |
 | API·권한·트랜잭션 | [modules](backend-node/src/modules/) · [Prisma 모델](backend-node/prisma/schema.prisma) · [백엔드 설계](docs/architecture/backend.md) |
-| 보안 경계·실제 API 계약 | [보안 근거](docs/SECURITY.md) · [OpenAPI](backend-node/src/docs/openapi.ts) · [Node Swagger](https://neighbo-liart.vercel.app/node-swagger) |
+| 보안 경계·실제 API 계약 | [보안 근거](docs/SECURITY.md) · [OpenAPI](backend-node/src/modules/api-docs/openapi.ts) · [Node Swagger](https://neighbo-liart.vercel.app/node-swagger) |
 | 기획·예외 흐름·검증 기준 | [요구사항](docs/README.md#기능별-요구사항--한-기능--한-장) · [흐름 설계](docs/architecture/flow.md) · [트러블슈팅](docs/troubleshooting.md) |
+| 검증·재현 도구 | [패키지별 테스트](docs/tests/) · [문서·AC 검사](docs/tools/) · [기술 스파이크](docs/tools/spikes/README.md) |
 
 ## 현재 범위와 남은 확인
 

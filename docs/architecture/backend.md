@@ -4,6 +4,25 @@
 
 **Node.js·Express로 구현한 인증·권한, 거래 상태, 메시지 저장·복구의 처리 기준입니다.** 현재 코드는 `backend-node/src/`, 모델·제약·마이그레이션은 `backend-node/prisma/`에서 확인할 수 있습니다. 아래 문서는 요청 계층·데이터·트랜잭션·오류·소켓·API·운영 구성의 책임과 선택 이유를 설명합니다.
 
+## 구현 코드 지도
+
+| 위치 | 책임 |
+| --- | --- |
+| [backend-node/src/modules](../../backend-node/src/modules/) | 인증·상품·채팅·마이·알림의 경로·서비스·응답 |
+| [db](../../backend-node/src/db/) · [prisma](../../backend-node/prisma/) | Prisma 클라이언트, 모델·제약·마이그레이션 |
+| [realtime](../../backend-node/src/realtime/) | Socket.IO 인증·이벤트·커밋 후 전달 |
+| [storage](../../backend-node/src/storage/) | 로컬·S3 호환 사진 저장소 |
+| [jobs](../../backend-node/src/jobs/) · [seed](../../backend-node/src/seed/) | 파일 정리·데모 초기화·시드 |
+| [config](../../backend-node/src/config.ts) | 시작 시 환경 변수 검증 |
+| [API 문서 모듈](../../backend-node/src/modules/api-docs/) | 공유 스키마 기반 OpenAPI·읽기 전용 Node Swagger |
+| [백엔드 검사](../tests/backend-node/) | 실제 DB의 권한·상태·동시성, 문서·한도 회귀 |
+
+인증·권한, 최종 입력 검증, 거래 상태·중복 요청은 서버와 DB에서 제어합니다. 화면은 거절 결과·재시도·캐시 갱신을 담당합니다. 실행·테스트 DB·배포 환경은 [개발 가이드](../dev.md#로컬-실행과-패키지별-검사), 입력 계약은 [공유 스키마](shared-schema.md)에 모았습니다.
+
+### 읽기 전용 Node Swagger
+
+API 실행 후 `http://localhost:4000/node-swagger`에서 HTTP 31개 동작의 입력·응답·인증 조건을 확인합니다. JSON은 `/node-openapi.json`입니다. [웹의 같은 문서](https://neighbo-liart.vercel.app/node-swagger)는 공개 문서만 인증 없이 프록시하고 API 주소를 `/api`로 표시합니다. Try it out·외부 검증·인증 지속 저장은 끄며 고정된 자체 호스팅 자원만 제공합니다. [위협별 방어·검증 범위](../SECURITY.md)
+
 ## 이 문서의 구성
 
 | 문서 | 핵심 결론 |
@@ -109,23 +128,17 @@ Prisma 클라이언트 확장으로 `Product` 조회에 `deletedAt IS NULL`을 �
 
 ### 폴더 구조
 
-```
-backend-node/src/
-├─ app.ts                 # 미들웨어 조립 순서가 이 파일 한 곳에 보이게
-├─ middleware/            # requestId · origin · rateLimit · auth · validate · errorHandler
-├─ modules/
-│  ├─ auth/               # route · controller · service · schema
-│  ├─ products/
-│  ├─ uploads/
-│  ├─ chat/
-│  └─ me/
-├─ policies/              # 순수 권한 함수 + 테스트
-├─ db/                    # Prisma 클라이언트 · 확장(soft delete) · 트랜잭션 헬퍼
-├─ socket/                # 연결 미들웨어 · 이벤트 핸들러 (서비스를 재사용)
-├─ storage/               # ImageStorage 인터페이스 · local · s3 구현
-├─ jobs/                  # 정리 배치
-└─ errors/                # AppError · 카탈로그
-```
+| 실행 경로 | 책임 |
+| --- | --- |
+| `backend-node/src/app.ts` | 미들웨어 조립 순서 |
+| `backend-node/src/middleware/` | requestId·Origin·rate limit·인증·검증·오류 전달 |
+| `backend-node/src/modules/` | auth·products·uploads·chat·me·users의 라우트와 서비스, 읽기 전용 api-docs |
+| `backend-node/src/db/` | Prisma 클라이언트·soft delete 확장·트랜잭션 헬퍼 |
+| `backend-node/src/realtime/` | 소켓 연결·이벤트·사용자별 제한, 서비스 재사용 |
+| `backend-node/src/storage/` | ImageStorage 인터페이스·local·S3 구현 |
+| `backend-node/src/jobs/` · `backend-node/src/seed/` | 정리 배치·데모와 샘플 시드 |
+| `backend-node/src/errors/` · `backend-node/src/lib/` | 오류 카탈로그·공통 유틸 |
+| `docs/tests/backend-node/` | 위 실행 코드의 역할별 테스트·support·Vitest 설정 |
 
 기능별 모듈(`modules/products/`) 안에 계층을 두는 이유: 상품 규칙을 고칠 때 열어야 할 파일이 한 폴더에 모인다. 계층별 최상위 폴더(`controllers/` · `services/`)는 파일 수가 늘면 한 기능을 고치려고 다섯 폴더를 오가게 된다.
 

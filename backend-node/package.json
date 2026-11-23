@@ -10,8 +10,8 @@
     "start": "tsx src/server.ts",
     "lint": "eslint .",
     "typecheck": "prisma generate && tsc --noEmit",
-    "test": "prisma generate && vitest run",
-    "test:docs": "vitest run --config vitest.docs.config.ts",
+    "test": "prisma generate && vitest run --config ../docs/tests/backend-node/vitest.config.ts",
+    "test:docs": "vitest run --config ../docs/tests/backend-node/vitest.docs.config.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
@@ -33,20 +33,15 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@apidevtools/swagger-parser": "13.1.0",
     "@eslint/js": "^10.0.0",
     "@types/bcrypt": "^6.0.0",
     "@types/busboy": "^1.5.5",
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
     "@types/pg": "^8.11.0",
-    "@types/supertest": "^6.0.0",
     "eslint": "^10.14.0",
     "prisma": "7.10.1",
-    "socket.io-client": "^4.8.4",
-    "supertest": "^7.3.2",
     "typescript": "~6.0.0",
-    "typescript-eslint": "^8.72.2",
-    "vitest": "^5.1.0"
+    "typescript-eslint": "^8.72.2"
   }
 }

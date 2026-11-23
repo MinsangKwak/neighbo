@@ -1,0 +1,4 @@
+{
+  "extends": "../../../backend-node/tsconfig.json",
+  "include": ["./**/*.ts"]
+}

@@ -40,6 +40,6 @@
 
 | 층 | 무엇을 |
 | --- | --- |
-| 백엔드 통합 | AC-NB-01~06 · 09 (`modules/neighborhood.test.ts`) — 목록 밖 값, 이사, 검색 · 숨기기와의 조합 |
+| 백엔드 통합 | AC-NB-01~06 · 09 (`docs/tests/backend-node/modules/neighborhood.test.ts`) — 목록 밖 값, 이사, 검색 · 숨기기와의 조합 |
 | 프론트 컴포넌트 | AC-NB-02 · 05 · 06 · 07 (선택 칸, 목록 쿼리, 카드, 토글) |
-| E2E | 동네 없음 → [내 동네 정하기] → 고르기 → "내 동네만"으로 거르기 → 새로고침 유지 → 손님에게는 없음 (`e2e/neighborhood.spec.ts`) |
+| E2E | 동네 없음 → [내 동네 정하기] → 고르기 → "내 동네만"으로 거르기 → 새로고침 유지 → 손님에게는 없음 (`docs/tests/frontend-react/e2e/neighborhood.spec.ts`) |

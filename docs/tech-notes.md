@@ -36,7 +36,7 @@
 
 ## 실험 코드 관리
 
-- 재현 가능한 코드는 `spikes/`에서 서비스와 분리해 관리합니다.
+- 재현 가능한 코드는 `docs/tools/spikes/`에서 서비스와 분리해 관리합니다.
 - 실행 조건, 관찰 결과, 확인하지 못한 범위를 노트에 함께 기록합니다.
 - 결과에 따라 설계가 달라지면 [결정 기록](decisions.md)과 관련 명세를 갱신합니다.
 
@@ -231,7 +231,7 @@ socket.on('data', (chunk) => {
 
 ## JWT와 비밀번호 해시
 
-**JWT는 `node:crypto`만으로 서명·검증해 보고, bcrypt는 비용·입력 한계·응답 시간을 측정했습니다.** 실험 코드는 [`spikes/auth/`](../spikes/auth/README.md)에 있고, 2026-11-10에 Node 22 · 샌드박스 환경에서 실행했습니다. 쿠키 `SameSite`와 CSRF의 브라우저 동작은 브라우저가 필요해 아직 확인하지 않았습니다.
+**JWT는 `node:crypto`만으로 서명·검증해 보고, bcrypt는 비용·입력 한계·응답 시간을 측정했습니다.** 실험 코드는 [`docs/tools/spikes/auth/`](tools/spikes/README.md#인증)에 있고, 2026-11-10에 Node 22 · 샌드박스 환경에서 실행했습니다. 쿠키 `SameSite`와 CSRF의 브라우저 동작은 브라우저가 필요해 아직 확인하지 않았습니다.
 
 ### 1. 왜 필요한가
 
@@ -285,7 +285,7 @@ socket.on('data', (chunk) => {
 
 ## PostgreSQL 제약과 트랜잭션
 
-**동시에 도는 두 커넥션으로 명세의 경합 처리 다섯 가지를 재현했습니다.** 실험 코드는 [`spikes/postgres/`](../spikes/postgres/README.md)에 있고, 2026-11-10에 PostgreSQL 16.15 · 격리 수준 `READ COMMITTED`에서 실행했습니다. Prisma를 거치지 않고 `pg` 드라이버로 SQL을 직접 보냈습니다.
+**동시에 도는 두 커넥션으로 명세의 경합 처리 다섯 가지를 재현했습니다.** 실험 코드는 [`docs/tools/spikes/postgres/`](tools/spikes/README.md#postgresql)에 있고, 2026-11-10에 PostgreSQL 16.15 · 격리 수준 `READ COMMITTED`에서 실행했습니다. Prisma를 거치지 않고 `pg` 드라이버로 SQL을 직접 보냈습니다.
 
 ### 1. 왜 필요한가
 

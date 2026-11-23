@@ -1,7 +1,7 @@
 import express, { type Express } from 'express';
 import type { Config } from './config.js';
 import type { Db } from './db/client.js';
-import { createDocsRouter } from './docs/router.js';
+import { createDocsRouter } from './modules/api-docs/router.js';
 import { createClientIp } from './lib/clientIp.js';
 import type { Logger } from './lib/log.js';
 import type { PasswordHasher } from './lib/password.js';

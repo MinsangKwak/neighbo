@@ -39,6 +39,6 @@
 
 | 층 | 무엇을 |
 | --- | --- |
-| 백엔드 통합 | AC-FV-01~07 · 09 (`modules/products/favorites.test.ts`, `jobs/demoReset.test.ts`) — 동시 8회 켜기 포함 |
+| 백엔드 통합 | AC-FV-01~07 · 09 (`docs/tests/backend-node/modules/products/favorites.test.ts`, `docs/tests/backend-node/jobs/demoReset.test.ts`) — 동시 8회 켜기 포함 |
 | 프론트 컴포넌트 | AC-FV-04 · 08 (즉시 반영, 되돌리기, 연타, 비로그인) |
-| E2E | 손님 → 로그인, 켜기 → 새로 열어도 유지 → 목록 → 판매자는 개수만 → 끄기 → 빈 목록 (`e2e/favorite.spec.ts`) |
+| E2E | 손님 → 로그인, 켜기 → 새로 열어도 유지 → 목록 → 판매자는 개수만 → 끄기 → 빈 목록 (`docs/tests/frontend-react/e2e/favorite.spec.ts`) |

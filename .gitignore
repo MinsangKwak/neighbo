@@ -10,5 +10,5 @@ coverage/
 next-env.d.ts
 backend-node/src/generated/
 backend-node/.data/
-frontend-react/test-results/
-frontend-react/playwright-report/
+docs/tests/frontend-react/test-results/
+docs/tests/frontend-react/playwright-report/

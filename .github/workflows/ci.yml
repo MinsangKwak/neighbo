@@ -75,8 +75,8 @@ jobs:
         with:
           name: e2e-report
           path: |
-            frontend-react/playwright-report
-            frontend-react/test-results
+            docs/tests/frontend-react/playwright-report
+            docs/tests/frontend-react/test-results
           retention-days: 7
 
   # Railway가 쓰는 Dockerfile이 실제로 빌드되고, 마이그레이션 후 서버가 뜨는지 확인한다

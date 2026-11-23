@@ -171,31 +171,22 @@
 
 ## 5. 폴더 구조
 
-**앱 폴더는 `{역할}-{대표 기술}`, 공유 패키지는 `shared-{내용}`으로 구분합니다.** 역할과 실행 환경을 이름에서 확인할 수 있도록 정했습니다. 세 패키지는 npm workspaces로 연결하며, 기능 코드는 각 앱의 기능 폴더에서 관리합니다. 상세 기준은 [결정 0015](decisions.md#0015--최상위-폴더는-역할-대표-기술로-짓는다)에 있습니다.
+**앱 폴더는 `{역할}-{대표 기술}`, 공유 패키지는 `shared-{내용}`으로 구분합니다.** 역할과 실행 환경을 이름에서 확인할 수 있도록 정했습니다. 앱·공유 계약 세 패키지와 검증 전용 `docs` 패키지를 npm workspaces로 연결하며, 기능 코드는 각 앱의 기능 폴더에서 관리합니다. 상세 기준은 [결정 0015](decisions.md#0015--최상위-폴더는-역할-대표-기술로-짓는다)에 있습니다.
 
-```
-neighbo/
-├─ README.md              # 서비스 소개 · 설계 현황 · 구성 · 문서 링크
-├─ LICENSE                # MIT
-├─ package.json           # npm workspaces — 아래 세 폴더를 묶음
-├─ docker-compose.yml     # 로컬 PostgreSQL 16 (개발 DB · 테스트 DB)
-├─ Dockerfile             # 백엔드 실행 이미지 — 마이그레이션 적용 후 서버 시작
-├─ frontend-react/         # 프론트엔드 · React/Next.js — UI·상태·접근성
-├─ backend-node/          # 백엔드 · Node.js — README가 백엔드 설계의 입구
-├─ shared-schema/         # 공유 — Zod 스키마 · 타입 · 정규화 함수
-├─ spikes/                # 기술 실험 코드 (서비스 코드 아님)
-├─ scripts/               # check-docs.py — 문서 링크 · 앵커 · 표 검사
-├─ docs/
-│  ├─ README.md           # 문서 목차
-│  ├─ overview.md         # 개요 (이 문서)
-│  ├─ features/           # 기능 하나 = 한 장 — 요구사항 + 경우의 수 (00 공통 ~ 10 채팅 알림, 2차: 11 판매자 프로필 · 12 관심)
-│  ├─ architecture/       # flow.md · frontend.md · backend.md — 역할마다 한 장
-│  ├─ decisions.md        # 결정 기록 17개 + 검토 요청
-│  ├─ troubleshooting.md  # 설계 결함 · 스파이크 문제의 원인과 해결
-│  ├─ tech-notes.md       # 기술 노트 — 동작 원리 · 실험 결과
-│  └─ dev.md              # 커밋 · 브랜치 · 테스트 · AI 작업·검증
-└─ .github/               # 워크플로 — 문서 검사 · CI(lint · typecheck · test · build · e2e · 이미지 빌드)
-```
+| 위치 | 역할 |
+| --- | --- |
+| `README.md` · `LICENSE` | 서비스 소개와 MIT 고지. 문서는 루트 README를 제외하고 모두 docs 아래에서 관리 |
+| `package.json` | frontend-react·backend-node·shared-schema·docs 워크스페이스와 통합 명령 |
+| `frontend-react/` | React·Next.js 화면·상태·접근성 실행 코드 |
+| `backend-node/` | Express API·Prisma·실시간 서버·배치 실행 코드 |
+| `shared-schema/` | 공유 Zod 스키마·타입·정규화 함수 |
+| `docs/features/` | 기능 문서 14장(00 공통~13 동네) |
+| `docs/architecture/` | 흐름·프론트엔드·백엔드·공유 계약 설계와 코드 지도 |
+| `docs/tests/` | 패키지별 단위·통합·E2E, 지원 코드와 실행 설정 |
+| `docs/tools/` | 링크·AC 검사, 테스트 DB SQL, 독립 기술 스파이크 |
+| `docs/*.md` | 개요·보안·결정·트러블슈팅·기술 노트·개발 기준·작업 기준 |
+| `docker-compose.yml` · `Dockerfile` | 로컬 PostgreSQL 16과 마이그레이션 후 시작하는 백엔드 이미지 |
+| `.github/` | 문서 검사와 CI(lint·typecheck·test·build·e2e·이미지 빌드) |
 
 **요구사항은 기능별로, 처리 방식은 역할별로 관리합니다.** 예를 들어 중복 채팅방 생성에 대해 프론트엔드는 버튼 잠금과 응답 처리를, 백엔드는 유니크 제약과 기존 방 반환을 담당합니다. 기능별 요구사항은 `docs/features/`의 기능 문서에, 여러 기능에 걸친 처리 방식은 `docs/architecture/`의 설계 문서에 둡니다. 2026-11-10에 64개였던 문서를 이 구조로 합쳤습니다 — 기능 하나를 보려고 경우의 수 · 요구사항 · 프론트엔드 · 백엔드 네 곳을 오가지 않도록.
 
@@ -204,6 +195,7 @@ neighbo/
 | `frontend-react/` | 프론트엔드 | React · Next.js | Vercel 루트 디렉터리 | `web` |
 | `backend-node/` | 백엔드 | Node.js (Express) | Railway — 저장소 루트의 `Dockerfile`로 빌드 (공유 패키지를 함께 담기 위해) | `server` |
 | `shared-schema/` | 공유 | Zod | 두 앱이 빌드 때 포함 | (비움) |
+| `docs/` | 문서·검증 | Vitest · Playwright · Python | 실행 앱 배포에서 제외 | `test` · `docs` · `ci` 등 변경 목적 |
 
 ---
 
@@ -224,7 +216,7 @@ neighbo/
 
 ### 문서가 끝난 뒤
 
-1. **기술 스파이크** — WebSocket · JWT 서명·검증 · bcrypt 비용 · 유니크 경합과 트랜잭션 실험을 완료했습니다. 브라우저가 필요한 쿠키 `SameSite` · CSRF 확인은 구현 0단계에서 합니다. 실험 코드는 `spikes/`, 결과는 기술 노트에 있습니다.
+1. **기술 스파이크** — WebSocket · JWT 서명·검증 · bcrypt 비용 · 유니크 경합과 트랜잭션 실험을 완료했습니다. 브라우저가 필요한 쿠키 `SameSite` · CSRF 확인은 구현 0단계에서 합니다. 실험 코드는 `docs/tools/spikes/`, 결과는 기술 노트에 있습니다.
 2. 프로젝트 초기화 (`ci`, `chore` 커밋)
 3. 기능 1번(회원가입)부터 순서대로 — 기능 하나 = 브랜치 하나 = PR 하나
 4. 각 PR에 수용 조건 체크리스트와 검증 결과 첨부
@@ -273,7 +265,7 @@ neighbo/
 
 | 확인할 구현 | 코드·설계 | 검사 범위 |
 | --- | --- | --- |
-| 렌더링·캐시·상태 | [frontend-react](../frontend-react/README.md) · [렌더링](architecture/frontend.md#01--렌더링-전략) · [상태](architecture/frontend.md#02--상태-소유권) | 타입·컴포넌트·실제 서버를 사용하는 E2E |
+| 렌더링·캐시·상태 | [frontend-react](architecture/frontend.md) · [렌더링](architecture/frontend.md#01--렌더링-전략) · [상태](architecture/frontend.md#02--상태-소유권) | 타입·컴포넌트·실제 서버를 사용하는 E2E |
 | 입력·오류·이탈 확인 | [폼](architecture/frontend.md#05--폼) · [lib/form](../frontend-react/src/lib/form/) | 공유 스키마·서버 필드 오류·첫 오류 초점, 앱 안 이동·닫기·새로고침 |
 | 퍼블리싱·접근성 | [공통 UI](../frontend-react/src/components/) · [토큰](../frontend-react/src/styles/) · [초점](architecture/frontend.md#06--포커스와-라이브-리전) | 색 조합·역할·이름·레이블, 좁은 화면 배치·초점·axe 시나리오 |
 | 실시간·복구 | [소켓 클라이언트](architecture/frontend.md#07--소켓-클라이언트) | 전송 대기열·번호 틈·재연결·연결 끊김 |
@@ -283,13 +275,13 @@ neighbo/
 
 | 확인할 구현 | 코드·설계 | 검사 범위 |
 | --- | --- | --- |
-| 인증·권한·계약 | [backend-node](../backend-node/README.md) · [공유 스키마](../shared-schema/README.md) | HTTP·소켓 권한, 정상·오류 응답, 입력 정규화 |
+| 인증·권한·계약 | [backend-node](architecture/backend.md) · [공유 스키마](architecture/shared-schema.md) | HTTP·소켓 권한, 정상·오류 응답, 입력 정규화 |
 | 거래·채팅 데이터 | [트랜잭션](architecture/backend.md#03--트랜잭션-경계) · [modules](../backend-node/src/modules/) | 실제 PostgreSQL의 제약·동시 요청·상태 전이·메시지 저장과 복구 |
 | 배치·사진·데모 | [jobs](../backend-node/src/jobs/) · [seed](../backend-node/src/seed/) | 파일 정리·초기화, 실패 시 재시도와 현재 DB 조건 |
 | 빌드·실행 | [CI](../.github/workflows/ci.yml) · [Dockerfile](../Dockerfile) | lint·타입·테스트·웹 운영 빌드·Chromium E2E·컨테이너 |
 
 ### 공통 문서
 
-[기능별 요구사항](README.md#기능별-요구사항--한-기능--한-장)은 기능별 역할·수용 조건을, [흐름 설계](architecture/flow.md)는 화면→API→DB→화면의 연결을 설명합니다. [결정 기록](decisions.md)·[기술 노트](tech-notes.md)·[트러블슈팅](troubleshooting.md)에는 선택 근거와 재현 결과가 있습니다. 문서·조건 연결은 `scripts/check-docs.py`·`scripts/check-ac.py`로 확인합니다.
+[기능별 요구사항](README.md#기능별-요구사항--한-기능--한-장)은 기능별 역할·수용 조건을, [흐름 설계](architecture/flow.md)는 화면→API→DB→화면의 연결을 설명합니다. [결정 기록](decisions.md)·[기술 노트](tech-notes.md)·[트러블슈팅](troubleshooting.md)에는 선택 근거와 재현 결과가 있습니다. 문서·조건 연결은 `docs/tools/check-docs.py`·`docs/tools/check-ac.py`로 확인합니다.
 
 현재 배포 구성은 Vercel·Railway·Supabase Storage입니다. 배포 환경에서는 목록 API와 홈·로그인·상세 화면을 확인한 기록이 있습니다. 브라우저 자체 뒤로가기의 이탈 확인, 실제 기기 조작, Web Vitals·부하 측정, Render·Supabase DB 이전은 별도 확인 범위입니다. 자동 검사는 전체 접근성 적합성 심사나 운영 성과 수치를 대신하지 않습니다.
