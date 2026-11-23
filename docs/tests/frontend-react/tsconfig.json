@@ -1,0 +1,9 @@
+{
+  "extends": "../../../frontend-react/tsconfig.json",
+  "compilerOptions": {
+    "incremental": false,
+    "paths": { "@/*": ["../../../frontend-react/src/*"] }
+  },
+  "include": ["./**/*.ts", "./**/*.tsx", "../../../frontend-react/next-env.d.ts"],
+  "exclude": ["node_modules", "test-results", "playwright-report"]
+}

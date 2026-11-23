@@ -1,111 +1,152 @@
-# neighbo
+# neighbo · React 기반 동네 거래 서비스
 
-**neighbo는 이웃과 중고 물건을 거래하고 채팅으로 약속을 잡는 동네 거래 서비스입니다.** 상품 탐색부터 채팅, 거래완료, 구매 내역 확인까지를 열 가지 기능으로 정리했습니다. 각 기능의 정상 흐름과 함께 입력 오류, 권한, 동시 요청, 연결 끊김에 대한 동작을 설계했습니다.
+**상품 탐색부터 채팅·거래완료·구매 내역까지 이어지는 개인 풀스택 프로젝트입니다.** React·Next.js로 사용자 화면을 만들고, Express·PostgreSQL로 인증·거래 상태·메시지 저장을 구현했습니다. 퍼블리싱과 접근성을 공통 UI에 반영하고, 연결 끊김과 중복 요청의 복구 흐름까지 다뤘습니다.
 
-| 사용자 | 주요 흐름 |
+[서비스 열기](https://neighbo-liart.vercel.app/) · [Node Swagger](https://neighbo-liart.vercel.app/node-swagger) · [Notion 상세](https://www.notion.so/421cbbdd109b81ee8960e32dd7038b4a) · [문서 목차](docs/README.md)
+
+## 기술과 폴더
+
+| 위치 | 대표 기술 | 담당하는 일 |
+| --- | --- | --- |
+| [frontend-react/](frontend-react/) | React 19 · Next.js 16 · TypeScript · Tailwind CSS · TanStack Query | 화면·반응형·접근성, 서버 렌더링, 폼·캐시·소켓 상태 |
+| [backend-node/](backend-node/) | Node.js · Express · Prisma 7 · PostgreSQL 16 · Socket.IO | 인증·권한, 거래 상태·트랜잭션, 채팅 저장·복구, 사진·정리 배치 |
+| [shared-schema/](shared-schema/) | Zod · TypeScript | 두 앱이 공유하는 요청·응답 타입, 입력 검증·정규화 |
+| [docs/](docs/README.md) | 요구사항·설계·검증 기록 | 기능별 수용 조건, 역할별 책임, 선택 이유와 재현 방법 |
+| [docs/tests/](docs/tests/) | Vitest · Testing Library · Playwright | 패키지별 단위·통합·E2E·접근성 검사와 실행 설정 |
+| [docs/tools/](docs/tools/) | Python 검사 · SQL · 기술 스파이크 | 문서·수용 조건 점검, 테스트 DB 준비, 독립 재현 실험 |
+
+`frontend-react`는 React 기반 UI를 찾기 쉽게 붙인 이름이며, 실제 실행 프레임워크는 **Next.js App Router**입니다. 백엔드는 별도 Node.js 서비스입니다. [폴더 이름 기준](docs/decisions.md#0015--최상위-폴더는-역할-대표-기술로-짓는다)
+
+문서·검증 코드는 `docs/`에 모으고 실행 코드는 세 패키지에 둡니다. 루트 소개 외 Markdown은 `docs/`에서 관리합니다. 역할별 설명은 [프론트엔드](docs/architecture/frontend.md)·[백엔드](docs/architecture/backend.md)·[공유 계약](docs/architecture/shared-schema.md), 실험 실행 방법은 [스파이크 안내](docs/tools/spikes/README.md)에서 확인할 수 있습니다.
+
+## 현재 제공하는 기능
+
+| 사용자 목적 | 구현한 기능 |
 | --- | --- |
-| 판매자 | 가입 → 거래 등록 → 채팅 수신 → 거래완료 · 구매자 지정 → 판매 내역 확인 |
-| 구매자 | 상품 탐색 → 가입 · 로그인 → 채팅 시작 → 거래 약속 → 구매 내역 확인 |
+| 거래할 물건 찾기 | 목록·검색·상세·판매자 프로필, 관심 등록, 동네 선택·필터 |
+| 물건 판매하기 | 사진 업로드·전체 화면 보기, 상품 등록·수정·삭제, 예약·거래완료·구매자 지정 |
+| 약속 잡기 | 채팅방·메시지·읽음·배지·새 메시지 알림, 재연결과 누락 메시지 복구 |
+| 내 거래 관리하기 | 회원가입·로그인·세션 연장, 판매·구매 내역, 프로필·비밀번호 변경, 데모 계정 |
 
-> **현재는 설계 문서 작성과 WebSocket 스파이크 검증을 마친 단계입니다.** 프론트엔드·백엔드 설계, API 계약, 데이터 모델, 트랜잭션 경계를 문서화했습니다. 서비스 본체와 자동화 테스트는 아직 구현하지 않았으며, 다음 작업은 화면 명세와 공통 컴포넌트 설계입니다.
+판매자는 **등록 → 채팅 → 거래완료·구매자 지정 → 판매 내역**, 구매자는 **탐색 → 채팅 → 거래 약속 → 구매 내역**으로 이동합니다. 로딩·빈 결과·입력 오류·권한 제한·연결 끊김도 화면 상태로 정의했습니다.
 
-## 설계·검증 현황
+현재 배포 구성은 프론트엔드 Vercel, 백엔드·DB Railway, 사진 Supabase Storage입니다. Render·Supabase DB 이전은 설정 준비 단계입니다. [실행·배포 기준](docs/dev.md#호스팅-비용과-옮길-계획)
 
-| 항목 | 내용 | 문서 |
-| --- | --- | --- |
-| 기능별 시나리오 758개 | 정상 흐름, 입력, 경합, 네트워크, 보안, 접근성 조건 | [기능별 문서](docs/README.md#기능별-요구사항--한-기능--한-장) |
-| 수용 조건 251개 | 조건별 프론트엔드·백엔드 책임 | [기능별 문서](docs/README.md#기능별-요구사항--한-기능--한-장) |
-| 결정 기록 17개 | 선택한 방안, 대안, 제약, 변경 시 영향 | [결정 기록](docs/decisions.md) |
-| 문제 분석 기록 28건 | 명세 검토 12건, 스파이크 검증 7건, 구현 9건 | [트러블슈팅](docs/troubleshooting.md) |
-| HTTP 25개 · 소켓 이벤트 9개 | 요청·응답 형식, 에러, 권한, 트랜잭션 | [API 명세](docs/architecture/backend.md#10--api-명세) |
-| 스파이크 15개 | WebSocket 6 · 인증 4(JWT 직접 서명, bcrypt 비용 · 한계) · PostgreSQL 5(유니크 경합, 트랜잭션 시각, 행 잠금) | [기술 노트](docs/tech-notes.md) |
+## 제가 맡은 역할
 
-## 주요 설계
-
-| 주제 | 설계 내용 | 상세 문서 |
-| --- | --- | --- |
-| 동시성·데이터 정합성 | 쓰기 작업 11종의 트랜잭션 경계를 정의했습니다. 중복 생성은 유니크 제약으로, 상태 변경은 조건부 UPDATE로, 메시지 순서는 방별 행 잠금으로 처리하도록 설계했습니다. | [트랜잭션 경계](docs/architecture/backend.md#03--트랜잭션-경계) |
-| 실시간 통신 | 연결이 끊긴 동안의 전송 대기열, 같은 `tempId`를 이용한 재시도, 방별 번호를 이용한 누락 감지·복구를 정의했습니다. | [소켓 서버](docs/architecture/backend.md#09--소켓-서버) · [소켓 클라이언트](docs/architecture/frontend.md#07--소켓-클라이언트) |
-| 렌더링·캐시 | 화면별 서버·클라이언트 렌더링 범위와 캐시 전달 방식을 정했습니다. 사용자별 응답이 공유 캐시에 남지 않도록 서버 조회 규칙을 정의했습니다. | [렌더링](docs/architecture/frontend.md#01--렌더링-전략) · [캐시](docs/architecture/frontend.md#03--캐시와-낙관적-갱신) |
-| API 계약 | 화면 단위 응답 타입과 공통 에러 코드를 정의했습니다. 요청·응답 검증은 공유 Zod 스키마로 구현할 예정입니다. | [API 명세](docs/architecture/backend.md#10--api-명세) · [에러 코드](docs/architecture/backend.md#06--에러-코드) |
-| 입력·접근성 | 입력 제한·정규화·오류 안내 시점을 구분하고, 키보드 조작과 화면 변화에 따른 포커스·라이브 리전 규칙을 정했습니다. | [폼](docs/architecture/frontend.md#05--폼) · [포커스](docs/architecture/frontend.md#06--포커스와-라이브-리전) |
-
-항목별 문서와 검증 범위는 [설계·검증 현황](docs/overview.md#9-설계검증-현황)에서 확인할 수 있습니다.
-
-## 문제 분석 사례
-
-**메시지 복구 순서는 방별 번호로 관리하도록 변경했습니다.** 명세 검토에서 PostgreSQL의 `now()`가 트랜잭션 시작 시각을 반환하므로, 커밋이 늦어진 메시지가 시각 기준 복구 조회에서 빠질 수 있음을 확인했습니다. 방 행을 잠근 뒤 `seq`를 발급하는 설계로 변경하고, 클라이언트가 번호의 빈 구간을 감지하도록 정했습니다. [T-01](docs/troubleshooting.md#t-01) · [결정 0016](docs/decisions.md#0016--방-안-순서와-읽음-위치는-시각이-아니라-방별-번호seq로-센다)
-
-**요청 제한에는 프록시를 거치기 전의 사용자 IP를 사용하도록 설계했습니다.** Vercel 프록시의 IP로 제한하면 여러 사용자가 같은 한도를 공유할 수 있습니다. 프록시가 원 IP와 공유 비밀을 전달하고, 백엔드는 비밀이 일치할 때만 전달된 IP를 신뢰하도록 명세를 수정했습니다. [T-02](docs/troubleshooting.md#t-02)
-
-**연결이 끊긴 상태의 전송은 명시적인 타임아웃과 대기열로 관리합니다.** 스파이크에서 타임아웃 없는 `emit`이 Socket.IO 버퍼에 남았다가 재연결 후 전송되는 동작을 재현했습니다. 이를 바탕으로 서비스에서는 타임아웃이 있는 `emitWithAck`와 별도 전송 대기열을 사용하도록 설계했습니다. [S-04](docs/troubleshooting.md#s-04)
-
-## 구성
-
-| 영역 | 담당 범위 | 문서 |
-| --- | --- | --- |
-| 프론트엔드 · Next.js | 렌더링, 상태·캐시, 입력, 오류 화면, 접근성, 소켓 연결 상태 | [frontend-next/](frontend-next/README.md) · [설계 문서](docs/architecture/frontend.md) |
-| 백엔드 · Node.js | 인증·권한, 데이터 제약, 트랜잭션, 멱등성, 요청 제한, 소켓 서버 | [backend-node/](backend-node/README.md) · [설계 문서](docs/architecture/backend.md) |
-| 공유 패키지 · Zod | 요청·응답 스키마, 타입, 입력 정규화 함수 | `shared-schema/` — 구현 단계에서 추가 예정 |
-
-백엔드는 권한과 데이터 규칙을 검증하고, 프론트엔드는 입력 안내와 처리 결과를 표시합니다. 한 동작이 두 역할을 지나는 길은 [흐름 설계](docs/architecture/flow.md)에, 수용 조건별 역할은 [기능별 문서](docs/README.md#기능별-요구사항--한-기능--한-장)에 정리했습니다.
-
-## 예정 기술 스택
-
-| 영역 | 선택 | 용도 |
-| --- | --- | --- |
-| 프론트엔드 | Next.js 16 (App Router) · TypeScript · Tailwind CSS · TanStack Query | 서버 렌더링, 공유 메타데이터, 화면 상태·캐시 관리 |
-| 백엔드 | Node.js · Express · TypeScript · Prisma 7 · PostgreSQL 16 | 인증·권한 처리, 데이터 제약, 트랜잭션 ([결정 0001](docs/decisions.md#0001--인증거래채팅-로직은-별도-백엔드에서-관리한다)) |
-| 실시간 | Socket.IO | 재연결, 룸, ack, 폴링 폴백 ([결정 0005](docs/decisions.md#0005--실시간-전달은-socketio-누락-복구는-db-커서로-처리한다)) |
-| 인증 | JWT · httpOnly 쿠키 · 같은 오리진 프록시 | HTTP·소켓 인증과 쿠키 전달 ([결정 0003](docs/decisions.md#0003--인증은-jwt를-httponly-쿠키에-담는다) · [0004](docs/decisions.md#0004--프론트가-백엔드를-프록시해-같은-오리진을-유지한다)) |
-| 검증 | 공유 Zod 스키마 | 프론트엔드·백엔드의 입력 규칙 통일 |
-| 테스트 | Vitest · supertest · Testing Library · Playwright | PostgreSQL 통합 테스트, 컴포넌트 테스트, 거래 흐름 E2E ([테스트 전략](docs/dev.md#테스트-전략--수용-조건-하나에-테스트-하나)) |
-| 배포 | Vercel · Railway | 프론트엔드와 백엔드·DB의 배포 환경 분리 ([브랜치·배포 전략](docs/dev.md#브랜치--배포-전략--main은-언제나-배포-가능하게)) |
-
-기술 선택의 대안과 제약은 [결정 기록](docs/decisions.md)에, 의존성 추가 기준은 [개요](docs/overview.md#의존성-추가-규칙)에 있습니다.
-
-## 1차 범위
-
-**상품 탐색부터 거래 내역 확인까지의 흐름을 완성하는 것이 목표입니다.** 회원가입, 로그인, 중고 목록, 거래 등록·수정, 거래 상세, 거래 삭제, 채팅 목록, 채팅, 마이페이지, 채팅 알림을 포함합니다.
-
-| 이후 검토할 기능 | 현재 범위에서 제외한 이유 |
+| 역할 | 직접 다룬 내용 |
 | --- | --- |
-| 결제·송금 | 직접 만나 거래하는 흐름을 전제로 합니다. |
-| 위치 기반 검색·동네 인증 | 지도·GPS 연동은 후속 범위로 분리했습니다. |
-| 신고·차단·후기 | 운영 정책과 별도 처리 흐름이 필요합니다. |
-| 이미지 메시지·브라우저 푸시 | 텍스트 채팅과 앱 내 알림을 먼저 구현합니다. |
+| 기획·명세 | 판매자·구매자 흐름, 기능 우선순위, 입력·권한·동시 요청·접근성 수용 조건 |
+| 퍼블리싱·UI | 디자인 토큰, 640px 앱 폭과 반응형 화면, 공통 Field·Button·Dialog·상태 표시 |
+| 프론트엔드 | 서버 렌더링·캐시 전달, 폼 검증·오류 복구, 소켓 연결 상태·전송 대기열 |
+| 백엔드·데이터 | 공유 스키마 검증, 인증·권한, DB 제약·트랜잭션, 메시지 저장·누락 복구 |
+| 검증·운영 | 수용 조건과 테스트 연결, 거래·채팅 E2E, CI·환경별 배포와 데모·파일 정리 |
 
-상세 범위는 [개요 3절](docs/overview.md#3-범위)에 있습니다.
+풀스택 구현으로 화면 밖의 요청·권한·데이터 처리까지 학습했습니다. AI는 문서 초안과 실험 코드 작성에 활용하고, 서비스 범위·설계 판단은 직접 검토하며 실행·스키마·공식 문서 대조로 확인했습니다. [AI 작업·검증 기록](docs/dev.md#ai-작업검증-기록)
 
-## 진행 상황
+## 퍼블리싱과 웹 접근성
 
-- [x] 서비스 개요, 엔티티·업무 흐름, 기능 범위, 기술 결정 작성
-- [x] 기능별 시나리오 758개와 수용 조건 251개 작성
-- [x] 백엔드 설계 · 프론트엔드 설계 · 흐름 설계 작성 (역할마다 한 장, API 명세 포함)
-- [x] WebSocket 스파이크 6개 · 인증 스파이크 4개 · PostgreSQL 스파이크 5개 실행·기록
-- [x] 명세 검토에서 발견한 문제 12건 반영 (2026-11-10)
-- [x] 환경 변수 · 시드 · 폴더 구조 · 구현 순서 명세
-- [x] 화면 명세와 공통 컴포넌트 설계
-- [x] 구현 0단계(뼈대) 코드 — workspaces · 공유 스키마 · 두 앱 · 환경 변수 검증 · 프록시 · 에러 형식 · 요청 ID · 첫 마이그레이션 · CI (배포 연결 중)
-- [ ] 구현 1단계(인증) — 가입 · 로그인 · 로그아웃 · 세션 연장 · 보호 경로 · IP 한도 완료. 데모 계정 시드와 로그인 화면 안내 포함. 남은 것: 배포 환경 · 브라우저에서의 확인, 데모 계정의 변경 제한(마이 단계) · 초기화 배치(마무리 단계)
-- [ ] 구현 2단계(상품) — 목록 · 검색 · 상세 · 등록 · 수정 · 상태 변경 · 삭제 · 사진 업로드 완료. 남은 것: S3 호환 저장소, 사진 전체 화면 뷰어, 뒤로가기 이탈 확인, 정리 배치
-- [ ] 구현 3단계(채팅) — 방 열기 · 목록 · 메시지 · 읽음 · 배지 API, 소켓 서버, 채팅 목록 · 채팅방 화면 완료. 남은 것: 실제 브라우저에서의 확인(스크롤 · 한글 입력 · 백그라운드 복귀), 새 메시지 토스트(알림 단계)
-- [ ] 구현 4단계(마이 · 알림) — 내 정보 · 프로필과 비밀번호 변경 · 판매 목록 · 구매 내역 API와 화면, 새 메시지 토스트, 탭 제목의 읽지 않은 수 완료. 남은 것: 프로필 수정의 이탈 확인, 토스트를 누를 때 작성 중인 폼의 이탈 확인, 실제 브라우저에서의 확인
-- [ ] 구현 5단계 — 마무리
+**공통 컴포넌트에 레이블·오류·초점·알림 동작을 포함**해 화면 전반에서 같은 기준을 사용합니다.
 
-## 문서
-
-| 문서 | 내용 |
+| 항목 | 구현과 확인 위치 |
 | --- | --- |
-| [개요](docs/overview.md) | 목표, 엔티티·업무 흐름, 변경 영향, 범위, 기술 결정 |
-| [기능별 요구사항](docs/README.md#기능별-요구사항--한-기능--한-장) (11장) | 기능 하나 = 한 장 — 수용 조건과 프론트엔드·백엔드 역할, 경우의 수 |
-| [흐름 설계](docs/architecture/flow.md) · [프론트엔드 설계](docs/architecture/frontend.md) · [백엔드 설계](docs/architecture/backend.md) | 두 역할이 만나는 흐름, 역할별 처리 방식과 책임 범위 — 역할마다 한 장 |
-| [결정 기록](docs/decisions.md) · [기술 노트](docs/tech-notes.md) · [트러블슈팅](docs/troubleshooting.md) | 선택 근거, 실험 결과, 문제 원인과 수정 내용 |
-| [커밋](docs/dev.md#커밋-메시지--변경-이유를-찾을-수-있게-쓰기) · [브랜치](docs/dev.md#브랜치--배포-전략--main은-언제나-배포-가능하게) · [테스트](docs/dev.md#테스트-전략--수용-조건-하나에-테스트-하나) · [AI 작업·검증](docs/dev.md#ai-작업검증-기록) | 개발·검증 절차 |
-| [검토 요청](docs/decisions.md#검토-요청) | 반영된 설계 중 추가 확인이 필요한 판단 |
+| 레이블·오류 연결 | [Field](frontend-react/src/components/Field.tsx)의 label·input·힌트·오류 연결, `aria-invalid`·`aria-describedby` |
+| 오류 정정 | [useForm](frontend-react/src/lib/form/useForm.ts)의 서버 필드 오류 반영과 첫 오류 입력으로 초점 이동 |
+| 키보드 초점 | [RouteFocus](frontend-react/src/lib/a11y/RouteFocus.tsx)의 새 화면 h1 초점, 입력·대화상자 초점 유지 |
+| 대화상자·알림 | [Dialog](frontend-react/src/components/Dialog.tsx)의 네이티브 `showModal()`·제목 연결, [Toast](frontend-react/src/components/Toast.tsx)의 status·alert 영역 |
+| 명도 대비·사용자 설정 | [공통 CSS](frontend-react/src/styles/globals.css)의 토큰·44px 조작 영역·동작 줄이기, [색 조합 검사](docs/tests/frontend-react/styles/tokens.test.ts)의 본문 4.5:1·UI 3:1 조건 |
+| 좁은 화면·접근 가능한 이름 | [레이아웃 E2E](docs/tests/frontend-react/e2e/layout.spec.ts)의 360px 버튼 줄바꿈·표시 문구와 접근 가능한 이름 비교 |
+
+[접근성 E2E](docs/tests/frontend-react/e2e/a11y.spec.ts)는 손님·구매자·판매자의 주요 화면과 오류·확인 창 상태를 대상으로 합니다. 위 내용은 구현과 검사 범위이며 전체 접근성 적합성 심사나 인증 결과는 아닙니다.
+
+## 대표적인 설계 판단
+
+- **상태마다 관리 주체를 정했습니다.** 서버 데이터는 TanStack Query, 공유할 선택은 URL, 작성 중 값은 폼, 미확정 메시지는 소켓 대기열에서 관리합니다. [상태 소유권](docs/architecture/frontend.md#02--상태-소유권)
+- **메시지 순서는 방별 번호로 관리합니다.** 방 행을 잠근 뒤 `seq`를 발급하고, 받은 번호의 빈 구간을 다시 조회합니다. [결정 0016](docs/decisions.md#0016--방-안-순서와-읽음-위치는-시각이-아니라-방별-번호seq로-센다)
+- **중복 요청·상태 변경은 서버와 DB에서 제어합니다.** 유니크 제약·조건부 UPDATE·트랜잭션을 적용하고 화면은 거절 결과와 재시도 방법을 안내합니다. [트랜잭션 경계](docs/architecture/backend.md#03--트랜잭션-경계)
+- **연결이 끊겨도 전송 상태를 구분합니다.** ack·타임아웃·대기열과 같은 식별자의 재시도로 중복 저장을 막습니다. [소켓 클라이언트](docs/architecture/frontend.md#07--소켓-클라이언트)
+
+## 보안 경계와 API 문서
+
+**화면의 입력 안내와 서버의 최종 검사를 나누고, 실제 누락을 재현해 보완했습니다.** [Node Swagger](https://neighbo-liart.vercel.app/node-swagger)는 요청·응답과 인증 조건을 보는 읽기 전용 문서입니다. 공유 Zod를 사용하며 HTTP 31개 동작을 설명하고, Try it out·외부 validator·인증 지속 저장을 끕니다.
+
+| 위협 | 구현한 방어·이번 보완 | 검증 근거 |
+| --- | --- | --- |
+| 변조 입력·타인 데이터 조작 | 서버 Zod 재검증, 세션·소유자·채팅 참여자·업로드 소유권 확인 | 공유 스키마·서비스 통합 테스트 |
+| 다른 사이트 쓰기·서버 비밀 유출 | Origin 검사, 서버 프록시의 자동 리다이렉트 금지, 공개 문서에 인증 정보 무전달 | Origin·serverFetch·문서 프록시 회귀 |
+| 과도한 쓰기·소켓 DB 요청 | 상품 생성·수정·상태·삭제 동작별 30회/분, 소켓 join·read 별도 사용자 버킷 추가 | DB 독립 제한 회귀 9개 |
+| 위장·과대 이미지·HTML 악용 | 4MB·형식·픽셀 검사와 WebP 재인코딩, nosniff·프레임 금지·부분 CSP | 업로드·공통 헤더 테스트 |
+| 알려진 의존성 취약점 | Prisma 하위 effect의 ReDoS 공지를 확인하고 3.22.1로 패치 | lockfile·`npm audit` |
+
+검사는 현재 코드와 테스트 범위입니다. 앱 CSP는 스크립트 nonce를 포함한 전면 정책이 아니며, 한도 저장소는 단일 프로세스 기준입니다. [방어·수정·검증과 남은 경계](docs/SECURITY.md)
+
+## 로컬에서 실행하기
+
+**Node.js 22 이상, npm, PostgreSQL 16**이 필요합니다. 저장소 루트에서 실행합니다.
+
+```bash
+npm ci
+docker compose up -d db
+cp backend-node/.env.example backend-node/.env
+cp frontend-react/.env.example frontend-react/.env.local
+```
+
+두 환경 파일의 `PROXY_SECRET`에 같은 32바이트 이상 값을 넣고, 백엔드 `JWT_SECRET`에는 별도의 값을 넣습니다. 데모 계정에는 두 파일에 같은 `DEMO_PASSWORD`를 설정합니다. 실제 비밀값은 커밋하지 않습니다.
+
+```bash
+npm run db:generate -w backend-node
+npm run db:deploy -w backend-node
+npm run db:seed -w backend-node
+```
+
+터미널 두 개에서 API와 웹을 각각 실행합니다.
+
+```bash
+# 터미널 1 · API
+npm run dev:api
+```
+
+```bash
+# 터미널 2 · 웹
+npm run dev:web
+```
+
+웹은 `http://localhost:3000`, API는 `http://localhost:4000`입니다. [환경 변수·데모·테스트 DB](docs/dev.md#로컬-실행과-패키지별-검사)
+
+## 검증 방법과 근거
+
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+npm run test:docs -w backend-node
+python3 docs/tools/check-docs.py
+python3 docs/tools/check-ac.py
+```
+
+백엔드 테스트에는 개발 DB와 분리된 `TEST_DATABASE_URL`이 필요합니다. E2E는 마이그레이션이 적용된 별도 DB와 Chromium을 준비한 뒤 `npm run test:e2e`로 실행합니다. 개별 패키지는 `test:web`·`test:api`·`test:shared`로 확인할 수 있습니다.
+
+이번 변경의 로컬 검증은 **공유 스키마 53개·프론트엔드 229개·DB 없는 API 문서와 한도 회귀 20개**입니다. 백엔드 전체 통합 검사와 E2E **19개**의 실행 결과는 PR의 CI에서 확인합니다. 수용 조건 **279개 중 278개**에는 조건 ID가 붙은 테스트가 있으며, ID 존재가 조건 전체의 검증을 보장하지는 않습니다. [검증 현황](docs/overview.md#9-설계검증-현황) · [테스트 전략](docs/dev.md#테스트-전략--수용-조건-하나에-테스트-하나) · [CI](.github/workflows/ci.yml)
+
+## 채용 검토용 코드 지도
+
+| 확인하려는 경험 | 시작할 코드·문서 |
+| --- | --- |
+| 공통 UI·접근성·반응형 | [components](frontend-react/src/components/) · [styles](frontend-react/src/styles/) · [프론트엔드 설계](docs/architecture/frontend.md) |
+| 폼과 서버 오류 연결 | [lib/form](frontend-react/src/lib/form/) · [shared-schema](shared-schema/src/) |
+| 캐시와 실시간 상태 | [features/chat](frontend-react/src/features/chat/) · [lib/socket](frontend-react/src/lib/socket/) |
+| API·권한·트랜잭션 | [modules](backend-node/src/modules/) · [Prisma 모델](backend-node/prisma/schema.prisma) · [백엔드 설계](docs/architecture/backend.md) |
+| 보안 경계·실제 API 계약 | [보안 근거](docs/SECURITY.md) · [OpenAPI](backend-node/src/modules/api-docs/openapi.ts) · [Node Swagger](https://neighbo-liart.vercel.app/node-swagger) |
+| 기획·예외 흐름·검증 기준 | [요구사항](docs/README.md#기능별-요구사항--한-기능--한-장) · [흐름 설계](docs/architecture/flow.md) · [트러블슈팅](docs/troubleshooting.md) |
+| 검증·재현 도구 | [패키지별 테스트](docs/tests/) · [문서·AC 검사](docs/tools/) · [기술 스파이크](docs/tools/spikes/README.md) |
+
+## 현재 범위와 남은 확인
+
+결제·송금, GPS 기반 동네 인증, 신고·차단·후기, 이미지 메시지·브라우저 푸시는 현재 범위 밖입니다. 동네 기능은 목록에서 선택하는 구 이름과 필터입니다.
+
+브라우저 자체 뒤로가기의 작성 중 이탈 확인, 실제 기기의 스크롤·한글 입력·백그라운드 복귀, 백엔드·DB 무료 플랜 이전은 추가 확인 대상으로 남겼습니다. 탭 닫기·새로고침·앱 안 링크·앱의 뒤로 버튼·토스트 이동은 이탈 확인 구현 범위에 포함됩니다. [현재 범위](docs/overview.md#3-범위) · [개발·운영 기준](docs/dev.md)
 
 ## 라이선스와 고지
 
-코드와 문서는 [MIT 라이선스](LICENSE)로 공개합니다.
-
-neighbo는 당근마켓의 핵심 흐름을 참고한 개인 프로젝트이며, 당근마켓(주식회사 당근)과 관계가 없습니다. 당근마켓의 상표·로고·디자인 자산은 사용하지 않습니다.
+코드와 문서는 [MIT 라이선스](LICENSE)로 공개합니다. 당근마켓의 핵심 흐름을 참고한 개인 프로젝트이며 해당 회사와 관계가 없고 상표·로고·디자인 자산을 사용하지 않습니다.

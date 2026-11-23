@@ -4,6 +4,32 @@
 
 **커밋 · 브랜치 · 구현 순서 · 테스트 · AI 작업 검증의 규칙을 한 곳에 둡니다.** 코드 단계의 PR은 이 문서의 규칙을 따릅니다.
 
+## 로컬 실행과 패키지별 검사
+
+Node.js 22 이상·npm·PostgreSQL 16을 사용합니다. 개발 DB·시드 DB와 테스트 DB를 분리합니다. [빠른 실행](../README.md#로컬에서-실행하기) 후 두 터미널에서 `npm run dev:api`·`npm run dev:web`을 실행합니다.
+
+| 앱·환경 | 준비·확인 |
+| --- | --- |
+| React 웹 | `frontend-react/.env.example` → `.env.local`, `API_URL`과 서버와 같은 `PROXY_SECRET` 설정. 기본 `:3000` |
+| Node API | `backend-node/.env.example` → `.env`, `DATABASE_URL`·`JWT_SECRET`·`PROXY_SECRET`·`ALLOWED_ORIGIN` 설정. 기본 `:4000` |
+| 데모 | 두 앱의 `DEMO_PASSWORD`를 일치시킴. 백엔드 시드 실행 시 값이 있어야 데모 계정·상품 생성 |
+| DB 준비 | `docker compose up -d db` → `npm run db:generate -w backend-node` → `npm run db:deploy -w backend-node` → `npm run db:seed -w backend-node` |
+| 상태 확인 | `/healthz`는 프로세스, `/readyz`는 DB 연결까지 확인 |
+
+| 목적 | 저장소 루트 명령 |
+| --- | --- |
+| 설치·정적 검사 | `npm ci` · `npm run lint` · `npm run typecheck` |
+| 웹·공유 계약 | `npm run test:web` · `npm run test:shared` |
+| API 통합 | 별도 `TEST_DATABASE_URL` 설정 후 `npm run test:api` |
+| DB 없는 API 문서·한도 회귀 | `npm run test:docs -w backend-node` |
+| 웹 운영 빌드 | `npm run build` |
+| 브라우저 | 마이그레이션이 적용된 E2E DB·Chromium 준비 후 `npm run test:e2e` |
+| 문서·수용 조건 연결 | `python3 docs/tools/check-docs.py` · `python3 docs/tools/check-ac.py` |
+
+검사 파일·지원 코드는 [docs/tests](tests/)에, 링크·수용 조건 검사기와 실험은 [docs/tools](tools/)에 둡니다. 실제 서비스 소스는 각 앱·공유 패키지에 남깁니다. DB 생성·마이그레이션·시드는 해당 환경을 대상으로 실행하며, 비밀값을 코드·문서·로그에 기록하지 않습니다.
+
+`@neighbo/docs` 워크스페이스가 테스트 의존성과 실행 설정을 소유합니다. 루트 `npm test`는 이 워크스페이스의 전체 테스트를 한 번 실행하고, 기존 패키지별 검사 명령은 같은 설정으로 연결됩니다. `npm run lint`·`npm run typecheck`도 검증 코드를 포함하며, 개별 확인은 `npm run lint -w @neighbo/docs`·`npm run typecheck -w @neighbo/docs`입니다. 테스트 DB 초기화 SQL은 `docs/tools/postgres/init-test-db.sql`에 둡니다. 클린 체크아웃에서 문서 워크스페이스의 타입 검사만 실행하려면 먼저 `npm run db:generate -w backend-node`로 Prisma 타입을 생성합니다. 루트 `npm run typecheck`에는 이 생성 단계가 포함됩니다.
+
 ## 커밋 메시지 · 변경 이유를 찾을 수 있게 쓰기
 
 **한 커밋에는 한 가지 변경 목적을 담고, 제목에는 달라진 결과를 적습니다.** 본문에는 이유와 필요한 검증 근거를 남깁니다. 폴더명보다 `git log -- 경로`로 해당 영역의 변경 이력을 읽을 수 있게 하는 것이 기준입니다.
@@ -47,7 +73,7 @@ Refs: #12
 
 | 범위 | 가리키는 곳 |
 | --- | --- |
-| `web` | `frontend-next/` 와 프론트엔드 설계 `docs/architecture/frontend.md` |
+| `web` | `frontend-react/` 와 프론트엔드 설계 `docs/architecture/frontend.md` |
 | `server` | `backend-node/` 와 백엔드 설계 `docs/architecture/backend.md` |
 | `docs` | 그 밖의 `docs/` 아래 문서. 종류가 `docs`이면 범위는 비워도 된다 |
 | `infra` | 배포 · 환경 변수 · 컨테이너 · 워크플로 · 루트 `package.json` |
@@ -128,7 +154,7 @@ DB는 새로 시작합니다 — 지금 Railway의 데이터는 시드와 확인
 | --- | --- |
 | 15분 동안 요청이 없으면 꺼지고, 다음 요청은 켜질 때까지(약 1분) 기다린다 | 무료 플랜의 조건. 화면은 목록 자리에 오류와 [다시 시도]를 보인다 |
 | 매일 03:00 · 04:00의 배치는 예정 시각에 서버가 꺼져 있으면 다음에 켜질 때 돈다 | 스케줄러가 서버 프로세스 안에 있어 꺼진 동안에는 돌 수 없다. 배치가 끝난 시각을 `JobRun` 표에 남기고, 켜질 때 가장 최근의 예정 시각 뒤로 돈 적이 없으면 한 번 따라잡는다 |
-| Supabase 프로젝트는 일주일 동안 쓰지 않으면 멈춘다 | 대시보드에서 직접 되살린다. 그동안 `/readyz`는 503, `/healthz`는 200이다 |
+| Supabase 프로젝트는 일주일 동안 쓰지 않으면 멈춘다 | 대시보드에서 직접 되살린다. DB 연결 실패 시 현재 `/readyz`는 500, `/healthz`는 200이다 |
 
 ## 브랜치 · 배포 전략 · main은 언제나 배포 가능하게
 
@@ -195,7 +221,7 @@ DB는 새로 시작합니다 — 지금 Railway의 데이터는 시드와 확인
 
 #### PR 템플릿
 
-코드 단계에서 `.github/PULL_REQUEST_TEMPLATE.md`로 둡니다. 내용은 다음과 같습니다.
+PR 본문에는 아래 양식을 사용합니다. 양식과 작성 기준은 이 문서에서 함께 관리합니다.
 
 ```markdown
 ## 문제와 결과
@@ -258,16 +284,20 @@ GitHub → Settings → Branches에서 `main`과 `dev`에 같은 규칙을 겁�
 - DB 마이그레이션은 배포 파이프라인에서 `prisma migrate deploy`로 자동 적용합니다. 수동 적용은 하지 않습니다.
 - 샘플 데이터는 `SEED_SAMPLE=1`인 환경에만 넣습니다. Production은 데모 계정 둘과 데모 상품 6개가 기본이고, Staging이 생기기 전에는 양이 많을 때의 화면을 보려고 한시로 켭니다 ([시드 데이터](architecture/backend.md#4-시드-데이터)).
 
-### 문서 단계에서의 적용
+### 현재 배포 설정
 
-**명세 단계에서는 `dev`를 아직 두지 않습니다.** `dev`의 역할은 staging 배포인데 배포할 코드가 없기 때문입니다. 지금은 이렇게 갑니다.
+Vercel은 다음 설정으로 React 앱과 공유 패키지를 함께 설치합니다.
 
-| 지금 (명세) | 코드 첫 커밋부터 |
+| 설정 | 값 |
 | --- | --- |
-| `docs/짧은-이름` 브랜치에 역할별 커밋 → `main`에 fast-forward 병합 (리베이스 병합과 같은 결과) | 위 흐름 그대로 — `dev`를 만들고 PR 대상으로 |
-| 브랜치 보호 규칙 없음 | `main` · `dev`에 보호 규칙, CI 필수 검사 |
+| Root Directory | `frontend-react` |
+| Framework | `nextjs` |
+| Build Command | `npm run build` |
+| Install Command | `cd .. && npm ci --workspace frontend-react --workspace shared-schema` |
+| 루트 외부 소스 포함 | `sourceFilesOutsideRootDirectory=true` |
+| 빌드 건너뛰기 | `frontend-react/vercel.json`의 `ignoreCommand` — 앞 배포 이후 `frontend-react` · `shared-schema` · 루트 `package*.json`이 그대로면 건너뛴다. 앞 배포의 커밋이 없거나(새 브랜치의 첫 배포) 클론에 없으면 빌드한다. `git diff`가 그 경우 128로 끝나면 Vercel은 배포 실패로 처리한다 |
 
-초기 문서 몇 개는 브랜치 없이 `main`에 직접 커밋했습니다 — 이 규칙을 정하기 전의 일이라 이력에 그대로 둡니다. 2026-11-10 명세 전체 검토(`docs/review-principles`)부터 브랜치를 거칩니다.
+백엔드는 저장소 루트 Dockerfile로 빌드해 `backend-node`와 `shared-schema`를 함께 사용합니다. 폴더를 바꿀 때 코드·CI뿐 아니라 플랫폼의 Root Directory도 함께 맞춥니다.
 
 ## 구현 순서 · 뒤 단계가 앞 단계 위에 서게
 
@@ -291,7 +321,7 @@ GitHub → Settings → Branches에서 `main`과 `dev`에 같은 규칙을 겁�
 
 ## 테스트 전략 · 수용 조건 하나에 테스트 하나
 
-**수용 조건 251개를 기준으로 구현 단계의 검증 범위와 도구를 정했습니다.** 각 조건은 해당 규칙을 담당하는 계층에서 검증하고, 프론트엔드는 화면 반응·접근성, E2E는 판매자·구매자의 거래 흐름을 확인합니다. 단위 · 통합 · 소켓 · 컴포넌트 테스트와 E2E 17개(접근성 자동 검사 · 연결 끊김 포함)는 CI에서 돕니다. 성능 측정과 브라우저별 사진 업로드 호환성 확인은 아직 없습니다.
+**수용 조건 279개를 기준으로 검증 범위와 도구를 관리합니다.** 각 조건은 해당 규칙을 담당하는 계층에서 검증하고, 프론트엔드는 화면 반응·접근성, E2E는 판매자·구매자의 거래 흐름을 확인합니다. 단위 · 통합 · 소켓 · 컴포넌트 테스트와 E2E 19개(접근성 자동 검사 · 연결 끊김 · 이탈 확인 · 공개 API 문서 포함)는 CI에서 돕니다. DB 없는 문서·한도 회귀는 `npm run test:docs -w backend-node`로 실행합니다. 성능 측정과 브라우저별 사진 업로드 호환성 확인은 아직 없습니다.
 
 ### 1. 층과 도구
 
@@ -303,7 +333,7 @@ GitHub → Settings → Branches에서 `main`과 `dev`에 같은 규칙을 겁�
 | 소켓 | Vitest + `socket.io-client` 2~3개 | 조인 · 전송 · 복구 · 만료 · 페이로드 한도 | — | [B09 7절](architecture/backend.md#7-테스트) |
 | 프론트 컴포넌트 | Vitest + Testing Library | 상태별 화면(로딩 · 빈 · 에러 · 권한), 폼 정규화 · 오류 연결, 포커스 이동, 소켓 상태 기계(가짜 소켓) | 스타일 · 픽셀 | 화면 상태 · 접근성 AC |
 | E2E | Playwright (모바일 Pixel 7 · 배치 검사는 360px과 1280px) | 흐름(가입 → 등록 → 채팅 → 예약 → 거래완료, 수정 · 삭제 뒤 열람 전용 방, 프로필 · 비밀번호 변경, 판매자 프로필, 관심, 동네)을 판매자 · 구매자 두 브라우저 컨텍스트로 끝까지. 배치 3개(버튼 글자 꺾임과 이름 · 글자 일치, [물건 올리기] 위치, 없는 파일 요청) | 경우의 수 전수 — 느리고 깨지기 쉽다 | 흐름 6 + 배치 3 + 공통 조건 5 + 채팅 2(스크롤 위치, 연결 끊김 — 실시간 연결을 가로채 끊는다) + 접근성 1 |
-| 접근성 자동 | `@axe-core/playwright` (WCAG 2.1 A · AA + 권장 규칙) | 손님 · 구매자 · 판매자가 보는 화면 30여 곳(오류 표시 · 확인 창 · 사진 뷰어 · 채팅방 포함)에서 위반 0 (`e2e/a11y.spec.ts`) | 키보드 흐름 — 그건 E2E 시나리오에 직접 | 화면 수만큼 |
+| 접근성 자동 | `@axe-core/playwright` (WCAG 2.1 A · AA + 권장 규칙) | 손님 · 구매자 · 판매자가 보는 화면 30여 곳(오류 표시 · 확인 창 · 사진 뷰어 · 채팅방 포함)에서 위반 0 (`docs/tests/frontend-react/e2e/a11y.spec.ts`) | 키보드 흐름 — 그건 E2E 시나리오에 직접 | 화면 수만큼 |
 
 ### 2. 이름 규칙 — 문서와 테스트를 잇는 줄
 
@@ -312,7 +342,7 @@ GitHub → Settings → Branches에서 `main`과 `dev`에 같은 규칙을 겁�
 it('AC-PD-13 같은 구매자가 같은 상품에 채팅하기를 두 번 눌러도 방은 하나다', async () => { ... });
 ```
 
-- CI가 `01-requirements.md`의 AC 번호 목록과 테스트 이름의 AC 번호를 비교해 **테스트가 없는 AC를 출력**한다. 0이 될 때까지 기능은 끝나지 않는다.
+- CI가 `docs/features/*.md`의 AC 번호 목록과 테스트 이름의 AC 번호를 비교해 **테스트가 없는 AC를 출력**한다. 0이 될 때까지 기능은 끝나지 않는다.
 - 트러블슈팅 기록의 결함마다 회귀 테스트를 둔다 — 이름은 `T-01 …`. 한 번 찾은 결함이 다시 들어오는 것을 막는다.
 
 ### 3. 백엔드 통합 테스트의 기준
@@ -333,10 +363,10 @@ it('AC-PD-13 같은 구매자가 같은 상품에 채팅하기를 두 번 눌러
 | `typecheck` (`tsc --noEmit`, `strict`) | 병합 불가 |
 | `test` (단위 · 통합 · 소켓 · 컴포넌트) | 병합 불가 |
 | `e2e` (모든 PR. 실패하면 화면 기록과 스크린샷을 `e2e-report`로 올린다) | 병합 불가 |
-| AC 대응표 (`scripts/check-ac.py`) | 실패는 아니고 작업 로그에 "번호를 단 테스트가 없는 AC" 목록. 지금 279개 중 278개 — 남은 하나(AC-CM-47, 링크와 버튼의 구분)는 테스트가 아니라 lint 규칙으로 강제한다 |
+| AC 대응표 (`docs/tools/check-ac.py`) | 실패는 아니고 작업 로그에 "번호를 단 테스트가 없는 AC" 목록. 지금 279개 중 278개 — 남은 하나(AC-CM-47, 링크와 버튼의 구분)는 테스트가 아니라 lint 규칙으로 강제한다 |
 | 문서 링크 검사 | 경로·앵커 오류 수정 후 병합 |
 
-E2E는 로컬에서 `npm run e2e -w frontend-next`로 돕니다. 마이그레이션이 적용된 빈 DB(`E2E_DATABASE_URL`, 기본 `neighbo_e2e`)가 필요하고, 백엔드(4100)와 운영 빌드의 프론트엔드(3100)는 실행기가 직접 띄웁니다. 설치된 Chrome을 쓰려면 `PW_CHANNEL=chrome`을 붙입니다. 테스트마다 새 계정을 만들어 앞선 실행의 데이터와 섞이지 않습니다.
+E2E는 로컬에서 `npm run e2e -w frontend-react`로 돕니다. 마이그레이션이 적용된 빈 DB(`E2E_DATABASE_URL`, 기본 `neighbo_e2e`)가 필요하고, 백엔드(4100)와 운영 빌드의 프론트엔드(3100)는 실행기가 직접 띄웁니다. 설치된 Chrome을 쓰려면 `PW_CHANNEL=chrome`을 붙입니다. 테스트마다 새 계정을 만들어 앞선 실행의 데이터와 섞이지 않습니다.
 
 ### 5. 흔들리는 테스트
 

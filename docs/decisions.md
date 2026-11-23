@@ -596,7 +596,7 @@ Next.js Route Handler `app/api/[...path]/route.ts`가 `/api/*` 요청을 백엔�
 | --- | --- |
 | 영향 | 저장소 최상위 구조 · 루트 README · 커밋 범위 표 · 공유 패키지 경로 · 워크스페이스 설정 · 배포 루트 디렉터리 |
 
-**앱 폴더는 역할과 대표 기술로, 공유 패키지는 담긴 내용으로 구분합니다.** `frontend-next/`·`backend-node/`·`shared-schema/`를 최상위에 배치하는 예정 구조입니다.
+**앱 폴더는 역할과 대표 기술로, 공유 패키지는 담긴 내용으로 구분합니다.** `frontend-react/`·`backend-node/`·`shared-schema/`를 최상위에 배치합니다. React 기반 화면과 Node.js API를 이름에서 구분하고, Next.js·Express 등 구체적인 실행 프레임워크는 루트 README와 역할별 설계에 적습니다. 문서·테스트·도구는 `docs/`에서 관리합니다.
 
 ### 맥락
 
@@ -606,30 +606,28 @@ Next.js Route Handler `app/api/[...path]/route.ts`가 `/api/*` 요청을 백엔�
 
 **실행되는 앱은 `{역할}-{대표 기술}`, 앱들이 함께 쓰는 패키지는 `shared-{담긴 것}`.** 최상위에 바로 둔다.
 
-```
-neighbo/
-├─ frontend-next/    # 역할: 프론트엔드 · 대표 기술: Next.js (React 기반)
-├─ backend-node/     # 역할: 백엔드 · 대표 기술: Node.js (Express)
-├─ shared-schema/    # 프론트 · 백엔드가 함께 쓰는 Zod 스키마 · 타입 · 정규화 함수
-├─ spikes/           # 운영 코드 아님
-└─ docs/
-```
+| 위치 | 역할 |
+| --- | --- |
+| `frontend-react/` | React 기반 화면. 실행 프레임워크 Next.js |
+| `backend-node/` | Node.js·Express API와 실시간 서버 |
+| `shared-schema/` | 두 앱의 Zod 스키마·타입·정규화 |
+| `docs/` | 문서와 검증 전용 워크스페이스. 테스트는 tests/, 도구와 실험은 tools/ |
 
 | 규칙 | 이유 |
 | --- | --- |
 | 역할이 앞, 기술이 뒤 | 알파벳 정렬에서 같은 역할끼리 붙고, 읽는 순서가 "무엇을 하는가 → 무엇으로"가 된다 |
-| 기술은 **하나만** — 그 앱을 대표하는 런타임 · 프레임워크 | `frontend-next-tailwind-tanstack`처럼 늘리면 이름이 의존성 목록이 된다. 나머지는 각 폴더 README의 "예정 스택"에 |
-| 프론트는 `react`가 아니라 `next` | 이 앱의 렌더링 · 라우팅 · 프록시는 Next.js가 결정한다([프론트 01](architecture/frontend.md#01--렌더링-전략)). `react`로 쓰면 "SPA인가?"로 읽혀 서버 렌더 설계가 이름에서 사라진다. Next.js가 React 위에 있다는 것은 README 첫 줄에 적는다 |
+| 기술은 **하나만** — 그 앱을 대표하는 런타임 · 프레임워크 | `frontend-react-tailwind-tanstack`처럼 늘리면 이름이 의존성 목록이 된다. 구체적인 프레임워크와 의존성은 루트 README와 역할별 설계의 코드 지도에 |
+| 프론트는 대표 UI 기술인 `react` | React 경험을 이름에서 바로 확인하고, 서버 렌더링·라우팅·프록시를 담당하는 Next.js App Router는 루트 README와 [렌더링 설계](architecture/frontend.md#01--렌더링-전략)에 명시한다 |
 | 백엔드는 `express`가 아니라 `node` | 런타임이 무엇인지가 배포 · 운영 판단(Railway, 상시 실행)을 가른다. 프레임워크는 바뀔 수 있어도 런타임은 거의 안 바뀐다 |
 | 공유 패키지는 기술 대신 **내용** | 실행되지 않으므로 "무엇으로 돌아가는가"보다 "무엇이 들어 있나"가 중요하다 |
 | `apps/` · `packages/` 같은 한 겹을 두지 않음 | 앱이 둘, 패키지가 하나뿐이라 묶을 이유가 없고, 최상위 목록에서 역할이 바로 보여야 한다 |
 
 #### 워크스페이스
 
-루트 `package.json`의 npm workspaces로 세 폴더를 묶는다. 패키지 이름은 폴더 이름과 같게 둔다.
+루트 `package.json`의 npm workspaces로 실행·공유 패키지와 검증 패키지를 묶습니다. 실행 패키지 이름은 폴더 이름과 같고, 검증 전용 `docs`는 `@neighbo/docs`입니다.
 
 ```json
-{ "private": true, "workspaces": ["frontend-next", "backend-node", "shared-schema"] }
+{ "private": true, "workspaces": ["shared-schema", "backend-node", "frontend-react", "docs"] }
 ```
 
 ```ts
@@ -652,7 +650,7 @@ import { productCreateSchema, normalizeEmail } from 'shared-schema';
 
 ### 트레이드오프
 
-- 이름이 길다. `cd frontend-next`는 `cd web`보다 손이 더 간다.
+- 이름이 길다. `cd frontend-react`는 `cd web`보다 손이 더 간다.
 - **기술을 바꾸면 폴더 이름도 바뀐다.** 이름에 기술을 넣은 대가다. 그래서 기술 자리에는 가장 안 바뀔 것(프레임워크보다 런타임, 라이브러리보다 프레임워크)만 넣었다.
 - 앱이 셋 이상으로 늘면(관리자 화면 등) `frontend-admin-next`처럼 역할을 쪼개야 하고, 그때는 `apps/` 한 겹이 더 나을 수 있다.
 

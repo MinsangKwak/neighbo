@@ -42,6 +42,11 @@ export const SOCKET_LIMITS = {
   // 전송 한도 — 짧은 몰림(10개)은 받고 지속 속도(초당 5개)만 막는다 [AC-CH-33, T-03]
   sendBurst: 10,
   sendPerSecond: 5,
+  // 방 입장 · 읽음의 DB 조회도 사용자별로 제한하며 메시지 전송 버킷은 쓰지 않는다
+  joinBurst: 20,
+  joinPerSecond: 5,
+  readBurst: 20,
+  readPerSecond: 10,
 } as const;
 
 // setTimeout이 받는 가장 긴 시간(약 24.8일). 세션은 7일이라 닿지 않지만 넘치면 즉시 실행되므로 막아 둔다
@@ -76,6 +81,8 @@ export function createSocketHub({ httpServer, jwtSecret, log, isAllowedOrigin, i
   });
 
   const bucket = createTokenBucket(SOCKET_LIMITS.sendBurst, SOCKET_LIMITS.sendPerSecond);
+  const joinBucket = createTokenBucket(SOCKET_LIMITS.joinBurst, SOCKET_LIMITS.joinPerSecond);
+  const readBucket = createTokenBucket(SOCKET_LIMITS.readBurst, SOCKET_LIMITS.readPerSecond);
 
   // 사용자별 무효화 횟수 — 핸드셰이크가 사용자를 확인하는 사이에 비밀번호가 바뀌면 숫자가 달라진다
   const revocations = new Map<string, number>();
@@ -178,6 +185,10 @@ export function createSocketHub({ httpServer, jwtSecret, log, isAllowedOrigin, i
       socket.on('room:join', (payload, ack) => {
         const reply = replier<RoomJoinAck>(ack);
         if (!alive(socket)) return;
+        if (joinBucket.take(userId, now()) > 0) {
+          reply({ ok: false, code: 'RATE_LIMITED' });
+          return;
+        }
         const input = parse(roomJoinSchema, payload);
         if (input === null) {
           reply({ ok: false, code: 'INVALID_PAYLOAD' });
@@ -234,6 +245,10 @@ export function createSocketHub({ httpServer, jwtSecret, log, isAllowedOrigin, i
 
       socket.on('room:read', (payload) => {
         if (!alive(socket)) return;
+        if (readBucket.take(userId, now()) > 0) {
+          fail(socket, 'RATE_LIMITED');
+          return;
+        }
         const input = parse(roomReadSchema, payload);
         if (input === null) {
           fail(socket, 'INVALID_PAYLOAD');

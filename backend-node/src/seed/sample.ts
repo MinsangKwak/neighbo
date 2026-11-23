@@ -82,7 +82,12 @@ function sampleProduct(i: number): SeedProduct {
   };
   // 경계 조건 — 제목 40자, 가격 상한, 사진 0장 · 10장, 설명 없음 · 2,000자
   if (i === 7) spec.title = '캠핑 테이블과 의자 네 개 그리고 타프까지 한 번에 가져가실 분 구합니다';
-  if (i === 11) spec.price = 100_000_000;
+  // 가격 상한(1억)은 그 값이 어울리는 물건에 둔다 — 운영에서 한시로 켜면 방문자도 본다 (러닝화 1억 원은 데이터 오류로 읽힌다)
+  if (i === 11) {
+    spec.title = '그랜드 피아노 (조율 기록 있음)';
+    spec.price = 100_000_000;
+    spec.description = '10년 넘게 집에서 쳤어요. 운반은 전문 업체로 따로 불러야 해요.';
+  }
   if (i % 9 === 4) spec.photos = 0;
   if (i === 13) spec.photos = 10;
   if (i === 19) spec.description = '';

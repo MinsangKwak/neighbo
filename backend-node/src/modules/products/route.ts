@@ -20,8 +20,8 @@ import type { ProductService } from './service.js';
 interface ProductRouteDeps {
   service: ProductService;
   session: Session;
-  // 사용자 분당 30 [AC-CM-32]
-  writeLimit: RequestHandler;
+  // 쓰기 동작별 사용자 분당 30 [AC-CM-32]
+  writeLimit: (name: string) => RequestHandler;
   // 관심 켜기 · 끄기 — 사용자 분당 30
   favoriteLimit: RequestHandler;
 }
@@ -44,13 +44,13 @@ export function createProductRouter({ service, session, writeLimit, favoriteLimi
     res.json(body);
   });
 
-  router.post('/', session.requireAuth, writeLimit, async (req, res) => {
+  router.post('/', session.requireAuth, writeLimit('product-create'), async (req, res) => {
     const { product, created } = await service.create(currentUser(res), parseOrThrow(createProductSchema, req.body));
     const body: ProductResponse = { product: toProductDetail(product) };
     res.status(created ? 201 : 200).json(body);
   });
 
-  router.patch('/:id', session.requireAuth, async (req, res) => {
+  router.patch('/:id', session.requireAuth, writeLimit('product-update'), async (req, res) => {
     const product = await service.update(
       currentUser(res),
       String(req.params.id),
@@ -60,7 +60,7 @@ export function createProductRouter({ service, session, writeLimit, favoriteLimi
     res.json(body);
   });
 
-  router.patch('/:id/status', session.requireAuth, async (req, res) => {
+  router.patch('/:id/status', session.requireAuth, writeLimit('product-status'), async (req, res) => {
     const product = await service.changeStatus(
       currentUser(res),
       String(req.params.id),
@@ -70,7 +70,7 @@ export function createProductRouter({ service, session, writeLimit, favoriteLimi
     res.json(body);
   });
 
-  router.delete('/:id', session.requireAuth, async (req, res) => {
+  router.delete('/:id', session.requireAuth, writeLimit('product-delete'), async (req, res) => {
     await service.remove(currentUser(res), String(req.params.id));
     res.status(204).end();
   });

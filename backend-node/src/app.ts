@@ -1,6 +1,7 @@
 import express, { type Express } from 'express';
 import type { Config } from './config.js';
 import type { Db } from './db/client.js';
+import { createDocsRouter } from './modules/api-docs/router.js';
 import { createClientIp } from './lib/clientIp.js';
 import type { Logger } from './lib/log.js';
 import type { PasswordHasher } from './lib/password.js';
@@ -61,6 +62,7 @@ export function createApp({ config, log, db, hasher, storage, chat, realtime, pi
     await pingDb();
     res.json({ status: 'ready' });
   });
+  app.use(createDocsRouter());
 
   // ② 인증 · 기능 모듈
   const session = createSession(config, db);
@@ -110,7 +112,7 @@ export function createApp({ config, log, db, hasher, storage, chat, realtime, pi
     createProductRouter({
       service: createProductService(db, storage, realtime),
       session,
-      writeLimit: userLimit('product-create'),
+      writeLimit: userLimit,
       favoriteLimit: userLimit('favorite'),
     }),
   );

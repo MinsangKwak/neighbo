@@ -2,7 +2,19 @@
 
 [문서 목차](../README.md) · [흐름 설계](flow.md) · [프론트엔드 설계](frontend.md) · [백엔드 설계](backend.md) · 기능별 요구사항: [features/](../features/00-common.md)
 
-**프론트엔드 설계는 상품 탐색·입력·채팅 화면의 렌더링과 상태 변화를 다룹니다.** 서버 규칙을 바탕으로 캐시 갱신, 오류 안내, 포커스 이동, 연결 복구를 일곱 개 문서에 정의했습니다. 현재는 설계 단계이며 화면 코드는 구현 예정입니다.
+**React·Next.js로 구현한 상품 탐색·입력·채팅 화면의 렌더링과 상태 처리 기준입니다.** 현재 코드는 `frontend-react/src/`에 있으며, 아래 열 개 절에서 캐시·오류·폼·접근성·실시간 연결·공통 UI의 책임과 선택 이유를 설명합니다. 실제 검사 범위와 남은 확인은 [검증 현황](../overview.md#9-설계검증-현황)에 구분합니다.
+
+## 구현 코드 지도
+
+| 위치 | 책임 |
+| --- | --- |
+| [frontend-react/src/app](../../frontend-react/src/app/) | 서버 조회·권한 분기·경로별 조립, 같은 오리진 API 프록시 |
+| [components](../../frontend-react/src/components/) · [styles](../../frontend-react/src/styles/) | 공통 Field·Button·Dialog·Toast, 반응형·토큰·접근성 |
+| [features](../../frontend-react/src/features/) | auth·products·chat·me·users의 화면·통신·캐시 |
+| [lib/form](../../frontend-react/src/lib/form/) · [lib/a11y](../../frontend-react/src/lib/a11y/) | 폼 검증·첫 오류 초점·이탈 확인·경로 초점 |
+| [프론트엔드 검사](../tests/frontend-react/) | 컴포넌트·폼·연결 상태·색 조합·거래·접근성 E2E |
+
+상태의 주인은 서버 데이터(TanStack Query), 공유 선택(URL), 작성 중 값(폼), 일시 UI(공통 컴포넌트), 연결·미확정 메시지(소켓 컨텍스트)로 나눕니다. 최종 권한·저장 판단은 백엔드가 담당합니다. 실행과 환경 변수는 [개발 가이드](../dev.md#로컬-실행과-패키지별-검사)에 모았습니다.
 
 ## 이 문서의 구성
 
@@ -428,8 +440,8 @@ const form = useForm({
 | 나가는 경로 | 막는 방법 |
 | --- | --- |
 | 탭 닫기 · 새로고침 · 주소창 | `beforeunload` (브라우저 기본 확인창) |
-| 앱 안의 링크 클릭 | 내부 링크 컴포넌트가 "이탈 가드가 켜져 있으면" 이동 전에 확인 모달 |
-| 뒤로가기 | 가드가 켜질 때 `history.pushState`로 한 칸 쌓고, `popstate`에서 확인 모달 → 취소면 다시 쌓음 |
+| 앱 안의 링크 클릭 | `LeaveConfirm`이 window 캡처 단계에서 같은 오리진의 `a[href]` 클릭을 가로채 확인 모달. 헤더의 뒤로 버튼 · 새 메시지 토스트처럼 코드로 하는 이동은 `leaveGuard.request()`를 거친다 — 구현함 |
+| 뒤로가기 | 가드가 켜질 때 `history.pushState`로 한 칸 쌓고, `popstate`에서 확인 모달 → 취소면 다시 쌓음 — 아직 구현하지 않음 |
 
 **뒤로가기 가드는 구현하며 확인할 것**: App Router도 `history.pushState`에 자기 상태를 싣는다. 가드가 이력을 한 칸 더 추가하면 그 칸에는 라우터 상태가 없어, 확인 모달에서 [나가기]를 눌렀을 때 `history.go(-2)`가 맞는지 · 라우터가 그 칸을 만났을 때 다시 렌더하지 않는지가 브라우저마다 다를 수 있다. 구현 첫 단계에서 크롬 · 사파리(iOS 스와이프 뒤로가기 포함)로 확인하고, 깨지면 뒤로가기만 "모달 대신 임시 저장 후 이동"으로 낮춘다.
 
@@ -725,7 +737,7 @@ App Router는 경로 이동 후 포커스를 관리하지 않는다. 그대로 �
 
 ### 2. 디자인 토큰
 
-값은 `src/styles/globals.css`의 `@theme` 한 곳에만 두고 컴포넌트는 토큰 이름만 씁니다(Tailwind 4는 설정 파일 대신 CSS에서 토큰을 정의합니다). 기본 팔레트와 글자 크기는 비워 토큰 밖의 값을 쓸 수 없게 했고, 임의 값(`w-[137px]`)은 lint로 막습니다. 색 값은 구현 0단계에서 정했고, 아래 조건은 `src/styles/tokens.test.ts`가 토큰 조합마다 명암비를 계산해 확인합니다.
+값은 `frontend-react/src/styles/globals.css`의 `@theme` 한 곳에만 두고 컴포넌트는 토큰 이름만 씁니다(Tailwind 4는 설정 파일 대신 CSS에서 토큰을 정의합니다). 기본 팔레트와 글자 크기는 비워 토큰 밖의 값을 쓸 수 없게 했고, 임의 값(`w-[137px]`)은 lint로 막습니다. 색 값은 구현 0단계에서 정했고, 아래 조건은 [색 조합 검사](../tests/frontend-react/styles/tokens.test.ts)가 토큰 조합마다 명암비를 계산해 확인합니다.
 
 | 토큰 묶음 | 항목 | 정하는 조건 |
 | --- | --- | --- |
@@ -751,10 +763,10 @@ App Router는 경로 이동 후 포커스를 관리하지 않는다. 그대로 �
 
 ## 10 · 폴더 구조
 
-**경로(`app/`)에는 조립만 두고, 화면 조각 · 훅 · 서버 통신은 기능 폴더에 모읍니다.** 상품 규칙을 고칠 때 여는 폴더가 하나가 되게 하는 것이 기준이며, 백엔드의 [기능별 모듈 구조](backend.md#폴더-구조-예정)와 같은 이름을 씁니다.
+**경로(`app/`)에는 조립만 두고, 화면 조각 · 훅 · 서버 통신은 기능 폴더에 모읍니다.** 상품 규칙을 고칠 때 여는 폴더가 하나가 되게 하는 것이 기준이며, 백엔드의 [기능별 모듈 구조](backend.md#폴더-구조)와 같은 이름을 씁니다.
 
 ```
-frontend-next/
+frontend-react/
 └─ src/
    ├─ proxy.ts                 # 보호 경로의 1겹 검사 — 쿠키 유무만 [01]. `src/`를 쓰면 `app/`과 같은 층에 둬야 인식된다
    ├─ app/
@@ -791,4 +803,4 @@ frontend-next/
 | `serverFetch`는 서버 컴포넌트에서만, `apiFetch`는 클라이언트에서만 | 쿠키 전달 방식과 캐시 규칙이 다르다 [01] | `server-only` · `client-only` 패키지 표시 |
 | `socket.emit(` 직접 호출 금지 | 타임아웃 없는 전송 방지 [S-04](../troubleshooting.md#s-04) | ESLint 규칙 |
 | 요청 · 응답 타입은 `shared-schema/`에서만 가져온다 | 두 역할이 같은 모양을 가정 | — |
-| 테스트는 대상 파일 옆에 (`ProductCard.test.tsx`) | 고칠 때 같이 보인다 | — |
+| 테스트는 `docs/tests/frontend-react/`에서 실행 코드의 하위 계층을 유지 | 앱 코드와 검증 자료를 나누고 같은 역할 경로로 찾는다 | Vitest·Playwright 설정과 문서 링크 검사 |

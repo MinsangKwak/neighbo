@@ -36,6 +36,6 @@
 
 | 층 | 무엇을 |
 | --- | --- |
-| 백엔드 통합 | AC-UP-01 · 02 · 03 · 05 · 06 (`modules/users/users.test.ts`) |
+| 백엔드 통합 | AC-UP-01 · 02 · 03 · 05 · 06 (`docs/tests/backend-node/modules/users/users.test.ts`) |
 | 프론트 단위 | 목록 쿼리 문자열 (AC-UP-03) |
-| E2E | 상세 → 프로필 → 그 사람 물건만, 손님에게 이메일 · [마이로 가기] 없음, 거래완료 뒤 개수와 숨기기, 없는 사용자 404 (`e2e/profile.spec.ts`) |
+| E2E | 상세 → 프로필 → 그 사람 물건만, 손님에게 이메일 · [마이로 가기] 없음, 거래완료 뒤 개수와 숨기기, 없는 사용자 404 (`docs/tests/frontend-react/e2e/profile.spec.ts`) |
