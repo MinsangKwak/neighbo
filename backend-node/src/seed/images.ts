@@ -3,7 +3,7 @@ import { thumbnailKey } from '../modules/products/service.js';
 import type { ImageStorage } from '../storage/ImageStorage.js';
 
 // 시드 사진은 코드로 직접 그린다 — 다른 서비스의 상품 사진을 가져오지 않는다
-// 근거: docs/architecture/backend.md 11절 4. 시드 데이터
+// 근거: project/docs/dev/backend.md 11절 4. 시드 데이터
 
 export interface SeedImage {
   main: Buffer;

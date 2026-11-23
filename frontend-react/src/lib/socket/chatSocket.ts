@@ -10,7 +10,7 @@ import {
   type SocketErrorCode,
 } from '@neighbo/shared-schema';
 
-// 근거: docs/architecture/frontend.md 07 소켓 클라이언트
+// 근거: project/docs/dev/frontend.md 07 소켓 클라이언트
 // React를 모르는 연결 관리자 — 상태 기계 · 전송 대기열 · 복구 절차. 화면은 구독해서 그리기만 한다
 
 export type ConnectionStatus =

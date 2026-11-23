@@ -2,8 +2,8 @@
 
 /*
  * 디자인 토큰 — 값은 이 파일 한 곳에만 두고 컴포넌트는 토큰 이름만 쓴다.
- * 색을 바꾸면 docs/tests/frontend-react/styles/tokens.test.ts의 명암비 검사가 조건을 다시 확인한다.
- * 근거: docs/architecture/frontend.md 09절 2. 디자인 토큰
+ * 색을 바꾸면 project/tests/frontend-react/styles/tokens.test.ts의 명암비 검사가 조건을 다시 확인한다.
+ * 근거: project/docs/design/guide.md 09절 2. 디자인 토큰
  */
 @theme {
   /* 기본 팔레트와 글자 크기를 비워 토큰 밖의 값을 쓸 수 없게 한다 */

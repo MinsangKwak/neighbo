@@ -3,7 +3,7 @@ import { countCodePoints, countGraphemes, normalizeText } from './normalize';
 import { imageSchema, productStatusSchema } from './product';
 import { userPublicSchema } from './user';
 
-// 근거: docs/architecture/backend.md 10 API 명세 2절 공유 타입 · 6절 채팅 · 9절 소켓 이벤트
+// 근거: project/docs/planning/features/08-chat.md · project/docs/dev/backend.md 09 소켓 서버
 
 export const memberRoleSchema = z.enum(['SELLER', 'BUYER']);
 export type MemberRole = z.infer<typeof memberRoleSchema>;

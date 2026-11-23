@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // 환경 변수는 부팅할 때 한 번 검증하고, 틀리면 요청을 받기 전에 종료한다
-// 근거: docs/architecture/backend.md 11절 1. 환경 변수
+// 근거: project/docs/dev/backend.md 11절 1. 환경 변수
 
 const secret = z.string().refine((v) => Buffer.byteLength(v, 'utf8') >= 32, '32바이트 이상이어야 한다');
 

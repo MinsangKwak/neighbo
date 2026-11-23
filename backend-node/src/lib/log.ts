@@ -1,4 +1,4 @@
-// stdout에 한 줄 JSON — 근거: docs/architecture/backend.md 08절 2. 로그 형식
+// stdout에 한 줄 JSON — 근거: project/docs/dev/backend.md 08절 2. 로그 형식
 // 라이브러리 없이 시작하고, 필요해지면 pino를 결정 기록과 함께 들인다
 
 const LEVELS = { debug: 10, info: 20, warn: 30, error: 40 } as const;

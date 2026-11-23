@@ -10,7 +10,7 @@ services:
       - "5432:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
-      - ./docs/tools/postgres/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+      - ./project/tools/postgres/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U neighbo -d neighbo_dev"]
       interval: 5s

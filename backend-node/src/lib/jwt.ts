@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 
 // HS256 JWT를 표준 라이브러리로 서명 · 검증한다
 // 라이브러리를 들이지 않은 이유: 쓰는 알고리즘이 하나이고, 검증 순서를 스파이크에서 직접 확인했다
-// 근거: docs/tech-notes.md JWT와 비밀번호 해시
+// 근거: project/docs/dev/experiments.md JWT와 비밀번호 해시
 
 export type TokenPurpose = 'session' | 'socket';
 

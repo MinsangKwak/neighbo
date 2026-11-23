@@ -116,7 +116,7 @@ model JobRun {
   ranAt DateTime
 }
 
-// 관심(찜) — 한 사람이 한 상품에 한 번 (docs/features/12-favorite.md)
+// 관심(찜) — 한 사람이 한 상품에 한 번 (project/docs/planning/features/12-favorite.md)
 model Favorite {
   userId    String
   productId String

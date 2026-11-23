@@ -6,7 +6,7 @@ import type { SeedImage } from './images.js';
 import { upsertSeedProduct, type SeedProduct } from './products.js';
 
 // 데모 계정 — 고정 ID로 upsert해서 몇 번을 돌려도 같은 결과가 된다
-// 근거: docs/architecture/backend.md 11절 4. 시드 데이터 [AC-LI-19]
+// 근거: project/docs/dev/backend.md 11절 4. 시드 데이터 [AC-LI-19]
 export const DEMO_ACCOUNTS = [
   { id: 'demo_seller', email: 'demo@neighbo.app', nickname: '데모판매자', neighborhood: '마포구' },
   // 구매자는 옆 동네 — "내 동네만"을 켜면 데모 상품이 빠지는 것을 볼 수 있다

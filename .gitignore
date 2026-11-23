@@ -6,9 +6,10 @@ node_modules/
 out/
 dist/
 coverage/
+__pycache__/
 *.tsbuildinfo
 next-env.d.ts
 backend-node/src/generated/
 backend-node/.data/
-docs/tests/frontend-react/test-results/
-docs/tests/frontend-react/playwright-report/
+project/tests/frontend-react/test-results/
+project/tests/frontend-react/playwright-report/

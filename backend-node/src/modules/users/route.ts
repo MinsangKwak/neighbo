@@ -6,7 +6,7 @@ import { toUserPublic } from '../auth/serialize.js';
 import { countSelling } from '../products/counts.js';
 
 // 판매자 프로필 — 로그인 없이 볼 수 있다. 이메일과 구매 수는 내보내지 않는다 [AC-UP-01, 02]
-// 근거: docs/features/11-seller-profile.md
+// 근거: project/docs/planning/features/11-seller-profile.md
 export function createUserRouter({ db }: { db: Db }): Router {
   const router = Router();
 

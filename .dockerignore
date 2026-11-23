@@ -4,7 +4,7 @@
 **/.env.*
 !**/.env.example
 .git
-docs/**
-!docs/package.json
+project/**
+!project/package.json
 backend-node/src/generated
 backend-node/.data
