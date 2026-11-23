@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { countGraphemes, normalizeText } from './normalize';
 import { neighborhoodSchema, userPublicSchema } from './user';
 
-// 근거: docs/architecture/backend.md 10 API 명세 2절 공유 타입 · 4절 상품
+// 근거: project/docs/planning/features/04-product-create.md · project/docs/planning/features/05-product-detail.md
 
 export const productStatusSchema = z.enum(['ON_SALE', 'RESERVED', 'SOLD']);
 export type ProductStatus = z.infer<typeof productStatusSchema>;

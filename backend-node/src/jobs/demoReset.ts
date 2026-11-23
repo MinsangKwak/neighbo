@@ -5,7 +5,7 @@ import { SAMPLE_ROOMS, seedSample } from '../seed/sample.js';
 import type { ImageStorage } from '../storage/ImageStorage.js';
 
 // 데모 초기화 — 공용 계정에 앞사람이 남긴 것을 치우고 시드 상태로 되돌린다
-// 근거: docs/architecture/backend.md 11절 5. 데모 계정의 제한과 초기화 [AC-LI-19]
+// 근거: project/docs/dev/backend.md 11절 5. 데모 계정의 제한과 초기화 [AC-LI-19]
 
 export interface DemoResetResult extends Record<string, unknown> {
   // 두 데모 계정이 모두 있어야 돈다

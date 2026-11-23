@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// 동네 — 목록에서 고른다. 위치 확인(GPS · 지도)은 하지 않는다 (docs/features/13-neighborhood.md)
+// 동네 — 목록에서 고른다. 위치 확인(GPS · 지도)은 하지 않는다 (project/docs/planning/features/13-neighborhood.md)
 // 이름이 곧 값이다. 순서는 가나다
 export const NEIGHBORHOODS = [
   '강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구',

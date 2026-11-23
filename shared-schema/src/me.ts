@@ -4,7 +4,7 @@ import { normalizePassword } from './normalize';
 import { imageSchema, productCardSchema, productStatusSchema } from './product';
 import { neighborhoodSchema, userPublicSchema, userSelfSchema } from './user';
 
-// 근거: docs/architecture/backend.md 10 API 명세 7절 내 정보
+// 근거: project/docs/planning/features/09-mypage.md
 
 // GET /me — 본인용 사용자 + 탭에 보일 개수 [AC-MP-11]
 export const meCountsSchema = z.object({

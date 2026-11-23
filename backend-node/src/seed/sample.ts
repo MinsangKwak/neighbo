@@ -8,7 +8,7 @@ import { upsertSeedProduct, type SeedProduct } from './products.js';
 
 // 샘플 데이터 — 양이 많을 때와 경계 조건을 눈으로 확인한다
 // 사용자 10 · 상품 60 · 방 15 · 메시지 300. SEED_SAMPLE=1일 때만 넣는다
-// 근거: docs/architecture/backend.md 11절 4. 시드 데이터
+// 근거: project/docs/dev/backend.md 11절 4. 시드 데이터
 
 const pad = (n: number) => String(n).padStart(2, '0');
 

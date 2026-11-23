@@ -14,7 +14,7 @@ COPY package.json package-lock.json tsconfig.base.json ./
 COPY shared-schema/package.json shared-schema/
 COPY backend-node/package.json backend-node/
 COPY frontend-react/package.json frontend-react/
-COPY docs/package.json docs/
+COPY project/package.json project/
 RUN npm ci --workspace backend-node --workspace shared-schema
 
 COPY shared-schema shared-schema

@@ -9,7 +9,7 @@
     "shared-schema",
     "backend-node",
     "frontend-react",
-    "docs"
+    "project"
   ],
   "scarfSettings": {
     "enabled": false
@@ -25,13 +25,13 @@
     "dev:api": "npm run dev -w backend-node",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test -w @neighbo/docs",
+    "test": "npm run test -w @neighbo/project",
     "test:web": "npm run test -w frontend-react",
     "test:api": "npm run test -w backend-node",
     "test:shared": "npm run test -w shared-schema",
     "test:e2e": "npm run e2e -w frontend-react",
     "build": "npm run build -w frontend-react",
     "build:preview": "npm run build",
-    "check:docs": "python3 docs/tools/check-docs.py && python3 docs/tools/check-ac.py"
+    "check:docs": "python3 project/tools/check-docs.py && python3 project/tools/check-ac.py"
   }
 }

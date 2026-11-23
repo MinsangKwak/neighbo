@@ -5,7 +5,7 @@ import type { ServerConfig } from '@/lib/config';
 import { applyAppSecurityHeaders } from '@/lib/securityHeaders';
 
 // 같은 오리진 프록시 — 브라우저의 /api/* 를 백엔드로 넘긴다 [결정 0004]
-// 근거: docs/architecture/flow.md 연결 경로 · docs/troubleshooting.md T-02
+// 근거: project/docs/dev/architecture.md 연결 경로 · project/docs/dev/troubleshooting.md T-02
 
 const TIMEOUT_MS = 10_000;
 

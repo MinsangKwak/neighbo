@@ -9,8 +9,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "vitest run --config ../docs/tests/frontend-react/vitest.config.ts",
-    "e2e": "playwright test --config ../docs/tests/frontend-react/playwright.config.ts"
+    "test": "vitest run --config ../project/tests/frontend-react/vitest.config.ts",
+    "e2e": "playwright test --config ../project/tests/frontend-react/playwright.config.ts"
   },
   "dependencies": {
     "@neighbo/shared-schema": "*",

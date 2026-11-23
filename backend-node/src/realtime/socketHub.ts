@@ -20,7 +20,7 @@ import { ProductDeletedError, type ChatService } from '../modules/chat/service.j
 import type { Realtime } from './Realtime.js';
 import { createTokenBucket } from './tokenBucket.js';
 
-// 근거: docs/architecture/backend.md 09 소켓 서버
+// 근거: project/docs/dev/backend.md 09 소켓 서버
 
 interface SocketData {
   userId: string;

@@ -2,7 +2,7 @@ import 'server-only';
 import { z } from 'zod';
 
 // 서버 전용 환경 변수 — 브라우저 번들에 들어가면 안 되는 값
-// 근거: docs/architecture/backend.md 11절 1. 환경 변수
+// 근거: project/docs/dev/backend.md 11절 1. 환경 변수
 const serverEnvSchema = z.object({
   API_URL: z
     .string()

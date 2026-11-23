@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // 에러 코드 카탈로그 — 이름은 한번 정하면 바꾸지 않는다 (프론트 분기 기준)
-// 근거: docs/architecture/backend.md 06 에러 코드
+// 근거: project/docs/dev/backend.md 06 에러 코드
 export const ERROR_CATALOG = {
   VALIDATION_FAILED: { status: 400, message: '입력 내용을 확인해 주세요' },
   INVALID_CURSOR: { status: 400, message: '목록을 다시 불러올게요' },

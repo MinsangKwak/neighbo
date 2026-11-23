@@ -2,7 +2,7 @@ import type { Db } from '../db/client.js';
 import type { Logger } from '../lib/log.js';
 
 // 서버 프로세스 안의 스케줄러 — 외부 크론 없이 하루 한 번 돈다
-// 근거: docs/architecture/backend.md 07절 4. 배치 작업
+// 근거: project/docs/dev/backend.md 07절 4. 배치 작업
 
 const HOUR = 60 * 60 * 1000;
 // 한국 표준시는 UTC+9이고 일광 절약 시간이 없다

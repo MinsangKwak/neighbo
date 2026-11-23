@@ -6,7 +6,7 @@ import { SAMPLE_PRODUCTS } from '../seed/sample.js';
 import { keyFromUrl, type ImageStorage } from '../storage/ImageStorage.js';
 
 // 파일 정리 — 상품에 붙지 않은 업로드와, 지운 지 오래된 상품의 사진을 치운다
-// 근거: docs/architecture/backend.md 07절 4. 배치 작업 [AC-PC-19] [AC-PX-12]
+// 근거: project/docs/dev/backend.md 07절 4. 배치 작업 [AC-PC-19] [AC-PX-12]
 
 const HOUR = 60 * 60 * 1000;
 // 만료된 업로드는 더 붙일 수 없다. 만료 직전에 붙이기 시작한 요청과 겹치지 않게 한 시간을 더 기다린다
