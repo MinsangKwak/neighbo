@@ -269,6 +269,7 @@ Vercel은 다음 설정으로 React 앱과 공유 패키지를 함께 설치합�
 | Build Command | `npm run build` |
 | Install Command | `cd .. && npm ci --workspace frontend-react --workspace shared-schema` |
 | 루트 외부 소스 포함 | `sourceFilesOutsideRootDirectory=true` |
+| 빌드 건너뛰기 | `frontend-react/vercel.json`의 `ignoreCommand` — 앞 배포 이후 `frontend-react` · `shared-schema` · 루트 `package*.json`이 그대로면 건너뛴다. 앞 배포의 커밋이 없거나(새 브랜치의 첫 배포) 클론에 없으면 빌드한다. `git diff`가 그 경우 128로 끝나면 Vercel은 배포 실패로 처리한다 |
 
 백엔드는 저장소 루트 Dockerfile로 빌드해 `backend-node`와 `shared-schema`를 함께 사용합니다. 폴더를 바꿀 때 코드·CI뿐 아니라 플랫폼의 Root Directory도 함께 맞춥니다.
 
