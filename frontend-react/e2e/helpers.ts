@@ -1,8 +1,8 @@
-import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect, type Browser, type Page } from '@playwright/test';
 
-// 테스트에 쓰는 사진 파일
-export const fixture = (name: string) => path.join(__dirname, 'fixtures', name);
+// 테스트에 쓰는 사진 파일 — 패키지가 ESM("type": "module")이라 __dirname 대신 import.meta.url로 찾는다
+export const fixture = (name: string) => fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url));
 
 export interface Account {
   email: string;
