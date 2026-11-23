@@ -8,13 +8,14 @@ const assets = dirname(require.resolve('swagger-ui-dist/package.json'));
 
 export const DOCS_CSP = "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
+// docExpansion은 list — 'none'이면 태그가 접혀 엔드포인트가 DOM에 없고 계약이 한눈에 보이지 않는다
 export const swaggerInit = `window.addEventListener('DOMContentLoaded', function () {
   SwaggerUIBundle({
     url: '/node-openapi.json',
     dom_id: '#swagger-ui',
     deepLinking: true,
     filter: true,
-    docExpansion: 'none',
+    docExpansion: 'list',
     supportedSubmitMethods: [],
     tryItOutEnabled: false,
     validatorUrl: null,
@@ -32,8 +33,9 @@ export const swaggerInit = `window.addEventListener('DOMContentLoaded', function
   });
 });`;
 
+// Swagger UI도 info.title을 h1로 그린다 — 머리글의 h1과 겹쳐 제목이 둘이 되지 않게 Swagger 쪽 제목은 숨긴다
 const html = `<!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>neighbo · Node.js API · Swagger</title><link rel="icon" href="data:,"><link rel="stylesheet" href="/node-swagger/assets/swagger-ui.css"></head>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>neighbo · Node.js API · Swagger</title><link rel="icon" href="data:,"><link rel="stylesheet" href="/node-swagger/assets/swagger-ui.css"><style>.swagger-ui .info .title{display:none}</style></head>
 <body><header><h1>neighbo · Node.js API</h1><p>Express·TypeScript API 계약을 확인하는 읽기 전용 문서입니다. 요청 실행과 인증 정보 저장은 제공하지 않습니다.</p><a href="/node-openapi.json">OpenAPI JSON</a></header><main id="swagger-ui"></main><script src="/node-swagger/assets/swagger-ui-bundle.js" defer></script><script src="/node-swagger/assets/init.js" defer></script></body></html>`;
 
 const docsHeaders: RequestHandler = (_req, res, next) => {
